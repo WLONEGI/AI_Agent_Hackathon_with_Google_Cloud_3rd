@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>AIエージェント活用事例100｜海外スタートアップ図解</title>
+<style>
+  :root{
+    --bg:#0f1220; --card:#151a2e; --muted:#9aa3b2; --text:#e9edf4; --accent:#66e1c6;
+    --support:#4cc9f0; --sales:#f72585; --mkt:#b5179e; --ecom:#7209b7; --health:#4361ee;
+    --fin:#3a86ff; --real:#06d6a0; --hr:#ff6b6b; --devops:#ffd166; --logi:#8ac926;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#0b0e1a,#0f1220 40%,#0f1220);color:var(--text);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Noto Sans JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif}
+  header{padding:28px 20px 16px;max-width:1200px;margin:0 auto}
+  h1{margin:0;font-size:26px;letter-spacing:.2px}
+  p.lead{color:var(--muted);margin:8px 0 0;font-size:14px}
+  .refs{margin-top:8px;font-size:13px;color:var(--muted)}
+  .refs a{color:var(--accent);text-decoration:none}
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .legend .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:#1b2038;color:#c9d3e6;border:1px solid #263055}
+  .wrap{max-width:1200px;margin:8px auto 48px;padding:0 16px}
+  .grid{display:grid;grid-template-columns:repeat(1,minmax(0,1fr));gap:12px}
+  @media(min-width:680px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(min-width:1024px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  .card{background:var(--card);border:1px solid #21284a;border-radius:14px;padding:14px;position:relative;overflow:hidden}
+  .num{position:absolute;top:10px;right:12px;font-size:12px;color:#7c86a3}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 8px;border-radius:999px;background:#11152a;color:#cbd6ea;border:1px solid #293059}
+  .badge .dot{width:8px;height:8px;border-radius:50%}
+  .title{margin:8px 0 6px;font-weight:700;font-size:15px;line-height:1.3}
+  .desc{margin:0;color:#b9c3d9;font-size:13px;line-height:1.5}
+  .kpi{margin-top:8px;font-size:12px;color:#9fb2d1}
+  /* category colors */
+  .support .dot{background:var(--support)} .sales .dot{background:var(--sales)}
+  .mkt .dot{background:var(--mkt)} .ecom .dot{background:var(--ecom)}
+  .health .dot{background:var(--health)} .fin .dot{background:var(--fin)}
+  .real .dot{background:var(--real)} .hr .dot{background:var(--hr)}
+  .devops .dot{background:var(--devops)} .logi .dot{background:var(--logi)}
+  footer{max-width:1200px;margin:0 auto 40px;padding:0 16px;color:#9aa6bd;font-size:12px}
+  footer a{color:#66e1c6;text-decoration:none}
+  .note{margin-top:6px;color:#8490aa}
+  .small{font-size:11px}
+  .spacer{height:8px}
+  .muted{color:#9aa3b2}
+  .hrule{height:1px;background:#222a4a;margin:18px 0}
+  .pill.info{background:#12223a;border-color:#1e335c}
+  .inline{display:inline}
+</style>
+</head>
+<body>
+<header>
+  <h1>AIエージェント活用事例 100（海外スタートアップ）</h1>
+  <p class="lead">10カテゴリ×10事例。各カードは「ユースケースの要旨」と「期待できるKPI」を簡潔に示します。</p>
+  <div class="refs">参考: 
+    <a href="https://actionagent.ai/" target="_blank" rel="noopener">Action Agent</a> / 
+    <a href="https://agent.ai/" target="_blank" rel="noopener">Agent.ai</a> / 
+    <a href="https://www.linkedin.com/posts/hamza-alsamraee_how-we-replaced-a-100k-media-buyer-with-activity-7274804300919255040-WNoR" target="_blank" rel="noopener">Hamza Alsamraee（LinkedIn投稿）</a> / 
+    <a href="https://www.getflank.ai/" target="_blank" rel="noopener">Flank</a>
+  </div>
+  <div class="legend">
+    <span class="pill">カスタマーサポート</span>
+    <span class="pill">セールス/リード</span>
+    <span class="pill">マーケ</span>
+    <span class="pill">Eコマース</span>
+    <span class="pill">ヘルスケア</span>
+    <span class="pill">フィンテック</span>
+    <span class="pill">不動産/ホスピタリティ</span>
+    <span class="pill">人事/オペス</span>
+    <span class="pill">DevOps/IT/セキュリティ</span>
+    <span class="pill">物流/製造</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="grid">
+
+    <!-- 1-10 カスタマーサポート -->
+    <div class="card"><div class="num">01</div><div class="badge support"><span class="dot"></span>カスタマーサポート</div><div class="title">自己解決率を高める自動回答エージェント</div><p class="desc">FAQとRAGを統合し、自然文での問い合わせに即応。チャンネル横断で一貫回答。</p><div class="kpi">KPI: 自己解決率+20〜40%、応答時間-90%</div></div>
+    <div class="card"><div class="num">02</div><div class="badge support"><span class="dot"></span>カスタマーサポート</div><div class="title">未解決トピックのギャップ検知</div><p class="desc">未解決会話を自動要約し、ナレッジ不足領域を提示・ドラフト生成。</p><div class="kpi">KPI: 未解決率-25%、CSAT+8pt</div></div>
+    <div class="card"><div class="num">03</div><div class="badge support"><span class="dot"></span>カスタマーサポート</div><div class="title">マルチチャネル追従と履歴理解</div><p class="desc">メール/チャット/WhatsAppを横断追跡し、会話の文脈継承で再説明を防止。</p><div class="kpi">KPI: 再説明率-50%、FCR+15pt</div></div>
+    <div class="card"><div class="num">04</div><div class="badge support"><span class="dot"></span>カスタマーサポート</div><div class="title">SLA順守ウォッチャー</div><p class="desc">期限接近会話を自動プライオリティ化・一時回答/保留理由生成。</p><div class="kpi">KPI: SLA違反-60%</div></div>
+    <div class="card"><div class="num">05</div><div class="badge support"><span class="dot"></span>カスタマーサポート</div><div class="title">80言語対応の多言語サポート</div><p class="desc">リアルタイム翻訳＋トーン制御で現地語の自然応答を提供。</p><div class="kpi">KPI: グローバルCSAT+10pt</div></div>
+    <div class="card"><div class="num">06</div><div class="badge support"><span class="dot"></span>カスタマーサポート</div><div class="title">返品・返金プロセス自動化</div><p class="desc">注文照合→返品ラベル発行→返金承認まで自動ワークフロー連携。</p><div class="kpi">KPI: 処理時間-80%、誤処理-60%</div></div>
+    <div class="card"><div class="num">07</div><div class="badge support"><span class="dot"></span>カスタマーサポート</div><div class="title">代替提案での解約抑止</div><p class="desc">不満要因を抽出し、割引/代替機能/期間延長などを条件最適化提示。</p><div class="kpi">KPI: チャーン率-15%</div></div>
+    <div class="card"><div class="num">08</div><div class="badge support"><span class="dot"></span>カスタマーサポート</div><div class="title">感情検知→自動エスカレーション</div><p class="desc">怒り/困惑スコア高値で上級エージェントに転送し要点も同時要約。</p><div class="kpi">KPI: NPS+6pt、解決時間-30%</div></div>
+    <div class="card"><div class="num">09</div><div class="badge support"><span class="dot"></span>カスタマーサポート</div><div class="title">保守契約更新リマインダー</div><p class="desc">満了前に使用実績を踏まえた提案書と見積りを自動生成・送付。</p><div class="kpi">KPI: 更新率+12%</div></div>
+    <div class="card"><div class="num">10</div><div class="badge support"><span class="dot"></span>カスタマーサポート</div><div class="title">安全な本人確認フロー・KBA</div><p class="desc">ワンタイムリンク/知識認証/KYC API連携で安全に本人特定。</p><div class="kpi">KPI: 不正アクセス-70%</div></div>
+
+    <!-- 11-20 セールス/リード -->
+    <div class="card"><div class="num">11</div><div class="badge sales"><span class="dot"></span>セールス/リード</div><div class="title">インバウンド自動予備資格判定</div><p class="desc">BANT質問で要件/予算/決裁を抽出し、見込み度スコアリング。</p><div class="kpi">KPI: MQL→SQL転換+25%</div></div>
+    <div class="card"><div class="num">12</div><div class="badge sales"><span class="dot"></span>セールス/リード</div><div class="title">カレンダー直結の面談予約エージェント</div><p class="desc">空き枠提案/時差考慮/複数利害関係者の調整を自動実行。</p><div class="kpi">KPI: No-show-20%</div></div>
+    <div class="card"><div class="num">13</div><div class="badge sales"><span class="dot"></span>セールス/リード</div><div class="title">失注理由要約と巻き直し提案</div><p class="desc">失注会話を集計し競合/機能ギャップを抽出、巻き直しメール下書き。</p><div class="kpi">KPI: リカバリー率+8%</div></div>
+    <div class="card"><div class="num">14</div><div class="badge sales"><span class="dot"></span>セールス/リード</div><div class="title">サイト内リードキャプチャ＋パーソナライズ</div><p class="desc">閲覧行動から意図推定し、CTA/提案内容を動的に最適化。</p><div class="kpi">KPI: CVR+18%</div></div>
+    <div class="card"><div class="num">15</div><div class="badge sales"><span class="dot"></span>セールス/リード</div><div class="title">商談要点要約→CRM自動記録</div><p class="desc">議事録化と次アクション抽出、CRMに構造化保存。</p><div class="kpi">KPI: 入力時間-70%</div></div>
+    <div class="card"><div class="num">16</div><div class="badge sales"><span class="dot"></span>セールス/リード</div><div class="title">インテントスコア起点の即時フォロー</div><p class="desc">高温度行動（価格/導入ページ）検知で即フォロー文面生成。</p><div class="kpi">KPI: 応答率+30%</div></div>
+    <div class="card"><div class="num">17</div><div class="badge sales"><span class="dot"></span>セールス/リード</div><div class="title">競合比較アシスタント</div><p class="desc">競合差分を質問文脈で提示し、反論トークを自動生成。</p><div class="kpi">KPI: 競合勝率+10%</div></div>
+    <div class="card"><div class="num">18</div><div class="badge sales"><span class="dot"></span>セールス/リード</div><div class="title">見積り・提案書ドラフト自動生成</div><p class="desc">要件/ボリューム/契約形態から最適プランと価格を作成。</p><div class="kpi">KPI: 提案リードタイム-60%</div></div>
+    <div class="card"><div class="num">19</div><div class="badge sales"><span class="dot"></span>セールス/リード</div><div class="title">休眠リードのナーチャリング</div><p class="desc">過去接点を要約し、パーソナライズ再接触を自動化。</p><div class="kpi">KPI: 再開率+15%</div></div>
+    <div class="card"><div class="num">20</div><div class="badge sales"><span class="dot"></span>セールス/リード</div><div class="title">デモスケジュール後追いと資料配布</div><p class="desc">参加確認/アジェンダ送付/録画共有/QA収集を自動。</p><div class="kpi">KPI: 商談歩留まり+12%</div></div>
+
+    <!-- 21-30 マーケティング -->
+    <div class="card"><div class="num">21</div><div class="badge mkt"><span class="dot"></span>マーケ</div><div class="title">コンテンツ生成とガバナンス</div><p class="desc">ブランドトーンに沿ったブログ/LPコピーの自動生成と校正。</p><div class="kpi">KPI: 制作速度+3倍</div></div>
+    <div class="card"><div class="num">22</div><div class="badge mkt"><span class="dot"></span>マーケ</div><div class="title">SEOブリーフ自動作成</div><p class="desc">SERP/RAGで検索意図を分解し、見出し・FAQを提案。</p><div class="kpi">KPI: オーガニック流入+20%</div></div>
+    <div class="card"><div class="num">23</div><div class="badge mkt"><span class="dot"></span>マーケ</div><div class="title">ABテスト候補コピー大量生成</div><p class="desc">ユーザーセグメント別にCV最適なバリエーションを提示。</p><div class="kpi">KPI: CVR+10〜25%</div></div>
+    <div class="card"><div class="num">24</div><div class="badge mkt"><span class="dot"></span>マーケ</div><div class="title">広告運用の入札・文面最適化</div><p class="desc">学習済みパフォーマンスから自動改善サイクルを回す。</p><div class="kpi">KPI: CPA-18%</div></div>
+    <div class="card"><div class="num">25</div><div class="badge mkt"><span class="dot"></span>マーケ</div><div class="title">口コミ/レビュー解析→改善提案</div><p class="desc">不満クラスタを抽出し製品/CS改善の優先度付け。</p><div class="kpi">KPI: レビュー★+0.3</div></div>
+    <div class="card"><div class="num">26</div><div class="badge mkt"><span class="dot"></span>マーケ</div><div class="title">コミュニティ質問への自動参加</div><p class="desc">フォーラム/SlackでのFAQ解決とナレッジ化。</p><div class="kpi">KPI: 回答時間-70%</div></div>
+    <div class="card"><div class="num">27</div><div class="badge mkt"><span class="dot"></span>マーケ</div><div class="title">パーソナライズメール・配信最適</div><p class="desc">開封/クリック予測で件名/送信タイミングを最適化。</p><div class="kpi">KPI: CTR+25%</div></div>
+    <div class="card"><div class="num">28</div><div class="badge mkt"><span class="dot"></span>マーケ</div><div class="title">イベント/ウェビナー運営アシスト</div><p class="desc">登録→リマインド→リキャップ配信→アンケ収集を自動。</p><div class="kpi">KPI: 出席率+15%</div></div>
+    <div class="card"><div class="num">29</div><div class="badge mkt"><span class="dot"></span>マーケ</div><div class="title">サーベイ設計と自由記述の自動要約</div><p class="desc">設問設計→テキスト集計→示唆抽出。</p><div class="kpi">KPI: インサイト抽出時間-80%</div></div>
+    <div class="card"><div class="num">30</div><div class="badge mkt"><span class="dot"></span>マーケ</div><div class="title">UTM/計測エラー自動検知</div><p class="desc">タグ不整合や流入欠損を検知し修復案を提示。</p><div class="kpi">KPI: データ欠損-90%</div></div>
+
+    <!-- 31-40 Eコマース -->
+    <div class="card"><div class="num">31</div><div class="badge ecom"><span class="dot"></span>Eコマース</div><div class="title">商品レコメンド・コパイロット</div><p class="desc">目的/予算/好みから会話型で最適商品を提案。</p><div class="kpi">KPI: AOV+12%</div></div>
+    <div class="card"><div class="num">32</div><div class="badge ecom"><span class="dot"></span>Eコマース</div><div class="title">サイズ・フィット相談</div><p class="desc">返品履歴や体型入力を踏まえたサイズ確度の提示。</p><div class="kpi">KPI: 返品率-15%</div></div>
+    <div class="card"><div class="num">33</div><div class="badge ecom"><span class="dot"></span>Eコマース</div><div class="title">カゴ落ち回収ナッジ</div><p class="desc">離脱タイミングで質問解消と限定インセンティブ提示。</p><div class="kpi">KPI: 回収率+20%</div></div>
+    <div class="card"><div class="num">34</div><div class="badge ecom"><span class="dot"></span>Eコマース</div><div class="title">在庫・入荷アラート会話</div><p class="desc">希望条件に合わせ入荷時の自動通知と代替提案。</p><div class="kpi">KPI: 機会損失-25%</div></div>
+    <div class="card"><div class="num">35</div><div class="badge ecom"><span class="dot"></span>Eコマース</div><div class="title">定期購入の設計・変更</div><p class="desc">周期/量/一時停止など会話で柔軟に編集。</p><div class="kpi">KPI: LTV+18%</div></div>
+    <div class="card"><div class="num">36</div><div class="badge ecom"><span class="dot"></span>Eコマース</div><div class="title">配送状況と再配達調整</div><p class="desc">追跡番号照合→再配達→置き配指定を自動。</p><div class="kpi">KPI: 問合せ-30%</div></div>
+    <div class="card"><div class="num">37</div><div class="badge ecom"><span class="dot"></span>Eコマース</div><div class="title">商品Q&A自動生成</div><p class="desc">会話ログからよくある質問を抽出し商品ページに反映。</p><div class="kpi">KPI: 商品ページCVR+10%</div></div>
+    <div class="card"><div class="num">38</div><div class="badge ecom"><span class="dot"></span>Eコマース</div><div class="title">不正注文スクリーニング支援</div><p class="desc">高リスクパターンの対話的確認/KYC誘導。</p><div class="kpi">KPI: チャージバック-35%</div></div>
+    <div class="card"><div class="num">39</div><div class="badge ecom"><span class="dot"></span>Eコマース</div><div class="title">ギフト提案とメッセージ生成</div><p class="desc">相手の嗜好/予算からギフト提案とカード文面作成。</p><div class="kpi">KPI: ギフト売上+22%</div></div>
+    <div class="card"><div class="num">40</div><div class="badge ecom"><span class="dot"></span>Eコマース</div><div class="title">ユーザー生成コンテンツ促進</div><p class="desc">購入後のレビュー依頼/撮影ガイド/特典案内。</p><div class="kpi">KPI: レビュー投稿率+30%</div></div>
+
+    <!-- 41-50 ヘルスケア -->
+    <div class="card"><div class="num">41</div><div class="badge health"><span class="dot"></span>ヘルスケア</div><div class="title">症状トリアージとケア案内</div><p class="desc">緊急性判定→適切な受診/遠隔診療予約へ誘導。</p><div class="kpi">KPI: コール負荷-40%</div></div>
+    <div class="card"><div class="num">42</div><div class="badge health"><span class="dot"></span>ヘルスケア</div><div class="title">通院予約と事前問診</div><p class="desc">空き枠提示/同意書/問診票を事前収集し来院短縮。</p><div class="kpi">KPI: 来院処理時間-30%</div></div>
+    <div class="card"><div class="num">43</div><div class="badge health"><span class="dot"></span>ヘルスケア</div><div class="title">服薬アドヒアランス支援</div><p class="desc">服薬リマインド/副作用相談/再処方予約を自動化。</p><div class="kpi">KPI: 服薬順守+15pt</div></div>
+    <div class="card"><div class="num">44</div><div class="badge health"><span class="dot"></span>ヘルスケア</div><div class="title">保険適用可否の事前確認</div><p class="desc">保険プラン・自己負担見込の対話提示。</p><div class="kpi">KPI: キャンセル-12%</div></div>
+    <div class="card"><div class="num">45</div><div class="badge health"><span class="dot"></span>ヘルスケア</div><div class="title">検査結果の解説と注意点</div><p class="desc">検査値レンジの意味と次アクションのガイド。</p><div class="kpi">KPI: 再問合せ-25%</div></div>
+    <div class="card"><div class="num">46</div><div class="badge health"><span class="dot"></span>ヘルスケア</div><div class="title">メンタルヘルス一次相談</div><p class="desc">セルフチェック/緊急時ガイド/専門家予約。</p><div class="kpi">KPI: 介入までの時間-50%</div></div>
+    <div class="card"><div class="num">47</div><div class="badge health"><span class="dot"></span>ヘルスケア</div><div class="title">栄養/運動プランのパーソナライズ</div><p class="desc">目標/制約/嗜好からプラン生成と進捗フォロー。</p><div class="kpi">KPI: 継続率+20%</div></div>
+    <div class="card"><div class="num">48</div><div class="badge health"><span class="dot"></span>ヘルスケア</div><div class="title">医療請求書の説明と分割支援</div><p class="desc">項目の意味/支払い選択肢/分割申請をガイド。</p><div class="kpi">KPI: 滞納-18%</div></div>
+    <div class="card"><div class="num">49</div><div class="badge health"><span class="dot"></span>ヘルスケア</div><div class="title">予防接種・健診リマインド</div><p class="desc">対象者抽出→案内→予約→フォロー。</p><div class="kpi">KPI: 受診率+22%</div></div>
+    <div class="card"><div class="num">50</div><div class="badge health"><span class="dot"></span>ヘルスケア</div><div class="title">治療後フォローと赤旗検知</div><p class="desc">回復経過モニタリングと要受診サインの検出。</p><div class="kpi">KPI: 再入院-10%</div></div>
+
+    <!-- 51-60 フィンテック -->
+    <div class="card"><div class="num">51</div><div class="badge fin"><span class="dot"></span>フィンテック</div><div class="title">KYC/AMLオンボーディング支援</div><p class="desc">ドキュメント収集/不備指摘/再提出を会話で完了。</p><div class="kpi">KPI: 完了率+20%</div></div>
+    <div class="card"><div class="num">52</div><div class="badge fin"><span class="dot"></span>フィンテック</div><div class="title">不正検知トリアージ</div><p class="desc">異常パターンに対話で正当性確認しブロック最適化。</p><div class="kpi">KPI: 誤検知-30%</div></div>
+    <div class="card"><div class="num">53</div><div class="badge fin"><span class="dot"></span>フィンテック</div><div class="title">家計洞察と自動アドバイス</div><p class="desc">カテゴリ別支出の健全性評価と節約提案。</p><div class="kpi">KPI: 継続利用+25%</div></div>
+    <div class="card"><div class="num">54</div><div class="badge fin"><span class="dot"></span>フィンテック</div><div class="title">チャージバック準備支援</div><p class="desc">証拠収集/書式作成/期日管理を自動化。</p><div class="kpi">KPI: 勝率+12pt</div></div>
+    <div class="card"><div class="num">55</div><div class="badge fin"><span class="dot"></span>フィンテック</div><div class="title">ローン事前審査ナビ</div><p class="desc">属性収集→条件試算→必要書類案内。</p><div class="kpi">KPI: 申込完遂+18%</div></div>
+    <div class="card"><div class="num">56</div><div class="badge fin"><span class="dot"></span>フィンテック</div><div class="title">投資リバランス提案</div><p class="desc">目標リスクと乖離を検知し自動リコメンド。</p><div class="kpi">KPI: 顧客満足+10pt</div></div>
+    <div class="card"><div class="num">57</div><div class="badge fin"><span class="dot"></span>フィンテック</div><div class="title">税申告の書類整理と質問対応</div><p class="desc">領収書分類/控除候補提示/Q&A自動応答。</p><div class="kpi">KPI: 作業時間-60%</div></div>
+    <div class="card"><div class="num">58</div><div class="badge fin"><span class="dot"></span>フィンテック</div><div class="title">為替・送金アシスタント</div><p class="desc">為替動向の解説と最適タイミング案内、手数料比較。</p><div class="kpi">KPI: 送金コスト-15%、所要時間-30%</div></div>
+    <div class="card"><div class="num">59</div><div class="badge fin"><span class="dot"></span>フィンテック</div><div class="title">サブスクリプション支出最適化</div><p class="desc">重複/未利用サブスクを検知し、解約・ダウングレードを会話で完了。</p><div class="kpi">KPI: 月額支出-12%、継続率+10%</div></div>
+    <div class="card"><div class="num">60</div><div class="badge fin"><span class="dot"></span>フィンテック</div><div class="title">請求・入金回収エージェント</div><p class="desc">請求書送付、催促文面、分割交渉を自動化しDSO短縮。</p><div class="kpi">KPI: 回収率+15%、DSO-20%</div></div>
+
+    <!-- 61-70 不動産/ホスピタリティ -->
+    <div class="card"><div class="num">61</div><div class="badge real"><span class="dot"></span>不動産/ホスピタリティ</div><div class="title">物件レコメンドと内見予約</div><p class="desc">条件/沿線/予算から最適物件を提示し、内見日程を即時調整。</p><div class="kpi">KPI: 反応率+25%、成約率+10%</div></div>
+    <div class="card"><div class="num">62</div><div class="badge real"><span class="dot"></span>不動産/ホスピタリティ</div><div class="title">賃貸申込の書類収集・審査支援</div><p class="desc">必要書類の不足を自動指摘し、アップロード/再提出を会話で完了。</p><div class="kpi">KPI: 申込完遂+18%、審査リードタイム-30%</div></div>
+    <div class="card"><div class="num">63</div><div class="badge real"><span class="dot"></span>不動産/ホスピタリティ</div><div class="title">賃料/条件交渉の合意形成支援</div><p class="desc">過去事例/相場を踏まえた提案文面を生成しWin-Win合意を促進。</p><div class="kpi">KPI: 交渉時間-40%、解約-10%</div></div>
+    <div class="card"><div class="num">64</div><div class="badge real"><span class="dot"></span>不動産/ホスピタリティ</div><div class="title">入居者サポートと修繕手配</div><p class="desc">設備トラブルをトリアージし、写真収集→業者手配→進捗連絡を自動。</p><div class="kpi">KPI: 解決時間-35%、再訪問-20%</div></div>
+    <div class="card"><div class="num">65</div><div class="badge real"><span class="dot"></span>不動産/ホスピタリティ</div><div class="title">退去精算・敷金返還ガイド</div><p class="desc">原状回復範囲の説明と見積り提示、合意書ドラフト生成。</p><div class="kpi">KPI: 紛争率-25%、処理時間-50%</div></div>
+    <div class="card"><div class="num">66</div><div class="badge real"><span class="dot"></span>不動産/ホスピタリティ</div><div class="title">宿泊の予約変更/アップセル</div><p class="desc">部屋タイプ変更、延泊、特典追加を在庫/価格と連動して提案。</p><div class="kpi">KPI: ADR+8%、直販比率+12%</div></div>
+    <div class="card"><div class="num">67</div><div class="badge real"><span class="dot"></span>不動産/ホスピタリティ</div><div class="title">レビュー対応と評価改善</div><p class="desc">低評価の要因を要約し改善提案、返信テンプレを自動生成。</p><div class="kpi">KPI: 評価+0.3★、再訪率+10%</div></div>
+    <div class="card"><div class="num">68</div><div class="badge real"><span class="dot"></span>不動産/ホスピタリティ</div><div class="title">不動産投資シミュレーター</div><p class="desc">家賃/空室/金利からCF/IRRを対話で試算し戦略提案。</p><div class="kpi">KPI: 意思決定速度+2倍</div></div>
+    <div class="card"><div class="num">69</div><div class="badge real"><span class="dot"></span>不動産/ホスピタリティ</div><div class="title">物件掲載の自動コピー生成</div><p class="desc">写真/仕様から魅力的な説明文とハイライト、FAQを生成。</p><div class="kpi">KPI: 問合せ+20%、掲載工数-60%</div></div>
+    <div class="card"><div class="num">70</div><div class="badge real"><span class="dot"></span>不動産/ホスピタリティ</div><div class="title">現地案内の多言語コンシェルジュ</div><p class="desc">周辺環境/学校/交通の質問に現地語で回答。</p><div class="kpi">KPI: 海外顧客CVR+15%</div></div>
+
+    <!-- 71-80 人事/オペス -->
+    <div class="card"><div class="num">71</div><div class="badge hr"><span class="dot"></span>人事/オペス</div><div class="title">候補者スクリーニングと要約</div><p class="desc">職務要件に対する適合性を抽出し、レジュメを短く比較可能に。</p><div class="kpi">KPI: 選考時間-50%、採用品質+10%</div></div>
+    <div class="card"><div class="num">72</div><div class="badge hr"><span class="dot"></span>人事/オペス</div><div class="title">面接日程調整エージェント</div><p class="desc">面接官/候補者の空き枠を自動探索し、往復連絡を集約。</p><div class="kpi">KPI: 調整時間-70%、キャンセル-15%</div></div>
+    <div class="card"><div class="num">73</div><div class="badge hr"><span class="dot"></span>人事/オペス</div><div class="title">面接質問設計と評価フォーム</div><p class="desc">職種/レベルに応じた質問と評価基準を自動生成し偏りを低減。</p><div class="kpi">KPI: 面接一貫性+20%</div></div>
+    <div class="card"><div class="num">74</div><div class="badge hr"><span class="dot"></span>人事/オペス</div><div class="title">オンボーディング手続きガイド</div><p class="desc">アカウント発行/機材/規程同意/研修をチェックリスト化して案内。</p><div class="kpi">KPI: 立上り時間-40%</div></div>
+    <div class="card"><div class="num">75</div><div class="badge hr"><span class="dot"></span>人事/オペス</div><div class="title">社内FAQ/ポリシーコパイロット</div><p class="desc">福利厚生/経費/規程の質問に最新ポリシーで即答。</p><div class="kpi">KPI: IT/HR問い合わせ-35%</div></div>
+    <div class="card"><div class="num">76</div><div class="badge hr"><span class="dot"></span>人事/オペス</div><div class="title">勤怠/休暇申請エージェント</div><p class="desc">ポリシー準拠の可否判定と、証憑の不足指摘・補完。</p><div class="kpi">KPI: 申請不備-60%</div></div>
+    <div class="card"><div class="num">77</div><div class="badge hr"><span class="dot"></span>人事/オペス</div><div class="title">パフォーマンスレビュー支援</div><p class="desc">実績データから自己評価/一次評価のドラフトを生成。</p><div class="kpi">KPI: 作成時間-50%、納得度+10pt</div></div>
+    <div class="card"><div class="num">78</div><div class="badge hr"><span class="dot"></span>人事/オペス</div><div class="title">育成計画のパーソナライズ</div><p class="desc">スキル診断→学習計画→フォローまでを継続運用。</p><div class="kpi">KPI: スキル向上速度+30%</div></div>
+    <div class="card"><div class="num">79</div><div class="badge hr"><span class="dot"></span>人事/オペス</div><div class="title">給与/福利厚生アシスタント</div><p class="desc">給与明細の説明、税・社会保険のQ&A、選択肢比較を提供。</p><div class="kpi">KPI: HR問い合わせ-25%</div></div>
+    <div class="card"><div class="num">80</div><div class="badge hr"><span class="dot"></span>人事/オペス</div><div class="title">エンゲージメント向上アクション</div><p class="desc">サーベイの自由記述を要約し、部門別の改善アクションを提案。</p><div class="kpi">KPI: eNPS+8pt、離職-12%</div></div>
+
+    <!-- 81-90 DevOps/IT/セキュリティ -->
+    <div class="card"><div class="num">81</div><div class="badge devops"><span class="dot"></span>DevOps/IT/セキュリティ</div><div class="title">インシデント一次対応・ルンブック実行</div><p class="desc">検知→切替/スケール/ロールバックを自動支援しMTTR短縮。</p><div class="kpi">KPI: MTTR-35%、SLA順守+10pt</div></div>
+    <div class="card"><div class="num">82</div><div class="badge devops"><span class="dot"></span>DevOps/IT/セキュリティ</div><div class="title">アラート相関とノイズ抑制</div><p class="desc">重複/派生を束ね根因候補を提示、当番負荷を軽減。</p><div class="kpi">KPI: ノイズ-50%、誤検知-30%</div></div>
+    <div class="card"><div class="num">83</div><div class="badge devops"><span class="dot"></span>DevOps/IT/セキュリティ</div><div class="title">IaC/CI設定レビュー</div><p class="desc">Terraform/GitHub Actions等の設定を検査しベストプラクティス化。</p><div class="kpi">KPI: 変更失敗率-20%</div></div>
+    <div class="card"><div class="num">84</div><div class="badge devops"><span class="dot"></span>DevOps/IT/セキュリティ</div><div class="title">変更リスク説明とカナリア支援</div><p class="desc">影響範囲を要約し、段階リリース/ロールバック基準を提示。</p><div class="kpi">KPI: 障害発生-15%</div></div>
+    <div class="card"><div class="num">85</div><div class="badge devops"><span class="dot"></span>DevOps/IT/セキュリティ</div><div class="title">脆弱性トリアージと修正提案</div><p class="desc">CVE/依存関係を優先度付けし、パッチ/緩和策を提示。</p><div class="kpi">KPI: 修正リードタイム-40%</div></div>
+    <div class="card"><div class="num">86</div><div class="badge devops"><span class="dot"></span>DevOps/IT/セキュリティ</div><div class="title">権限/ロールレビュー自動化</div><p class="desc">過剰権限の検出と最小権限化の提案、承認フロー連携。</p><div class="kpi">KPI: アクセスリスク-30%</div></div>
+    <div class="card"><div class="num">87</div><div class="badge devops"><span class="dot"></span>DevOps/IT/セキュリティ</div><div class="title">社内ITヘルプデスク</div><p class="desc">アカウント/端末/ネットワークのFAQと自動手続き実行。</p><div class="kpi">KPI: 解決時間-50%、一次解決率+20pt</div></div>
+    <div class="card"><div class="num">88</div><div class="badge devops"><span class="dot"></span>DevOps/IT/セキュリティ</div><div class="title">ログクエリ生成と根因分析</div><p class="desc">SQL/KQL/正規表現を自動生成し、イベント相関を可視化。</p><div class="kpi">KPI: 分析時間-60%</div></div>
+    <div class="card"><div class="num">89</div><div class="badge devops"><span class="dot"></span>DevOps/IT/セキュリティ</div><div class="title">クラウドコスト最適化</div><p class="desc">未使用/過剰リソースを検知しRI/ASG設定の改善案。</p><div class="kpi">KPI: コスト-25%</div></div>
+    <div class="card"><div class="num">90</div><div class="badge devops"><span class="dot"></span>DevOps/IT/セキュリティ</div><div class="title">データガバナンスQ&Aと検証</div><p class="desc">PII検出/マスキング方針/保持期間の遵守チェック。</p><div class="kpi">KPI: 監査指摘-40%</div></div>
+
+    <!-- 91-100 物流/製造 -->
+    <div class="card"><div class="num">91</div><div class="badge logi"><span class="dot"></span>物流/製造</div><div class="title">需要予測→発注提案</div><p class="desc">季節性/販促/欠品履歴を加味し最適発注量を提示。</p><div class="kpi">KPI: 欠品-30%、在庫回転+15%</div></div>
+    <div class="card"><div class="num">92</div><div class="badge logi"><span class="dot"></span>物流/製造</div><div class="title">在庫再配置と補充シミュレーション</div><p class="desc">拠点間移送と補充計画を会話で検討・実行。</p><div class="kpi">KPI: 配送リードタイム-20%</div></div>
+    <div class="card"><div class="num">93</div><div class="badge logi"><span class="dot"></span>物流/製造</div><div class="title">倉庫作業指示の対話化</div><p class="desc">ピッキング順路/バッチ最適化を音声/ハンズフリーで案内。</p><div class="kpi">KPI: 生産性+18%、誤ピック-25%</div></div>
+    <div class="card"><div class="num">94</div><div class="badge logi"><span class="dot"></span>物流/製造</div><div class="title">輸送ルート最適化と例外処理</div><p class="desc">遅延/天候/規制を考慮し動的にルート再計算と通知。</p><div class="kpi">KPI: 配送コスト-12%、OTD+10pt</div></div>
+    <div class="card"><div class="num">95</div><div class="badge logi"><span class="dot"></span>物流/製造</div><div class="title">品質異常の一次解析</div><p class="desc">不良票/画像/工程ログを統合し要因候補と対策を提示。</p><div class="kpi">KPI: 不良率-20%</div></div>
+    <div class="card"><div class="num">96</div><div class="badge logi"><span class="dot"></span>物流/製造</div><div class="title">設備保全の予兆検知</div><p class="desc">振動/温度/音響から異常兆候を検知し作業指示を生成。</p><div class="kpi">KPI: ダウンタイム-30%</div></div>
+    <div class="card"><div class="num">97</div><div class="badge logi"><span class="dot"></span>物流/製造</div><div class="title">サプライヤ交渉・納期調整</div><p class="desc">発注変更/交渉文面/優先度付けを自動化し調達安定化。</p><div class="kpi">KPI: 納期遵守+12pt、在庫過多-15%</div></div>
+    <div class="card"><div class="num">98</div><div class="badge logi"><span class="dot"></span>物流/製造</div><div class="title">パッケージング最適化</div><p class="desc">破損率/容積/コストのトレードオフを最適化提案。</p><div class="kpi">KPI: 破損-20%、輸送費-8%</div></div>
+    <div class="card"><div class="num">99</div><div class="badge logi"><span class="dot"></span>物流/製造</div><div class="title">EDI/書類自動生成・照合</div><p class="desc">発注/納品/請求データの突合と差分アラート、修正案生成。</p><div class="kpi">KPI: 事務工数-60%、エラー-50%</div></div>
+    <div class="card"><div class="num">100</div><div class="badge logi"><span class="dot"></span>物流/製造</div><div class="title">サステナビリティ報告支援</div><p class="desc">スコープ排出量の集計と監査対応の証憑整理を自動化。</p><div class="kpi">KPI: 報告工数-50%、監査指摘-20%</div></div>
+
+  </div>
+</div>
+
+<footer>
+  <div class="hrule"></div>
+  <div>本ページは、海外スタートアップにおけるAIエージェント活用の代表的ユースケースをカテゴリ別に整理した図解です。参考リンクは上部に記載しています。</div>
+  <div class="note small">出典・参考: <a href="https://actionagent.ai/" target="_blank" rel="noopener">Action Agent</a> / <a href="https://agent.ai/" target="_blank" rel="noopener">Agent.ai</a> / <a href="https://www.linkedin.com/posts/hamza-alsamraee_how-we-replaced-a-100k-media-buyer-with-activity-7274804300919255040-WNoR" target="_blank" rel="noopener">LinkedIn投稿</a> / <a href="https://www.getflank.ai/" target="_blank" rel="noopener">Flank</a></div>
+</footer>
+
+</body>
+</html>
