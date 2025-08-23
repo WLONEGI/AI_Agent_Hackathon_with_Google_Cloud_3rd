@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Manga Generator</title>
+  <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- 最小限のヘッダー -->
+    <header class="minimal-header">
+      <div class="header-inner">
+        <h1 class="app-title">AI Manga</h1>
+        <button class="theme-toggle" id="theme-toggle" aria-label="テーマを切り替え">
+          <svg class="theme-icon sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5"/>
+            <line x1="12" y1="1" x2="12" y2="3"/>
+            <line x1="12" y1="21" x2="12" y2="23"/>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+            <line x1="1" y1="12" x2="3" y2="12"/>
+            <line x1="21" y1="12" x2="23" y2="12"/>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <svg class="theme-icon moon-icon active" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Claudeライク入力エリア -->
+    <main class="main-content">
+      <div class="chat-container">
+        <div class="welcome-message">
+          <h2 class="welcome-title">AIマンガ生成</h2>
+          <p class="welcome-subtitle">物語を入力すると、AIが自動的にマンガを生成します</p>
+        </div>
+        
+        <div class="input-container">
+          <form class="message-form" id="story-form">
+            <div class="input-wrapper">
+              <textarea 
+                class="message-input"
+                id="story-input"
+                placeholder="物語を入力してください..."
+                maxlength="10000"
+                rows="1"
+                required
+              ></textarea>
+              <button type="submit" class="send-button" id="generate-btn" disabled>
+                <svg class="send-icon" viewBox="0 0 24 24" fill="none">
+                  <path d="M2 21L23 12L2 3V10L17 12L2 14V21Z" fill="currentColor"/>
+                </svg>
+              </button>
+            </div>
+            <div class="input-footer">
+              <span class="char-counter">
+                <span id="char-count">0</span> / 10000
+              </span>
+            </div>
+          </form>
+        </div>
+
+        <!-- サンプル入力例（オプション） -->
+        <div class="examples-container">
+          <p class="examples-label">入力例:</p>
+          <div class="example-chips">
+            <button class="example-chip" data-example="主人公は高校生の魔法使い。ある日、謎の生物と出会い、世界を救う冒険が始まる。">
+              ファンタジー冒険
+            </button>
+            <button class="example-chip" data-example="未来都市でAIと人間が共存する世界。一人のエンジニアが、AIの意識に目覚めた瞬間を目撃する。">
+              SF近未来
+            </button>
+            <button class="example-chip" data-example="田舎町の小さなカフェ。そこで働く店員と常連客の間に生まれる、ゆっくりとした恋の物語。">
+              恋愛ストーリー
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  
+  <script src="scripts/main.js"></script>
+</body>
+</html>
