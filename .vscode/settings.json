@@ -1,0 +1,22 @@
+{
+  "python.defaultInterpreterPath": "./backend/comic-ai-env/bin/python",
+  "python.linting.enabled": true,
+  "python.linting.pylintEnabled": true,
+  "python.formatting.provider": "black",
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+  "files.associations": {
+    "*.md": "markdown"
+  },
+  "docker.defaultRegistryPath": "gcr.io/comic-ai-agent",
+  "extensions.recommendations": [
+    "ms-python.python",
+    "bradlc.vscode-tailwindcss",
+    "ms-vscode.vscode-typescript-next",
+    "ms-azuretools.vscode-docker",
+    "googlecloudtools.cloudcode"
+  ]
+}
