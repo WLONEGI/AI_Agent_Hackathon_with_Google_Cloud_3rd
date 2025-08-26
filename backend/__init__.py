@@ -1,1 +1,0 @@
-# AI Comic Generator Backend
