@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI漫画生成 - Claude Style</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- ホーム画面: Claudeスタイルチャット -->
+    <section id="home-section" class="section active">
+        <div class="chat-container">
+            <div class="chat-header">
+                <div class="logo">
+                    <i class="fas fa-palette"></i>
+                    <span>AI Manga Generator</span>
+                </div>
+            </div>
+
+            <div class="chat-content">
+                <div class="welcome-message">
+                    <div class="ai-avatar">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <h1>AI漫画生成へようこそ</h1>
+                        <p>あなたの物語を素敵な漫画に変換します。下の入力欄に物語のテキストを入力してください。</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <div class="input-wrapper">
+                    <textarea 
+                        id="story-input" 
+                        placeholder="ここに物語のテキストを入力してください..."
+                        rows="4"
+                    ></textarea>
+                    <div class="input-controls">
+                        <div class="char-counter">
+                            <span id="char-count">0</span> / 5000
+                        </div>
+                        <button id="generate-btn" class="generate-button">
+                            <i class="fas fa-arrow-right"></i>
+                            生成開始
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 処理画面: Claudeアーティファクトスタイル -->
+    <section id="processing-section" class="section">
+        <div class="artifact-container">
+            <!-- 左側: テキスト出力 -->
+            <div class="text-panel">
+                <div class="panel-header">
+                    <h3>AI処理ログ</h3>
+                    <div class="status-indicator">
+                        <span id="current-status">待機中</span>
+                        <div class="pulse-dot"></div>
+                    </div>
+                </div>
+                
+                <div class="text-output" id="text-output">
+                    <div class="log-entry system">
+                        <span class="timestamp">00:00</span>
+                        <span class="message">システム準備完了</span>
+                    </div>
+                </div>
+
+                <div class="input-area">
+                    <div class="feedback-input">
+                        <textarea 
+                            id="feedback-input" 
+                            placeholder="フィードバックを入力..."
+                            rows="2"
+                        ></textarea>
+                        <div class="input-actions">
+                            <button id="send-feedback" class="action-btn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                            <button id="skip-phase" class="action-btn secondary">
+                                <i class="fas fa-forward"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側: フェーズ別プレビューブロック -->
+            <div class="preview-panel">
+                <div class="panel-header">
+                    <h3>生成プレビュー</h3>
+                    <div class="progress-indicator">
+                        <span id="progress-text">0/7 完了</span>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-blocks" id="preview-blocks">
+                    <!-- フェーズブロックがここに動的生成される -->
+                    <div class="phase-block" data-phase="1">
+                        <div class="block-header">
+                            <div class="phase-icon">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <div class="phase-info">
+                                <h4>フェーズ 1: テキスト解析</h4>
+                                <span class="phase-status">待機中</span>
+                            </div>
+                        </div>
+                        <div class="block-content">
+                            <div class="placeholder">
+                                <i class="fas fa-clock"></i>
+                                <span>処理開始をお待ちください</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="phase-block" data-phase="2">
+                        <div class="block-header">
+                            <div class="phase-icon">
+                                <i class="fas fa-sitemap"></i>
+                            </div>
+                            <div class="phase-info">
+                                <h4>フェーズ 2: ストーリー構成</h4>
+                                <span class="phase-status">待機中</span>
+                            </div>
+                        </div>
+                        <div class="block-content">
+                            <div class="placeholder">
+                                <i class="fas fa-clock"></i>
+                                <span>処理開始をお待ちください</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="phase-block" data-phase="3">
+                        <div class="block-header">
+                            <div class="phase-icon">
+                                <i class="fas fa-film"></i>
+                            </div>
+                            <div class="phase-info">
+                                <h4>フェーズ 3: シーン分割</h4>
+                                <span class="phase-status">待機中</span>
+                            </div>
+                        </div>
+                        <div class="block-content">
+                            <div class="placeholder">
+                                <i class="fas fa-clock"></i>
+                                <span>処理開始をお待ちください</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="phase-block" data-phase="4">
+                        <div class="block-header">
+                            <div class="phase-icon">
+                                <i class="fas fa-user-friends"></i>
+                            </div>
+                            <div class="phase-info">
+                                <h4>フェーズ 4: キャラクター設計</h4>
+                                <span class="phase-status">待機中</span>
+                            </div>
+                        </div>
+                        <div class="block-content">
+                            <div class="placeholder">
+                                <i class="fas fa-clock"></i>
+                                <span>処理開始をお待ちください</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="phase-block" data-phase="5">
+                        <div class="block-header">
+                            <div class="phase-icon">
+                                <i class="fas fa-th-large"></i>
+                            </div>
+                            <div class="phase-info">
+                                <h4>フェーズ 5: コマ割り設計</h4>
+                                <span class="phase-status">待機中</span>
+                            </div>
+                        </div>
+                        <div class="block-content">
+                            <div class="placeholder">
+                                <i class="fas fa-clock"></i>
+                                <span>処理開始をお待ちください</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="phase-block" data-phase="6">
+                        <div class="block-header">
+                            <div class="phase-icon">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div class="phase-info">
+                                <h4>フェーズ 6: 画像生成</h4>
+                                <span class="phase-status">待機中</span>
+                            </div>
+                        </div>
+                        <div class="block-content">
+                            <div class="placeholder">
+                                <i class="fas fa-clock"></i>
+                                <span>処理開始をお待ちください</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="phase-block" data-phase="7">
+                        <div class="block-header">
+                            <div class="phase-icon">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div class="phase-info">
+                                <h4>フェーズ 7: 最終統合</h4>
+                                <span class="phase-status">待機中</span>
+                            </div>
+                        </div>
+                        <div class="block-content">
+                            <div class="placeholder">
+                                <i class="fas fa-clock"></i>
+                                <span>処理開始をお待ちください</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 完成モーダル -->
+        <div id="completion-modal" class="modal">
+            <div class="modal-content">
+                <div class="completion-header">
+                    <i class="fas fa-check-circle success-icon"></i>
+                    <h2>漫画が完成しました！</h2>
+                </div>
+                <div class="completion-actions">
+                    <button id="download-pdf" class="action-btn primary">
+                        <i class="fas fa-download"></i>
+                        PDFダウンロード
+                    </button>
+                    <button id="view-result" class="action-btn">
+                        <i class="fas fa-eye"></i>
+                        結果を表示
+                    </button>
+                    <button id="new-generation" class="action-btn secondary">
+                        <i class="fas fa-plus"></i>
+                        新規作成
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- JavaScript -->
+    <script src="scripts/mockData.js"></script>
+    <script src="scripts/phaseProcessor.js"></script>
+    <script src="scripts/uiController.js"></script>
+    <script src="scripts/app.js"></script>
+</body>
+</html>
