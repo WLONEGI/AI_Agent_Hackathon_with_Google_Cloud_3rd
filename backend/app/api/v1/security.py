@@ -47,8 +47,8 @@ async def get_current_user(
         # Decode JWT token
         payload = jwt.decode(
             credentials.credentials,
-            settings.security.jwt_secret_key,
-            algorithms=[settings.security.jwt_algorithm]
+            settings.secret_key,
+            algorithms=[settings.jwt_algorithm]
         )
         
         user_id: str = payload.get("sub")
@@ -175,3 +175,46 @@ class Permissions:
     
     ANALYTICS_VIEW = "analytics:view"
     SYSTEM_ADMIN = "system:admin"
+
+
+def create_access_token(data: dict, expires_delta_minutes: int = None) -> str:
+    """Create JWT access token."""
+    to_encode = data.copy()
+    
+    if expires_delta_minutes:
+        expire = datetime.utcnow() + timedelta(minutes=expires_delta_minutes)
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+    
+    to_encode.update({"exp": expire})
+    
+    encoded_jwt = jwt.encode(
+        to_encode, 
+        settings.secret_key, 
+        algorithm=settings.jwt_algorithm
+    )
+    
+    return encoded_jwt
+
+
+def verify_token(token: str) -> dict:
+    """Verify and decode JWT token."""
+    try:
+        payload = jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=[settings.jwt_algorithm]
+        )
+        return payload
+    except jwt.InvalidTokenError:
+        raise AuthenticationError("Invalid token")
+
+
+def create_jwt_token(data: dict, expires_delta_minutes: int = None) -> str:
+    """Alias for create_access_token for compatibility."""
+    return create_access_token(data, expires_delta_minutes)
+
+
+def verify_jwt_token(token: str) -> dict:
+    """Alias for verify_token for compatibility."""
+    return verify_token(token)

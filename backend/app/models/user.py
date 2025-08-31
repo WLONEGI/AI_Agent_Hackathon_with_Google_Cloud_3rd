@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 from uuid import uuid4
-from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, JSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -21,7 +21,7 @@ class User(Base):
     # Authentication fields
     email = Column(String(255), unique=True, nullable=False, index=True)
     username = Column(String(100), unique=True, nullable=False, index=True)
-    hashed_password = Column(String(255), nullable=False)
+    hashed_password = Column(String(255), nullable=True)  # Nullable for OAuth users
     
     # Profile fields
     display_name = Column(String(255), nullable=True)
@@ -35,6 +35,11 @@ class User(Base):
     
     # Role and permissions
     role = Column(String(50), default="user")  # user, premium, admin
+    
+    # Firebase integration fields
+    firebase_claims = Column(JSON, nullable=True)
+    account_type = Column(String(50), default="free")  # free, premium, admin
+    provider = Column(String(50), default="google")  # google, email
     
     # Usage limits
     daily_generation_limit = Column(Integer, default=5)
@@ -56,9 +61,9 @@ class User(Base):
     @property
     def can_generate(self) -> bool:
         """Check if user can generate manga based on limits."""
-        if self.role == "admin":
+        if self.account_type == "admin" or self.role == "admin":
             return True
-        if self.is_premium:
+        if self.account_type == "premium" or self.is_premium:
             return self.daily_generations_used < 50  # Premium limit
         return self.daily_generations_used < self.daily_generation_limit
     

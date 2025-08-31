@@ -543,20 +543,85 @@ function convertElementsToData(elements: EditableElement[], phaseId: PhaseId): a
   const data: any = {};
   
   switch (phaseId) {
-    case 1:
+    case 1: // コンセプト・世界観
       const themeEl = elements.find(el => el.id === 'theme');
       const worldEl = elements.find(el => el.id === 'worldSetting');
       if (themeEl) data.theme = themeEl.content;
       if (worldEl) data.worldSetting = worldEl.content;
       break;
       
-    case 2:
+    case 2: // キャラクター設定
       data.characters = elements
         .filter(el => el.type === 'character')
+        .sort((a, b) => a.position.x - b.position.x)
         .map(el => el.content);
       break;
       
-    // ... 他のフェーズも同様に実装
+    case 3: // プロット構成
+      const act1El = elements.find(el => el.id === 'act1');
+      const act2El = elements.find(el => el.id === 'act2');
+      const act3El = elements.find(el => el.id === 'act3');
+      if (act1El) data.act1 = act1El.content;
+      if (act2El) data.act2 = act2El.content;
+      if (act3El) data.act3 = act3El.content;
+      break;
+      
+    case 4: // ネーム生成
+      const panels = elements
+        .filter(el => el.type === 'panel')
+        .sort((a, b) => {
+          const [aPage, aPanel] = a.id.split('-').slice(1).map(Number);
+          const [bPage, bPanel] = b.id.split('-').slice(1).map(Number);
+          return aPage !== bPage ? aPage - bPage : aPanel - bPanel;
+        });
+      
+      const pages: any[] = [];
+      panels.forEach(panel => {
+        const [pageIndex] = panel.id.split('-').slice(1).map(Number);
+        if (!pages[pageIndex]) {
+          pages[pageIndex] = { panels: [] };
+        }
+        pages[pageIndex].panels.push(panel.content);
+      });
+      data.pages = pages.filter(Boolean);
+      break;
+      
+    case 5: // 画像生成
+      data.images = elements
+        .filter(el => el.type === 'image')
+        .sort((a, b) => {
+          const aIndex = parseInt(a.id.split('-')[1]);
+          const bIndex = parseInt(b.id.split('-')[1]);
+          return aIndex - bIndex;
+        })
+        .map(el => el.content);
+      break;
+      
+    case 6: // セリフ配置
+      data.dialogues = elements
+        .filter(el => el.type === 'text' && el.id.startsWith('dialogue-'))
+        .sort((a, b) => {
+          const aIndex = parseInt(a.id.split('-')[1]);
+          const bIndex = parseInt(b.id.split('-')[1]);
+          return aIndex - bIndex;
+        })
+        .map(el => ({
+          text: el.content,
+          position: el.position,
+          size: el.size
+        }));
+      break;
+      
+    case 7: // 最終統合
+      // 全要素の位置とサイズ情報を保存
+      data.layout = elements.map(el => ({
+        id: el.id,
+        type: el.type,
+        position: el.position,
+        size: el.size,
+        content: el.content
+      }));
+      break;
   }
   
   return data;

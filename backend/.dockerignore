@@ -1,0 +1,75 @@
+# Development files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+tests/temp_files/
+tests/compliance_report_*.html
+tests/compliance_report_*.json
+
+# Documentation and analysis
+claudedocs/
+docs/
+CQRS_Implementation_Guide.md
+README.md
+
+# Development tools
+.git/
+.gitignore
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs
+*.log
+logs/
+
+# Runtime
+*.pid
+*.seed
+*.pid.lock
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+manga_service.db
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Development scripts
+scripts/integrate_agents.py
+simple_api_server.py
+
+# Migration files (handled by alembic)
+migrations/

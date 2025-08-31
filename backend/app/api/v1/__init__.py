@@ -10,6 +10,7 @@ from .websocket_endpoints import router as websocket_router
 from .feedback import router as feedback_router
 from .quality_gates import router as quality_gates_router
 from .preview_interactive import router as preview_interactive_router
+from .auth import router as auth_router
 from .security import get_current_active_user
 from app.core.config import settings
 
@@ -17,6 +18,13 @@ from app.core.config import settings
 api_router = APIRouter(prefix="/v1")
 
 # Include all sub-routers with proper prefixes
+
+# Authentication API (public endpoints - no auth required)
+api_router.include_router(
+    auth_router,
+    prefix="",
+    tags=["authentication"]
+)
 
 # Manga Generation API (design document compliant paths)
 # NOTE: Order matters - specific paths must come before generic paths

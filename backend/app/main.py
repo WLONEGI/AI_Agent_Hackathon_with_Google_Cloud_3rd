@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.core.database import init_db, close_db
 from app.core.redis_client import redis_manager
 from app.core.logging import setup_logging
+from app.core.firebase import initialize_firebase
 from app.api import manga, health
 from app.api.v1 import api_router as api_v1_router, websocket_router_v1
 from app.api.v1.error_handlers import (
@@ -43,6 +44,16 @@ async def lifespan(app: FastAPI):
     # Initialize database
     await init_db()
     logger.info("Database initialized")
+    
+    # Initialize Firebase
+    firebase_initialized = initialize_firebase(
+        settings.firebase_project_id,
+        settings.firebase_credentials_path
+    )
+    if firebase_initialized:
+        logger.info("Firebase initialized successfully")
+    else:
+        logger.warning("Firebase initialization failed - authentication may not work properly")
     
     # Connect to Redis
     await redis_manager.connect()

@@ -23,27 +23,65 @@ http://localhost:3000 でアクセス可能
 ## 📁 プロジェクト構造
 
 ```
-src/
-├── app/                    # Next.js App Router
-│   ├── page.tsx           # ホーム画面（Claude-style chat UI）
-│   ├── processing/        # 処理画面（7フェーズHITL UI）
-│   ├── layout.tsx         # ルートレイアウト
-│   └── globals.css        # グローバルCSS（Genspark-style）
+frontend/
+├── src/                        # ソースコード
+│   ├── app/                   # Next.js App Router
+│   │   ├── (auth)/           # 認証関連ページ
+│   │   ├── processing/       # 処理画面（7フェーズHITL UI）
+│   │   ├── results/          # 結果画面
+│   │   ├── layout.tsx        # ルートレイアウト
+│   │   ├── page.tsx          # ホーム画面（Claude-style chat UI）
+│   │   └── globals.css       # グローバルCSS（Genspark-style）
+│   │
+│   ├── components/            # UIコンポーネント
+│   │   ├── ui/              # 基本UIコンポーネント
+│   │   │   ├── button.tsx   # ボタンコンポーネント
+│   │   │   ├── card.tsx     # カードコンポーネント
+│   │   │   └── loading.tsx  # ローディングコンポーネント
+│   │   ├── features/        # 機能別コンポーネント
+│   │   │   ├── auth/        # 認証関連（GoogleLoginButton等）
+│   │   │   ├── chat/        # チャット機能（ChatFeedback等）
+│   │   │   ├── phase/       # フェーズ処理（InteractiveEditor等）
+│   │   │   ├── quality/     # 品質調整（QualityAdjuster等）
+│   │   │   └── version/     # バージョン管理（VersionManager等）
+│   │   └── layout/          # レイアウトコンポーネント
+│   │
+│   ├── stores/               # Zustand状態管理
+│   │   ├── useProcessingStore.ts  # 処理状態管理
+│   │   └── useAuthStore.ts       # 認証状態管理
+│   │
+│   ├── types/                # TypeScript型定義
+│   │   └── processing.ts     # 処理関連の型定義
+│   │
+│   ├── hooks/                # カスタムフック
+│   │   └── useWebSocket.ts   # WebSocketカスタムフック
+│   │
+│   └── lib/                  # ユーティリティ
+│       ├── utils.ts          # 共通ユーティリティ関数
+│       └── websocket.ts      # WebSocket管理クラス
 │
-├── components/            # UIコンポーネント
-│   ├── ui/               # 基本UIコンポーネント
-│   │   ├── button.tsx    # ボタンコンポーネント
-│   │   └── card.tsx      # カードコンポーネント
-│   └── features/         # 機能別コンポーネント（今後追加）
+├── tests/                     # テストコード
+│   ├── unit/                 # ユニットテスト
+│   │   └── app/             # アプリケーションテスト
+│   ├── integration/          # 統合テスト
+│   └── e2e/                  # E2Eテスト
+│       ├── auth/            # 認証関連E2E
+│       └── manga-generation/ # 漫画生成E2E
 │
-├── stores/               # Zustand状態管理
-│   └── useProcessingStore.ts  # 処理状態管理
+├── test-artifacts/            # テスト成果物
+│   ├── screenshots/          # スクリーンショット
+│   ├── reports/              # テストレポート
+│   └── coverage/             # カバレッジレポート
 │
-├── types/                # TypeScript型定義
-│   └── processing.ts     # 処理関連の型定義
+├── docs/                      # ドキュメント
+│   ├── development/          # 開発ドキュメント
+│   ├── implementation/       # 実装記録
+│   └── analysis/             # 分析レポート
 │
-└── lib/                  # ユーティリティ
-    └── utils.ts          # 共通ユーティリティ関数
+├── mock/                      # モック・プロトタイプ
+│   └── html/                 # HTMLプロトタイプ
+│
+└── public/                    # 静的ファイル
 ```
 
 ## 🎨 実装済み機能
@@ -53,6 +91,14 @@ src/
 - **Genspark風デザインシステム**: CSS Variables、ダークテーマ
 - **ホーム画面**: Claude-styleチャットUI、テキスト入力、文字数カウント
 - **処理画面**: 7フェーズプレビュー、リアルタイムログ、フィードバック機能
+
+### Phase 4: HITL & 高度機能 ✅
+- **HITL フィードバックシステム**: 30秒タイムアウト（設計書準拠）
+- **WebSocket通信**: 自動再接続、ヘルスチェック機能付き
+- **インタラクティブ編集**: ドラッグ&ドロップ、Undo/Redo機能
+- **バージョン管理**: Git風の分岐・タグ付け機能
+- **品質レベル自動調整**: デバイス性能に基づく5段階調整
+- **Google認証UI**: ログインボタン、ユーザーメニュー（モック実装）
 
 ## 🔄 7フェーズ処理システム
 

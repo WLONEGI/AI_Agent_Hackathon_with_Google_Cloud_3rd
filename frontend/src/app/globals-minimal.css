@@ -1,0 +1,206 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Minimal Design System */
+:root {
+  /* Pure monochrome palette */
+  --black: 0 0 0;
+  --white: 255 255 255;
+  
+  /* Minimal color scale */
+  --gray-950: 10 10 10;    /* #0a0a0a */
+  --gray-900: 15 15 15;    /* #0f0f0f */
+  --gray-850: 17 17 17;    /* #111111 */
+  --gray-800: 20 20 20;    /* #141414 */
+  --gray-700: 30 30 30;    /* #1e1e1e */
+  --gray-600: 40 40 40;    /* #282828 */
+  --gray-500: 60 60 60;    /* #3c3c3c */
+  --gray-400: 80 80 80;    /* #505050 */
+  --gray-300: 100 100 100; /* #646464 */
+  --gray-200: 120 120 120; /* #787878 */
+  --gray-100: 140 140 140; /* #8c8c8c */
+  
+  /* Minimal accent */
+  --accent-primary: 255 255 255;  /* Pure white for accents */
+  --accent-secondary: 0 0 0;      /* Pure black for contrast */
+  
+  /* Status colors - Muted */
+  --status-success: 34 197 94;    /* #22c55e - muted green */
+  --status-error: 239 68 68;      /* #ef4444 - muted red */
+  --status-info: 59 130 246;      /* #3b82f6 - muted blue */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 
+               'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
+               'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: rgb(var(--white));
+  background: rgb(var(--gray-950));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+/* Minimal Animations */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-minimal {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s ease-out;
+}
+
+.animate-pulse-minimal {
+  animation: pulse-minimal 2s ease-in-out infinite;
+}
+
+/* Remove all scrollbar styling for ultra-minimal look */
+::-webkit-scrollbar {
+  display: none;
+}
+
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Minimal focus states */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.2);
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgb(var(--white));
+}
+
+/* Placeholders */
+::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  opacity: 1;
+}
+
+/* Minimal transitions */
+* {
+  transition-property: opacity, transform, border-color, background-color, color;
+  transition-duration: 200ms;
+  transition-timing-function: ease-out;
+}
+
+/* Remove default button styles */
+button {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+/* Remove default input styles */
+input,
+textarea {
+  background: none;
+  border: none;
+  color: inherit;
+  font: inherit;
+}
+
+/* Minimal hover effects */
+@media (hover: hover) {
+  a:hover,
+  button:hover {
+    opacity: 0.8;
+  }
+}
+
+/* Ultra-minimal utility classes */
+.opacity-0 { opacity: 0; }
+.opacity-10 { opacity: 0.1; }
+.opacity-20 { opacity: 0.2; }
+.opacity-30 { opacity: 0.3; }
+.opacity-40 { opacity: 0.4; }
+.opacity-50 { opacity: 0.5; }
+.opacity-60 { opacity: 0.6; }
+.opacity-70 { opacity: 0.7; }
+.opacity-80 { opacity: 0.8; }
+.opacity-90 { opacity: 0.9; }
+.opacity-100 { opacity: 1; }
+
+/* Minimal spacing scale */
+.p-0 { padding: 0; }
+.p-1 { padding: 0.25rem; }
+.p-2 { padding: 0.5rem; }
+.p-3 { padding: 0.75rem; }
+.p-4 { padding: 1rem; }
+.p-6 { padding: 1.5rem; }
+.p-8 { padding: 2rem; }
+
+/* Text sizes */
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+
+/* Font weights */
+.font-normal { font-weight: 400; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+
+/* Minimal borders */
+.border-none { border: none; }
+.border-thin { border: 1px solid rgba(255, 255, 255, 0.05); }
+.border-light { border: 1px solid rgba(255, 255, 255, 0.1); }
+.border-medium { border: 1px solid rgba(255, 255, 255, 0.2); }

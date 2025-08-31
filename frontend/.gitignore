@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# test artifacts
+/test-artifacts/
+*.png
+*.jpg
+*.jpeg
+test-report*.html
+coverage/
+.last-run.json

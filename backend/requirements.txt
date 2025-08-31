@@ -16,16 +16,19 @@ redis==5.0.1
 aioredis==2.0.1
 
 # Google Cloud & AI
-google-cloud-aiplatform==1.40.0
-google-cloud-storage==2.14.0
-google-cloud-secretmanager==2.18.1
-vertexai==1.40.0
+google-cloud-aiplatform>=1.40.0
+google-cloud-storage>=2.14.0
+google-cloud-secret-manager>=2.18.0
+vertexai>=1.40.0
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-decouple==3.8
 cryptography==41.0.7
+firebase-admin==6.4.0
+google-auth==2.27.0
+google-cloud-firestore>=2.14.0
 
 # WebSocket
 python-socketio==5.11.0

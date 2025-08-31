@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     google_application_credentials: Optional[str] = Field(None, env="GOOGLE_APPLICATION_CREDENTIALS")
     vertexai_location: str = Field("asia-northeast1", env="VERTEXAI_LOCATION")
     
+    # Firebase Authentication
+    firebase_project_id: str = Field(..., env="FIREBASE_PROJECT_ID")
+    firebase_credentials_path: Optional[str] = Field(None, env="FIREBASE_CREDENTIALS_PATH")
+    firebase_credentials_json: Optional[str] = Field(None, env="FIREBASE_CREDENTIALS_JSON")
+    
     # AI Models
     gemini_model: str = Field("gemini-1.5-pro", env="GEMINI_MODEL")
     imagen_model: str = Field("imagen-4", env="IMAGEN_MODEL")

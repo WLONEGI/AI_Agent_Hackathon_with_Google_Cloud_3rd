@@ -21,7 +21,9 @@ class TestDataFactory:
         email: str = None,
         username: str = None,
         is_active: bool = True,
-        is_superuser: bool = False
+        role: str = "user",
+        account_type: str = "free",
+        provider: str = "email"
     ) -> User:
         """Create a test user."""
         return User(
@@ -30,7 +32,9 @@ class TestDataFactory:
             username=username or f"user_{uuid4().hex[:8]}",
             hashed_password="$2b$12$test_hashed_password",
             is_active=is_active,
-            is_superuser=is_superuser,
+            role=role,
+            account_type=account_type,
+            provider=provider,
             created_at=datetime.utcnow()
         )
     

@@ -92,6 +92,8 @@ async def test_user(db_session: AsyncSession) -> User:
         username="testuser",
         hashed_password="test-password-hash",
         is_active=True,
+        account_type="free",
+        provider="email",
         created_at=datetime.utcnow()
     )
     
@@ -111,7 +113,9 @@ async def admin_user(db_session: AsyncSession) -> User:
         username="admin",
         hashed_password="admin-password-hash",
         is_active=True,
-        is_superuser=True,
+        role="admin",
+        account_type="admin",
+        provider="email",
         created_at=datetime.utcnow()
     )
     
