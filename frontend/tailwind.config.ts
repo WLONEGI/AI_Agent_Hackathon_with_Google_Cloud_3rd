@@ -8,6 +8,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        'sans': ['var(--font-roboto)', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        'roboto': ['var(--font-roboto)', 'sans-serif'],
+      },
       colors: {
         // Using CSS variables for theming
         background: {

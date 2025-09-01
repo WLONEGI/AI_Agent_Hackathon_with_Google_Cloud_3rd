@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.core.database import get_db
 from app.models.user import User
+from app.services.url_service import url_service
 from app.api.v1.security import get_current_active_user, check_api_limit
 
 router = APIRouter()
@@ -143,8 +144,14 @@ async def submit_feedback(
     Requires: manga:feedback permission + ownership
     """
     
-    # TODO: Implement actual session validation and ownership check
-    # For now, return mock data structure compliant with design document
+    # Validate session exists and user has ownership
+    from app.models.manga import MangaSession
+    session = await db.get(MangaSession, request_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     # Generate feedback ID
     feedback_id = uuid4()
@@ -225,8 +232,14 @@ async def get_phase_preview(
             detail="Invalid phase number. Must be 1-7."
         )
     
-    # TODO: Implement actual session validation and ownership check
-    # For now, return mock data structure compliant with design document
+    # Validate session exists and user has ownership
+    from app.models.manga import MangaSession
+    session = await db.get(MangaSession, request_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
     
     # Phase-specific content
     phase_names = {
@@ -268,8 +281,7 @@ async def get_phase_preview(
         phase_name=phase_names.get(phase_number, f"phase_{phase_number}"),
         content=content,
         preview_urls=PreviewUrls(
-            thumbnail=f"https://storage.googleapis.com/manga-previews/{request_id}_phase_{phase_number}_thumb.webp",
-            structure_diagram=f"https://storage.googleapis.com/manga-previews/{request_id}_phase_{phase_number}_diagram.png"
+            **url_service.construct_preview_urls(request_id, phase_number)
         ),
         modification_options=ModificationOptions(
             quick_options=[
@@ -298,8 +310,17 @@ async def get_modification_status(
     Requires: manga:read permission + ownership
     """
     
-    # TODO: Implement actual modification status retrieval
-    # For now, return mock data structure compliant with design document
+    # Validate session exists and user has ownership
+    from app.models.manga import MangaSession
+    session = await db.get(MangaSession, request_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Get feedback modification status from database/cache
+    # This would integrate with the actual feedback processing system
     
     return ModificationStatusResponse(
         feedback_id=feedback_id,
@@ -309,7 +330,7 @@ async def get_modification_status(
             AppliedModification(
                 type="mood_adjustment",
                 status="completed", 
-                result_preview=f"https://storage.googleapis.com/manga-modifications/{feedback_id}_mood_preview.webp"
+                result_preview=url_service.construct_feedback_urls(str(feedback_id))["result_preview"]
             )
         ],
         estimated_completion=(datetime.utcnow().replace(minute=datetime.utcnow().minute + 5)).isoformat() + "Z",
@@ -339,8 +360,23 @@ async def skip_feedback(
             detail="Invalid phase number. Must be 1-7."
         )
     
-    # TODO: Implement actual session validation and skip logic
-    # For now, return mock data structure compliant with design document
+    # Validate session exists and user has ownership
+    from app.models.manga import MangaSession
+    session = await db.get(MangaSession, request_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Validate session is in appropriate state for skipping
+    if session.current_phase != request.phase:
+        raise HTTPException(status_code=400, detail="Session not in requested phase")
+    
+    # Update session to skip feedback and proceed
+    session.current_phase = min(request.phase + 1, 7)
+    session.updated_at = datetime.utcnow()
+    await db.commit()
     
     next_phase = min(request.phase + 1, 7)
     

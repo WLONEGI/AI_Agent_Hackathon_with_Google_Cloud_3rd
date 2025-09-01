@@ -78,10 +78,6 @@ resource "google_cloud_run_v2_service" "manga_service" {
         }
       }
 
-      env {
-        name = "GOOGLE_APPLICATION_CREDENTIALS"
-        value = "/app/service-account.json"
-      }
 
       env {
         name  = "GOOGLE_CLOUD_PROJECT"
@@ -98,10 +94,10 @@ resource "google_cloud_run_v2_service" "manga_service" {
           path = "/health"
           port = var.container_port
         }
-        initial_delay_seconds = 30
-        timeout_seconds       = 10
-        period_seconds        = 15
-        failure_threshold     = 5
+        initial_delay_seconds = 180
+        timeout_seconds       = 30
+        period_seconds        = 30
+        failure_threshold     = 15
       }
 
       liveness_probe {
@@ -109,10 +105,10 @@ resource "google_cloud_run_v2_service" "manga_service" {
           path = "/health"
           port = var.container_port
         }
-        initial_delay_seconds = 30
-        timeout_seconds       = 5
+        initial_delay_seconds = 150
+        timeout_seconds       = 15
         period_seconds        = 30
-        failure_threshold     = 3
+        failure_threshold     = 5
       }
     }
 

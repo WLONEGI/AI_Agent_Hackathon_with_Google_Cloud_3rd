@@ -117,7 +117,25 @@ async def websocket_session_endpoint(
         })
         
         # Verify user has access to this session
-        # TODO: Check session ownership
+        from app.models.manga import MangaSession
+        session = await db.get(MangaSession, session_id)
+        if not session:
+            await websocket.send_json({
+                "type": "error",
+                "code": "SESSION_NOT_FOUND",
+                "message": "Session not found"
+            })
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+            
+        if session.user_id != user.id:
+            await websocket.send_json({
+                "type": "error", 
+                "code": "ACCESS_DENIED",
+                "message": "Session access denied"
+            })
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
         
         # Handle the connection
         await websocket_service.handle_connection(

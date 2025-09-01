@@ -165,6 +165,41 @@ module "cloud_run" {
   allow_unauthenticated  = var.allow_unauthenticated
 }
 
+# CDN Module for Global Image Delivery (Dev)
+module "cdn" {
+  source = "../../modules/cdn"
+
+  project_id                = var.project_id
+  region                   = var.region
+  environment              = local.environment
+  
+  # Storage buckets
+  preview_bucket_name      = module.storage.bucket_names.preview_cache
+  images_bucket_name       = module.storage.bucket_names.output_images
+  final_products_bucket_name = module.storage.bucket_names.final_products
+  
+  # Domain configuration (dev uses IP)
+  custom_domain           = ""  # Dev environment uses IP
+  dns_zone_name          = ""
+  
+  # CDN performance settings (reduced for dev)
+  cache_ttl_seconds       = 1800   # 30 minutes for dev
+  max_cache_ttl_seconds   = 7200   # 2 hours for dev
+  enable_compression      = true
+  
+  # Security settings (relaxed for dev)
+  enable_cloud_armor      = false  # Disabled for dev
+  rate_limit_requests_per_minute = 500  # Higher limit for dev testing
+  allowed_origins         = var.cors_origins
+  
+  # Performance optimization
+  enable_http2           = true
+  enable_cdn_logging     = false  # Disabled for dev
+  log_sample_rate       = 0.0
+
+  depends_on = [module.storage]
+}
+
 # Development secrets
 resource "google_secret_manager_secret" "dev_secrets" {
   for_each = var.application_secrets

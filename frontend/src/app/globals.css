@@ -5,10 +5,10 @@
 @layer base {
   :root {
     /* Ultra-Minimal Monochrome Palette */
-    --bg-primary: 10 10 10;        /* #0a0a0a - pure black */
-    --bg-secondary: 15 15 15;      /* #0f0f0f - subtle elevation */
-    --bg-tertiary: 17 17 17;       /* #111111 - minimal contrast */
-    --bg-accent: 20 20 20;         /* #141414 - hover states */
+    --bg-primary: 26 26 26;        /* #1a1a1a - very dark gray */
+    --bg-secondary: 45 45 45;      /* #2d2d2d - dark gray for input */
+    --bg-tertiary: 50 50 50;       /* #323232 - minimal contrast */
+    --bg-accent: 55 55 55;         /* #373737 - hover states */
     
     /* Minimal Text Hierarchy */
     --text-primary: 255 255 255;   /* #ffffff - pure white */
@@ -59,11 +59,13 @@
 @layer base {
   body {
     @apply bg-[rgb(var(--bg-primary))] text-[rgb(var(--text-primary))];
+    font-family: var(--font-roboto), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
+    font-family: var(--font-roboto), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   
   h1 {

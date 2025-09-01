@@ -256,6 +256,41 @@ module "cloud_run" {
   custom_domain          = var.custom_domain
 }
 
+# CDN Module for Global Image Delivery
+module "cdn" {
+  source = "../../modules/cdn"
+
+  project_id                = var.project_id
+  region                   = var.region
+  environment              = local.environment
+  
+  # Storage buckets
+  preview_bucket_name      = module.storage.bucket_names.preview_cache
+  images_bucket_name       = module.storage.bucket_names.output_images
+  final_products_bucket_name = module.storage.bucket_names.final_products
+  
+  # Domain configuration
+  custom_domain           = var.cdn_custom_domain
+  dns_zone_name          = var.dns_zone_name
+  
+  # CDN performance settings
+  cache_ttl_seconds       = var.cdn_cache_ttl
+  max_cache_ttl_seconds   = var.cdn_max_cache_ttl
+  enable_compression      = var.cdn_enable_compression
+  
+  # Security settings
+  enable_cloud_armor      = var.cdn_enable_cloud_armor
+  rate_limit_requests_per_minute = var.cdn_rate_limit_rpm
+  allowed_origins         = var.cors_origins
+  
+  # Performance optimization
+  enable_http2           = true
+  enable_cdn_logging     = var.cdn_enable_logging
+  log_sample_rate       = var.cdn_log_sample_rate
+
+  depends_on = [module.storage]
+}
+
 # Secret Manager secrets
 resource "google_secret_manager_secret" "manga_secret_key" {
   project   = var.project_id

@@ -77,3 +77,30 @@ output "redis_url" {
   value       = "redis://${google_redis_instance.manga_redis.host}:${google_redis_instance.manga_redis.port}/0"
   sensitive   = true
 }
+
+# CDN Outputs
+output "cdn_global_ip" {
+  description = "CDN global IP address"
+  value       = module.cdn.global_ip_address
+}
+
+output "cdn_domain" {
+  description = "CDN domain for image delivery"
+  value       = module.cdn.cdn_domain
+}
+
+output "preview_cdn_url" {
+  description = "CDN URL for preview content"
+  value       = module.cdn.preview_cdn_url
+}
+
+output "images_cdn_url" {
+  description = "CDN URL for output images"
+  value       = module.cdn.images_cdn_url
+}
+
+output "cdn_configuration" {
+  description = "CDN configuration summary"
+  value       = module.cdn.cdn_configuration
+  sensitive   = false
+}

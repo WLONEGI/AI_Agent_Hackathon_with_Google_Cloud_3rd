@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func
 from typing import Dict, Any, List, Optional
 from uuid import UUID
 from datetime import datetime
@@ -9,6 +10,8 @@ from pydantic import BaseModel, Field
 
 from app.core.database import get_db
 from app.models.user import User
+from app.models.manga import MangaSession
+from app.services.url_service import url_service
 from app.api.v1.security import (
     get_current_active_user,
     check_api_limit,
@@ -104,32 +107,65 @@ async def list_manga_works(
     Requires: manga:read permission
     """
     
-    # TODO: Implement actual database query
-    # For now, return mock data structure compliant with design document
+    # Build database query with filters
+    query = select(MangaSession).where(MangaSession.user_id == current_user.id)
+    
+    # Apply status filter
+    if status != "all":
+        query = query.where(MangaSession.status == status)
+    
+    # Apply sorting
+    if sort == "created_at":
+        order_col = MangaSession.created_at
+    elif sort == "updated_at":
+        order_col = MangaSession.updated_at
+    elif sort == "title":
+        order_col = MangaSession.title
+    else:
+        order_col = MangaSession.created_at
+    
+    if order == "desc":
+        query = query.order_by(order_col.desc())
+    else:
+        query = query.order_by(order_col.asc())
+    
+    # Get total count for pagination
+    count_query = select(func.count(MangaSession.id)).where(MangaSession.user_id == current_user.id)
+    if status != "all":
+        count_query = count_query.where(MangaSession.status == status)
+    
+    total_items_result = await db.execute(count_query)
+    total_items = total_items_result.scalar()
     
     # Calculate pagination
-    total_items = 100  # Mock total
     total_pages = (total_items + limit - 1) // limit
     has_next = page < total_pages
     has_previous = page > 1
     
-    # Mock data - replace with actual database query
-    mock_items = []
-    for i in range(min(limit, total_items - (page - 1) * limit)):
-        mock_items.append(MangaWorkItemResponse(
-            manga_id=UUID(f"550e8400-e29b-41d4-a716-44665544{i:04d}"),
-            title=f"Manga Work {i + (page - 1) * limit + 1}",
-            status="completed",
-            pages=20,
-            style="anime",
-            created_at=datetime.utcnow().isoformat() + "Z",
-            updated_at=datetime.utcnow().isoformat() + "Z",
-            thumbnail_url=f"https://storage.googleapis.com/manga-thumbs/thumb_{i}.webp",
-            size_bytes=10485760
+    # Apply pagination
+    query = query.limit(limit).offset((page - 1) * limit)
+    
+    # Execute query
+    result = await db.execute(query)
+    sessions = result.scalars().all()
+    
+    # Convert to response format
+    items = []
+    for session in sessions:
+        items.append(MangaWorkItemResponse(
+            manga_id=session.id,
+            title=session.title or f"Manga Work {session.id}",
+            status=session.status,
+            pages=session.total_phases or 20,
+            style=getattr(session, 'style', 'anime'),
+            created_at=session.created_at.isoformat() + "Z",
+            updated_at=session.updated_at.isoformat() + "Z",
+            thumbnail_url=url_service.get_thumbnail_url(f"thumb_{session.id}.webp"),
+            size_bytes=getattr(session, 'file_size', 10485760)
         ))
     
     return MangaWorksListResponse(
-        items=mock_items,
+        items=items,
         pagination=PaginationResponse(
             page=page,
             limit=limit,
@@ -155,35 +191,36 @@ async def get_manga_work_detail(
     Requires: manga:read permission + ownership
     """
     
-    # TODO: Implement actual database query and ownership check
-    # For now, return mock data structure compliant with design document
+    # Get session from database with ownership check
+    session = await db.get(MangaSession, manga_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Manga not found")
     
-    # Mock ownership check - replace with actual database query
-    # session = await get_session_by_id_and_user(manga_id, current_user.id, db)
-    # if not session:
-    #     raise HTTPException(status_code=404, detail="Manga not found")
+    # Check ownership
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    
+    # Calculate metadata from session data
+    processing_time = 0
+    if session.started_at and session.completed_at:
+        processing_time = int((session.completed_at - session.started_at).total_seconds())
     
     return MangaWorkDetailResponse(
         manga_id=manga_id,
-        title="My Awesome Manga",
-        status="completed",
+        title=session.title or "Untitled Manga",
+        status=session.status,
         metadata=MangaWorkMetadata(
-            pages=20,
-            style="anime",
-            characters_count=3,
-            word_count=5000,
-            processing_time_seconds=480
+            pages=session.total_phases or 20,
+            style=getattr(session, 'style', 'anime'),
+            characters_count=getattr(session, 'character_count', 3),
+            word_count=getattr(session, 'word_count', 5000),
+            processing_time_seconds=processing_time
         ),
         files=MangaWorkFiles(
-            pdf_url=f"https://storage.googleapis.com/manga-files/{manga_id}.pdf?signed=true",
-            webp_urls=[
-                f"https://storage.googleapis.com/manga-pages/{manga_id}_page_{i}.webp"
-                for i in range(1, 21)
-            ],
-            thumbnail_url=f"https://storage.googleapis.com/manga-thumbs/{manga_id}_thumb.webp"
+            **url_service.construct_manga_files_urls(manga_id)
         ),
-        created_at=datetime.utcnow().isoformat() + "Z",
-        updated_at=datetime.utcnow().isoformat() + "Z",
+        created_at=session.created_at.isoformat() + "Z",
+        updated_at=session.updated_at.isoformat() + "Z",
         expires_at=(datetime.utcnow().replace(year=datetime.utcnow().year + 1)).isoformat() + "Z"
     )
 
@@ -203,32 +240,48 @@ async def update_manga_work(
     Requires: manga:update permission + ownership
     """
     
-    # TODO: Implement actual database query and ownership check
-    # For now, return mock data structure compliant with design document
+    # Get session from database with ownership check
+    session = await db.get(MangaSession, manga_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Manga not found")
     
-    # Mock ownership check - replace with actual database query
-    # session = await get_session_by_id_and_user(manga_id, current_user.id, db)
-    # if not session:
-    #     raise HTTPException(status_code=404, detail="Manga not found")
+    # Check ownership
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
     
-    # Determine which fields were updated
+    # Determine which fields to update
     updated_fields = []
+    
     if request.title is not None:
+        session.title = request.title
         updated_fields.append("title")
+    
     if request.description is not None:
+        session.description = request.description
         updated_fields.append("description")
+    
     if request.tags:
+        # Store tags as JSON if session has tags field
+        if hasattr(session, 'tags'):
+            session.tags = request.tags
         updated_fields.append("tags")
+    
     if request.visibility != "private":
+        # Store visibility if session has visibility field
+        if hasattr(session, 'visibility'):
+            session.visibility = request.visibility
         updated_fields.append("visibility")
     
-    # TODO: Implement actual database update
-    # await update_manga_work_in_db(manga_id, request, db)
+    # Update timestamp
+    session.updated_at = datetime.utcnow()
+    
+    # Commit changes
+    await db.commit()
     
     return MangaWorkUpdateResponse(
         manga_id=manga_id,
         updated_fields=updated_fields,
-        updated_at=datetime.utcnow().isoformat() + "Z"
+        updated_at=session.updated_at.isoformat() + "Z"
     )
 
 
@@ -246,19 +299,21 @@ async def delete_manga_work(
     Requires: manga:delete permission + ownership
     """
     
-    # TODO: Implement actual database query and ownership check
-    # For now, return mock response compliant with design document
+    # Get session from database with ownership check
+    session = await db.get(MangaSession, manga_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="Manga not found")
     
-    # Mock ownership check - replace with actual database query
-    # session = await get_session_by_id_and_user(manga_id, current_user.id, db)
-    # if not session:
-    #     raise HTTPException(status_code=404, detail="Manga not found")
+    # Check ownership
+    if session.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
     
-    # TODO: Implement actual deletion
-    # - Delete from database
-    # - Delete files from storage
-    # - Clean up related resources
-    # await delete_manga_work_from_db(manga_id, db)
+    # Delete from database
+    await db.delete(session)
+    await db.commit()
+    
+    # TODO: Clean up related files from storage
+    # This would require integration with Google Cloud Storage
     # await delete_manga_files_from_storage(manga_id)
     
-    # Return 204 No Content (no body) as per design document
+    # Return 204 No Content as per design document

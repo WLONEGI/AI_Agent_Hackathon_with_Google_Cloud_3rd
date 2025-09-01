@@ -5,6 +5,13 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { checkSessionStatus, submitFeedback } from '@/lib/api';
 import { useWebSocket } from '@/lib/websocket';
+import PhasePreview from '@/components/PhasePreview';
+
+interface PreviewData {
+  type: string;
+  content: any;
+  timestamp?: number;
+}
 
 interface Phase {
   id: number;
@@ -12,23 +19,24 @@ interface Phase {
   status: 'pending' | 'processing' | 'completed' | 'waiting_feedback';
   progress: number;
   canProvideHitl: boolean;
+  preview?: PreviewData;
 }
 
 export default function Processing() {
   const router = useRouter();
   const [sessionId, setSessionId] = useState<string>('');
   const [phases, setPhases] = useState<Phase[]>([
-    { id: 1, name: 'テキスト分析', status: 'pending', progress: 0, canProvideHitl: false },
-    { id: 2, name: 'プロット構成', status: 'pending', progress: 0, canProvideHitl: false },
-    { id: 3, name: 'キャラクターデザイン', status: 'pending', progress: 0, canProvideHitl: false },
-    { id: 4, name: '背景・構図設計', status: 'pending', progress: 0, canProvideHitl: false },
-    { id: 5, name: 'セリフ・ナレーション', status: 'pending', progress: 0, canProvideHitl: false },
-    { id: 6, name: '画像生成', status: 'pending', progress: 0, canProvideHitl: false },
-    { id: 7, name: '最終レイアウト', status: 'pending', progress: 0, canProvideHitl: false },
+    { id: 1, name: 'コンセプト・世界観分析', status: 'pending', progress: 0, canProvideHitl: false },
+    { id: 2, name: 'キャラクター設定', status: 'pending', progress: 0, canProvideHitl: false },
+    { id: 3, name: 'プロット・ストーリー構成', status: 'pending', progress: 0, canProvideHitl: false },
+    { id: 4, name: 'ネーム生成', status: 'pending', progress: 0, canProvideHitl: false },
+    { id: 5, name: 'シーン画像生成', status: 'pending', progress: 0, canProvideHitl: false },
+    { id: 6, name: 'セリフ配置', status: 'pending', progress: 0, canProvideHitl: false },
+    { id: 7, name: '最終統合・品質調整', status: 'pending', progress: 0, canProvideHitl: false },
   ]);
   const [logs, setLogs] = useState<string[]>([]);
   const [currentPhase, setCurrentPhase] = useState(1);
-  const [feedbackTimer, setFeedbackTimer] = useState<number | null>(null);
+  const [canProvideFeedback, setCanProvideFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
@@ -77,9 +85,11 @@ export default function Processing() {
     } else if (data.type === 'log') {
       addLog(data.message);
     } else if (data.type === 'feedback_request') {
-      startFeedbackTimer(data.phase);
+      enableFeedback(data.phase);
     } else if (data.type === 'generation_complete') {
       setIsCompleted(true);
+    } else if (data.type === 'preview_update') {
+      updatePhasePreview(data.phase, data.preview);
     }
   };
 
@@ -103,18 +113,20 @@ export default function Processing() {
     setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
   };
 
-  const startFeedbackTimer = (phaseId: number) => {
-    setFeedbackTimer(30);
-    const interval = setInterval(() => {
-      setFeedbackTimer(prev => {
-        if (prev && prev > 1) {
-          return prev - 1;
-        } else {
-          clearInterval(interval);
-          return null;
-        }
-      });
-    }, 1000);
+  const enableFeedback = (phaseId: number) => {
+    setCanProvideFeedback(true);
+    setPhases(prev => prev.map(p => 
+      p.id === phaseId ? { ...p, canProvideHitl: true, status: 'waiting_feedback' } : p
+    ));
+  };
+
+  const updatePhasePreview = (phaseId: number, previewData: any) => {
+    setPhases(prev => prev.map(p => 
+      p.id === phaseId 
+        ? { ...p, preview: { type: 'phase_preview', content: previewData, timestamp: Date.now() } }
+        : p
+    ));
+    addLog(`Phase ${phaseId} プレビュー更新`);
   };
 
   const handleFeedbackSubmit = async () => {
@@ -123,8 +135,12 @@ export default function Processing() {
     try {
       await submitFeedback(sessionId, currentPhase, feedbackText);
       setFeedbackText('');
-      setFeedbackTimer(null);
+      setCanProvideFeedback(false);
       addLog(`フィードバックを送信しました: ${feedbackText}`);
+      
+      setPhases(prev => prev.map(p => 
+        p.id === currentPhase ? { ...p, status: 'processing', canProvideHitl: false } : p
+      ));
     } catch (error) {
       console.error('Feedback submission failed:', error);
     }
@@ -140,7 +156,12 @@ export default function Processing() {
           </h1>
           <div className="flex items-center gap-4">
             {isConnected && (
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500/50 animate-pulse" />
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[14px] text-green-500/50 animate-pulse">
+                  wifi
+                </span>
+                <span className="text-[10px] text-white/40">接続中</span>
+              </div>
             )}
           </div>
         </div>
@@ -172,6 +193,18 @@ export default function Processing() {
         {/* Right Panel - Phases */}
         <div className="w-1/2 flex flex-col">
           <div className="flex-1 overflow-y-auto p-6">
+            {/* Preview Section for Current Phase */}
+            {currentPhase && phases[currentPhase - 1]?.status === 'processing' && (
+              <div className="mb-6">
+                <PhasePreview 
+                  phaseId={currentPhase}
+                  phaseName={phases[currentPhase - 1].name}
+                  preview={phases[currentPhase - 1].preview}
+                />
+              </div>
+            )}
+            
+            {/* Phase Progress List */}
             <div className="space-y-3">
               {phases.map((phase) => (
                 <div
@@ -190,6 +223,23 @@ export default function Processing() {
                   {/* Phase Info */}
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-3">
+                      {/* Status Icon */}
+                      <span className={`
+                        material-symbols-outlined text-[18px]
+                        ${phase.status === 'completed' 
+                          ? 'text-green-500/60' 
+                          : phase.status === 'processing'
+                          ? 'text-blue-500/60 animate-spin'
+                          : phase.status === 'waiting_feedback'
+                          ? 'text-yellow-500/60'
+                          : 'text-white/20'
+                        }
+                      `}>
+                        {phase.status === 'completed' ? 'check_circle' :
+                         phase.status === 'processing' ? 'progress_activity' :
+                         phase.status === 'waiting_feedback' ? 'feedback' :
+                         'radio_button_unchecked'}
+                      </span>
                       <span className="text-[10px] font-mono text-white/40">
                         {String(phase.id).padStart(2, '0')}
                       </span>
@@ -225,45 +275,69 @@ export default function Processing() {
             </div>
           </div>
 
-          {/* Feedback Section */}
-          {feedbackTimer && (
-            <div className="border-t border-white/5 p-6">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-xs text-white/60">
-                  フィードバック可能
-                </span>
-                <span className="text-2xl font-mono font-bold text-white/80">
-                  {feedbackTimer}
-                </span>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={feedbackText}
-                  onChange={(e) => setFeedbackText(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleFeedbackSubmit()}
-                  placeholder="フィードバックを入力..."
-                  className="
-                    flex-1 px-3 py-2
-                    bg-[#0f0f0f] border border-white/10
-                    text-sm text-white/90 placeholder:text-white/30
-                    outline-none focus:border-white/20
-                    transition-colors
-                  "
-                />
+          {/* HITL Input Section (Claude Style) */}
+          <div className="border-t border-white/5 p-4">
+            <div className={`
+              relative bg-[#2d2d2d] 
+              rounded-xl border transition-all duration-300
+              ${canProvideFeedback 
+                ? 'border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.05)]' 
+                : 'border-white/10 opacity-50'
+              }
+            `}>
+              <textarea
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && e.metaKey && handleFeedbackSubmit()}
+                placeholder={canProvideFeedback ? "フィードバックを入力..." : "フェーズ完了を待機中..."}
+                disabled={!canProvideFeedback}
+                className="
+                  w-full px-4 py-3 pr-12 pb-10
+                  bg-transparent text-white/90
+                  placeholder:text-white/30
+                  resize-none outline-none
+                  min-h-[80px] max-h-[120px]
+                  text-sm leading-relaxed
+                  font-['Roboto',_-apple-system,_BlinkMacSystemFont,_'Segoe_UI',_sans-serif]
+                "
+              />
+              
+              {/* Bottom Bar */}
+              <div className="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-between">
+                {feedbackText.length > 0 && (
+                  <span className="text-[10px] font-mono text-white/30">
+                    {feedbackText.length}/500
+                  </span>
+                )}
+                {feedbackText.length === 0 && canProvideFeedback && (
+                  <span className="text-[10px] text-white/20">
+                    フィードバックを入力してください
+                  </span>
+                )}
+                {!canProvideFeedback && (
+                  <span className="text-[10px] text-white/20">
+                    待機中
+                  </span>
+                )}
+                
                 <button
                   onClick={handleFeedbackSubmit}
-                  className="
-                    px-4 py-2
-                    text-xs font-medium text-white/60
-                    hover:text-white/90 transition-colors
-                  "
+                  disabled={!canProvideFeedback || feedbackText.length === 0}
+                  className={`
+                    p-1.5 rounded-md transition-all duration-300
+                    ${feedbackText.length > 0 && canProvideFeedback
+                      ? 'bg-white/90 hover:bg-white text-[#2d2d2d] cursor-pointer' 
+                      : 'bg-white/5 text-white/20 cursor-not-allowed'
+                    }
+                  `}
                 >
-                  送信
+                  <span className="material-symbols-outlined text-[18px]">
+                    send
+                  </span>
                 </button>
               </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
@@ -273,13 +347,16 @@ export default function Processing() {
           <button
             onClick={() => router.push('/result')}
             className="
-              px-6 py-3
+              px-6 py-3 flex items-center gap-2
               bg-white/10 hover:bg-white/15
               text-sm font-medium text-white/90
               border border-white/20
               transition-all duration-300
             "
           >
+            <span className="material-symbols-outlined text-[20px]">
+              visibility
+            </span>
             結果を表示
           </button>
         </div>

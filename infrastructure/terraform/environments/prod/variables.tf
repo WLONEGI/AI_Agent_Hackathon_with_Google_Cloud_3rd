@@ -112,6 +112,61 @@ variable "cors_origins" {
   default     = ["https://*.manga-service.com"]
 }
 
+# CDN Configuration
+variable "cdn_custom_domain" {
+  description = "Custom domain for CDN (optional)"
+  type        = string
+  default     = ""
+}
+
+variable "dns_zone_name" {
+  description = "Cloud DNS zone name for domain management"
+  type        = string
+  default     = ""
+}
+
+variable "cdn_cache_ttl" {
+  description = "CDN default cache TTL in seconds"
+  type        = number
+  default     = 3600  # 1 hour
+}
+
+variable "cdn_max_cache_ttl" {
+  description = "CDN maximum cache TTL in seconds"
+  type        = number
+  default     = 86400  # 24 hours
+}
+
+variable "cdn_enable_compression" {
+  description = "Enable CDN compression"
+  type        = bool
+  default     = true
+}
+
+variable "cdn_enable_cloud_armor" {
+  description = "Enable Cloud Armor security policy"
+  type        = bool
+  default     = true
+}
+
+variable "cdn_rate_limit_rpm" {
+  description = "CDN rate limit requests per minute per IP"
+  type        = number
+  default     = 100
+}
+
+variable "cdn_enable_logging" {
+  description = "Enable CDN access logging"
+  type        = bool
+  default     = true
+}
+
+variable "cdn_log_sample_rate" {
+  description = "CDN log sampling rate (0.0-1.0)"
+  type        = number
+  default     = 0.1
+}
+
 # Application Secrets
 variable "manga_secret_key" {
   description = "Secret key for the manga application"

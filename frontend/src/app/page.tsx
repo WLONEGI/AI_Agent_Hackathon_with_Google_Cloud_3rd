@@ -62,16 +62,17 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col relative overflow-hidden">
+    <div className="min-h-screen bg-[#1a1a1a] flex flex-col relative overflow-hidden">
       {/* Service Logo with Glow Effect */}
       <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-40">
         <div className="relative">
-          {/* Glow Effect */}
-          <div className="absolute inset-0 rounded-full bg-white/5 blur-3xl scale-150 animate-pulse-slow"></div>
-          <div className="absolute inset-0 rounded-full bg-white/3 blur-2xl scale-125"></div>
+          {/* Narrow and Strong White Glow Effect */}
+          <div className="absolute inset-0 rounded-full bg-white/40 blur-[30px] scale-110 animate-pulse-slow"></div>
+          <div className="absolute inset-0 rounded-full bg-white/30 blur-[20px] scale-105"></div>
+          <div className="absolute inset-0 rounded-full bg-white/20 blur-[10px] scale-100"></div>
           
           {/* Logo */}
-          <div className="relative w-24 h-24 md:w-32 md:h-32">
+          <div className="relative w-24 h-24 md:w-32 md:h-32 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">
             <svg width="100%" height="100%" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
               <circle cx="100" cy="100" r="96" fill="#1a1a1a" fillOpacity="0.8"/>
               <g className="animate-pulse-subtle">
@@ -94,10 +95,10 @@ export default function Home() {
       </div>
 
       {/* Minimal Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-[#1a1a1a]/90 backdrop-blur-sm">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <h1 className="text-sm font-medium text-white/80">
-            AI Manga Generator
+            Spell
           </h1>
           {!isAuthenticated && (
             <button className="text-xs text-white/60 hover:text-white/80 transition-colors">
@@ -114,13 +115,16 @@ export default function Home() {
             relative transition-all duration-500
             ${isFocused ? 'scale-[1.01]' : 'scale-100'}
           `}>
+            {/* Outer Glow Effect for Input */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-white/10 to-white/5 rounded-2xl blur-xl opacity-50"></div>
+            
             {/* Input Container - Claude Style */}
             <div className={`
-              relative bg-[#1a1a1a] 
+              relative bg-[#2d2d2d] 
               rounded-2xl border transition-all duration-300
               ${isFocused 
-                ? 'border-white/20 shadow-2xl shadow-black/50' 
-                : 'border-white/10 hover:border-white/15'
+                ? 'border-white/30 shadow-[0_0_40px_rgba(255,255,255,0.15)]' 
+                : 'border-white/10 hover:border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.05)]'
               }
             `}>
               <textarea
@@ -138,7 +142,7 @@ export default function Home() {
                   resize-none outline-none
                   min-h-[120px] max-h-[400px]
                   text-base leading-relaxed
-                  font-['Inter',_-apple-system,_BlinkMacSystemFont,_'Segoe_UI',_sans-serif]
+                  font-['Roboto',_-apple-system,_BlinkMacSystemFont,_'Segoe_UI',_sans-serif]
                 "
                 autoFocus
               />
@@ -163,28 +167,29 @@ export default function Home() {
                   </span>
                 )}
 
-                {/* Send Button */}
+                {/* Send Button with Color Inversion */}
                 <button
                   onClick={handleGenerate}
                   disabled={isGenerating || storyText.length < 10}
                   className={`
                     p-2 rounded-lg transition-all duration-300
-                    ${storyText.length >= 10 && !isGenerating
-                      ? 'bg-white/10 hover:bg-white/20 text-white/90 cursor-pointer' 
-                      : 'bg-white/5 text-white/20 cursor-not-allowed'
+                    ${storyText.length > 0
+                      ? 'bg-white/90 hover:bg-white text-[#2d2d2d] cursor-pointer' 
+                      : 'bg-white/5 text-white/20 cursor-not-allowed hover:bg-white/5'
                     }
+                    ${isGenerating ? 'cursor-wait' : ''}
+                    ${storyText.length > 0 && storyText.length < 10 ? 'opacity-50 cursor-not-allowed' : ''}
                   `}
                   aria-label="Send"
                 >
                   {isGenerating ? (
-                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <span className="material-symbols-outlined text-[20px] animate-spin">
+                      progress_activity
+                    </span>
                   ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                    </svg>
+                    <span className={`material-symbols-outlined text-[20px] ${storyText.length > 0 ? '' : 'opacity-50'}`}>
+                      send
+                    </span>
                   )}
                 </button>
               </div>

@@ -18,6 +18,7 @@ from app.services.cache_service import CacheService
 from app.services.websocket_service import WebSocketService
 from app.schemas.pipeline_schemas import HITLFeedback
 from app.core.config import settings
+from app.api.v1.security import get_current_active_user, check_generation_limit
 
 router = APIRouter()
 
@@ -68,15 +69,16 @@ async def start_generation(
     request: MangaGenerationRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    # current_user: User = Depends(get_current_user)  # TODO: Implement auth
+    current_user: User = Depends(check_generation_limit)
 ) -> StreamingResponse:
     """Start a new manga generation session with streaming response."""
     
-    # TODO: Check user limits
-    # if not current_user.can_generate:
-    #     raise HTTPException(400, "Daily generation limit reached")
+    # Check user generation limits
+    current_user.reset_daily_limit_if_needed()
+    if not current_user.can_generate:
+        raise HTTPException(400, "Daily generation limit reached")
     
-    user_id = "00000000-0000-0000-0000-000000000000"  # Placeholder
+    user_id = str(current_user.id)
     session_id = str(uuid4())
     
     async def generate_stream() -> AsyncIterator[str]:
@@ -107,14 +109,14 @@ async def list_sessions(
     limit: int = Query(10, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db),
-    # current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ) -> List[MangaSessionResponse]:
     """List user's manga generation sessions."""
     
     query = select(MangaSession).order_by(MangaSession.created_at.desc())
     
-    # TODO: Filter by current user
-    # query = query.where(MangaSession.user_id == current_user.id)
+    # Filter by current user
+    query = query.where(MangaSession.user_id == current_user.id)
     
     if status:
         query = query.where(MangaSession.status == status)
@@ -146,7 +148,7 @@ async def list_sessions(
 async def get_session(
     session_id: UUID,
     db: AsyncSession = Depends(get_db),
-    # current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ) -> MangaSessionResponse:
     """Get specific manga session details."""
     
@@ -155,9 +157,9 @@ async def get_session(
     if not session:
         raise HTTPException(404, "Session not found")
     
-    # TODO: Check ownership
-    # if session.user_id != current_user.id:
-    #     raise HTTPException(403, "Access denied")
+    # Check ownership
+    if session.user_id != current_user.id:
+        raise HTTPException(403, "Access denied")
     
     return MangaSessionResponse(
         id=session.id,
@@ -179,7 +181,7 @@ async def get_phase_result(
     session_id: UUID,
     phase_number: int,
     db: AsyncSession = Depends(get_db),
-    # current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ) -> Dict[str, Any]:
     """Get specific phase result for a session."""
     
@@ -187,6 +189,10 @@ async def get_phase_result(
     session = await db.get(MangaSession, session_id)
     if not session:
         raise HTTPException(404, "Session not found")
+    
+    # Check ownership
+    if session.user_id != current_user.id:
+        raise HTTPException(403, "Access denied")
     
     # Try cache first
     cache_key = f"phase_result:{session_id}:{phase_number}"
@@ -231,14 +237,17 @@ async def submit_feedback(
     feedback_text: str,
     feedback_data: Optional[Dict[str, Any]] = None,
     db: AsyncSession = Depends(get_db),
-    # current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ) -> Dict[str, str]:
     """Submit feedback for a specific phase."""
     
-    # Check session exists
+    # Check session exists and ownership
     session = await db.get(MangaSession, session_id)
     if not session:
         raise HTTPException(404, "Session not found")
+    
+    if session.user_id != current_user.id:
+        raise HTTPException(403, "Access denied")
     
     if session.status != MangaSessionStatus.WAITING_FEEDBACK:
         raise HTTPException(400, "Session is not waiting for feedback")
@@ -276,7 +285,7 @@ async def submit_feedback(
 async def cancel_generation(
     session_id: UUID,
     db: AsyncSession = Depends(get_db),
-    # current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_active_user)
 ) -> Dict[str, str]:
     """Cancel an active manga generation session."""
     
@@ -284,6 +293,10 @@ async def cancel_generation(
     
     if not session:
         raise HTTPException(404, "Session not found")
+    
+    # Check ownership
+    if session.user_id != current_user.id:
+        raise HTTPException(403, "Access denied")
     
     if not session.is_active:
         raise HTTPException(400, "Session is not active")
@@ -311,8 +324,24 @@ async def websocket_endpoint(
 ):
     """WebSocket endpoint for real-time HITL communication."""
     
-    # TODO: Get user_id from auth token
-    user_id = "00000000-0000-0000-0000-000000000000"  # Placeholder
+    # Extract user_id from JWT token in WebSocket connection
+    try:
+        token = dict(websocket.query_params).get("token")
+        if not token:
+            await websocket.close(code=4001, reason="Missing authentication token")
+            return
+        
+        from app.api.v1.security import verify_token
+        payload = verify_token(token)
+        user_id = payload.get("sub")
+        
+        if not user_id:
+            await websocket.close(code=4001, reason="Invalid token")
+            return
+            
+    except Exception:
+        await websocket.close(code=4001, reason="Authentication failed")
+        return
     
     await websocket_service.handle_connection(
         websocket=websocket,
