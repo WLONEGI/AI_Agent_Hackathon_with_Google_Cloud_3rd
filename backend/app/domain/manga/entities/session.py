@@ -18,7 +18,7 @@ class SessionStatus(str, Enum):
     WAITING_FEEDBACK = "waiting_feedback"
     PAUSED = "paused"
     COMPLETED = "completed"
-    FAILED = "failed"
+    FAILED = "error"
     CANCELLED = "cancelled"
 
 
@@ -395,80 +395,80 @@ class MangaSession:
 # Domain Events
 @dataclass
 class SessionStartedEvent(DomainEvent):
-    session_id: SessionId
-    user_id: str
-    timestamp: datetime
+    session_id: SessionId = field(default=None)
+    user_id: str = field(default="")
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass 
 class PhaseAdvancedEvent(DomainEvent):
-    session_id: SessionId
-    previous_phase: int
-    current_phase: int
-    timestamp: datetime
+    session_id: SessionId = field(default=None)
+    previous_phase: int = field(default=0)
+    current_phase: int = field(default=1)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class PhaseCompletedEvent(DomainEvent):
-    session_id: SessionId
-    phase_number: int
-    quality_score: Optional[float]
-    timestamp: datetime
+    session_id: SessionId = field(default=None)
+    phase_number: int = field(default=0)
+    quality_score: Optional[float] = field(default=None)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class FeedbackRequestedEvent(DomainEvent):
-    session_id: SessionId
-    phase_number: int
-    timestamp: datetime
+    session_id: SessionId = field(default=None)
+    phase_number: int = field(default=0)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class FeedbackReceivedEvent(DomainEvent):
-    session_id: SessionId
-    phase_number: int
-    feedback_key: str
-    timestamp: datetime
+    session_id: SessionId = field(default=None)
+    phase_number: int = field(default=0)
+    feedback_key: str = field(default="")
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class SessionPausedEvent(DomainEvent):
-    session_id: SessionId
-    reason: Optional[str]
-    timestamp: datetime
+    session_id: SessionId = field(default=None)
+    reason: Optional[str] = field(default=None)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class SessionResumedEvent(DomainEvent):
-    session_id: SessionId
-    timestamp: datetime
+    session_id: SessionId = field(default=None)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class SessionCompletedEvent(DomainEvent):
-    session_id: SessionId
-    final_quality_score: Optional[float]
-    total_processing_time: Optional[float]
-    timestamp: datetime
+    session_id: SessionId = field(default=None)
+    final_quality_score: Optional[float] = field(default=None)
+    total_processing_time: Optional[float] = field(default=None)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class SessionFailedEvent(DomainEvent):
-    session_id: SessionId
-    error_message: str
-    timestamp: datetime
+    session_id: SessionId = field(default=None)
+    error_message: str = field(default="")
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class SessionCancelledEvent(DomainEvent):
-    session_id: SessionId
-    reason: Optional[str]
-    timestamp: datetime
+    session_id: SessionId = field(default=None)
+    reason: Optional[str] = field(default=None)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class SessionRetriedEvent(DomainEvent):
-    session_id: SessionId
-    retry_count: int
-    timestamp: datetime
+    session_id: SessionId = field(default=None)
+    retry_count: int = field(default=0)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 

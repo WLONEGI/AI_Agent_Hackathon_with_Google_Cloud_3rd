@@ -40,12 +40,17 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: manga_backend
+    env_file:
+      - .env  # Load from .env file
     environment:
       DATABASE_URL: postgresql+asyncpg://manga_user:manga_password@postgres:5432/manga_db
       REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: dev-secret-key-change-in-production
       ENV: development
-      DEBUG: "True"
+      DEBUG: "true"
+      LOG_LEVEL: DEBUG
+      # Override container-specific settings
+      DATABASE_POOL_SIZE: 10
+      DATABASE_MAX_OVERFLOW: 5
     ports:
       - "8000:8000"
     depends_on:
@@ -56,7 +61,14 @@ services:
     volumes:
       - ./app:/app/app  # Mount app directory for development
       - ./alembic:/app/alembic  # Mount migrations
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      - ./credentials:/app/credentials:ro  # Mount credentials (read-only)
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --log-level debug
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   postgres_data:

@@ -106,26 +106,37 @@ def require_permissions(*required_permissions: str):
 
 
 class RateLimiter:
-    """Rate limiting for API endpoints."""
+    """Rate limiting for API endpoints with memory leak prevention."""
     
-    def __init__(self, calls: int, period: int):
+    def __init__(self, calls: int, period: int, max_identifiers: int = 10000):
         self.calls = calls
         self.period = period
+        self.max_identifiers = max_identifiers
         self.call_times: dict = {}
+        self.last_cleanup = datetime.utcnow().timestamp()
     
     async def is_allowed(self, identifier: str) -> bool:
         """Check if request is allowed based on rate limit."""
         now = datetime.utcnow().timestamp()
         
+        # Periodic cleanup to prevent memory leaks
+        if now - self.last_cleanup > 3600:  # Cleanup every hour
+            await self._cleanup_old_entries(now)
+        
         if identifier not in self.call_times:
             self.call_times[identifier] = []
         
-        # Clean old entries
+        # Clean old entries for this identifier
         cutoff = now - self.period
         self.call_times[identifier] = [
             call_time for call_time in self.call_times[identifier]
             if call_time > cutoff
         ]
+        
+        # Remove identifier if no recent calls
+        if not self.call_times[identifier]:
+            del self.call_times[identifier]
+            return True
         
         # Check rate limit
         if len(self.call_times[identifier]) >= self.calls:
@@ -134,6 +145,30 @@ class RateLimiter:
         # Add current call
         self.call_times[identifier].append(now)
         return True
+    
+    async def _cleanup_old_entries(self, now: float):
+        """Remove old identifiers to prevent memory leaks."""
+        cutoff = now - self.period * 2  # Keep some buffer
+        identifiers_to_remove = []
+        
+        for identifier, times in self.call_times.items():
+            if not times or max(times, default=0) < cutoff:
+                identifiers_to_remove.append(identifier)
+        
+        for identifier in identifiers_to_remove:
+            self.call_times.pop(identifier, None)
+        
+        # Emergency cleanup if still too many
+        if len(self.call_times) > self.max_identifiers:
+            # Keep only the most recent half
+            sorted_identifiers = sorted(
+                self.call_times.items(),
+                key=lambda x: max(x[1], default=0),
+                reverse=True
+            )
+            self.call_times = dict(sorted_identifiers[:self.max_identifiers // 2])
+        
+        self.last_cleanup = now
 
 
 # Rate limiters for different endpoint types
@@ -210,11 +245,4 @@ def verify_token(token: str) -> dict:
         raise AuthenticationError("Invalid token")
 
 
-def create_jwt_token(data: dict, expires_delta_minutes: int = None) -> str:
-    """Alias for create_access_token for compatibility."""
-    return create_access_token(data, expires_delta_minutes)
-
-
-def verify_jwt_token(token: str) -> dict:
-    """Alias for verify_token for compatibility."""
-    return verify_token(token)
+# Removed duplicate JWT token functions - use create_access_token and verify_token directly

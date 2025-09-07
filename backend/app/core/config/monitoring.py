@@ -1,7 +1,10 @@
 """Monitoring and observability configuration settings."""
 
 from typing import Dict, List, Optional
-from pydantic_settings import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    from pydantic import BaseSettings
 from pydantic import Field, field_validator
 
 
@@ -139,8 +142,9 @@ class MonitoringSettings(BaseSettings):
         return v
     
     class Config:
-        env_prefix = "MONITORING_"
+        env_file = ".env"
         case_sensitive = False
+        extra = "ignore"
     
     def get_logging_config(self) -> dict:
         """Get logging configuration."""

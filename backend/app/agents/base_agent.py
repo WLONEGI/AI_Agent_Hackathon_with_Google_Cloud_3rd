@@ -163,14 +163,14 @@ class BaseAgent(ABC, LoggerMixin):
         except asyncio.TimeoutError:
             error_msg = f"Phase {self.phase_number} timeout after {self.timeout_seconds}s"
             self.log_error(error_msg, session_id=str(session.id))
-            phase_result.status = "failed"
+            phase_result.status = "error"
             phase_result.error_message = error_msg
             await self._update_metrics(self.timeout_seconds * 1000, success=False)
             
         except Exception as e:
             error_msg = f"Phase {self.phase_number} failed: {str(e)}"
             self.log_error(error_msg, error=e, session_id=str(session.id))
-            phase_result.status = "failed"
+            phase_result.status = "error"
             phase_result.error_message = str(e)
             await self._update_metrics(
                 int((datetime.utcnow() - start_time).total_seconds() * 1000),

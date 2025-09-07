@@ -12,7 +12,7 @@ from app.core.config import settings
 from app.core.database import get_db
 from app.core.firebase import get_firebase_manager, FirebaseManager
 from app.models.user import User
-from app.api.v1.security import create_jwt_token, RateLimiter
+from app.api.v1.security import create_access_token, RateLimiter, get_current_active_user as get_current_user, verify_token
 
 logger = structlog.get_logger(__name__)
 router = APIRouter()
@@ -160,8 +160,8 @@ async def firebase_google_login(
             'email_verified': email_verified
         }
         
-        access_token = create_jwt_token(jwt_payload, expires_delta_minutes=60)
-        refresh_token = create_jwt_token(jwt_payload, expires_delta_minutes=10080)  # 7 days
+        access_token = create_access_token(jwt_payload, expires_delta_minutes=60)
+        refresh_token = create_access_token(jwt_payload, expires_delta_minutes=10080)  # 7 days
         
         # Step 5: Prepare response
         user_info = {
@@ -223,8 +223,8 @@ async def refresh_access_token(
     
     try:
         # Verify refresh token (same verification as access token)
-        from app.api.v1.security import verify_jwt_token
-        payload = verify_jwt_token(request.refresh_token)
+        from app.api.v1.security import verify_token
+        payload = verify_token(request.refresh_token)
         
         user_id = payload.get('sub')
         if not user_id:
@@ -244,8 +244,8 @@ async def refresh_access_token(
             'email_verified': True
         }
         
-        access_token = create_jwt_token(jwt_payload, expires_delta_minutes=60)
-        new_refresh_token = create_jwt_token(jwt_payload, expires_delta_minutes=10080)
+        access_token = create_access_token(jwt_payload, expires_delta_minutes=60)
+        new_refresh_token = create_access_token(jwt_payload, expires_delta_minutes=10080)
         
         # Get latest Firebase user info
         firebase_user = await firebase_manager.get_user(user.id)
@@ -353,5 +353,3 @@ def _get_user_permissions(account_type: str) -> Dict[str, Any]:
     return permissions.get(account_type, permissions['free'])
 
 
-# Import the security functions we need
-from app.api.v1.security import get_current_active_user as get_current_user, create_jwt_token, verify_jwt_token

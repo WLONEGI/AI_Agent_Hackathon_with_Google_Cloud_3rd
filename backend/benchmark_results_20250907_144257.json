@@ -1,0 +1,76 @@
+{
+  "timestamp": "2025-09-07T05:42:55.406888",
+  "benchmarks": {
+    "phase5_parallel": {
+      "5_scenes": {
+        "scenario": "Small batch",
+        "scene_count": 5,
+        "sequential_time": 13.486814498901367,
+        "parallel_time": 1.975393295288086,
+        "improvement_percentage": 85.35315143951152,
+        "speedup_factor": 6.827407246481763
+      },
+      "12_scenes": {
+        "scenario": "Standard manga",
+        "scene_count": 12,
+        "sequential_time": 32.06980228424072,
+        "parallel_time": 5.397915840148926,
+        "improvement_percentage": 83.1682285026076,
+        "speedup_factor": 5.941145292727634
+      },
+      "20_scenes": {
+        "scenario": "Large batch",
+        "scene_count": 20,
+        "sequential_time": 52.5752067565918,
+        "parallel_time": 7.956886291503906,
+        "improvement_percentage": 84.86570613342137,
+        "speedup_factor": 6.607510127765659
+      }
+    },
+    "quality_gates": {
+      "10_gates": {
+        "scenario": "Small batch",
+        "gate_count": 10,
+        "sequential_time": 6.309294700622559,
+        "parallel_time": 1.8843889236450195,
+        "improvement_percentage": 70.13312877176143,
+        "efficiency": 5.306760125004745
+      },
+      "25_gates": {
+        "scenario": "Medium batch",
+        "gate_count": 25,
+        "sequential_time": 15.481233596801758,
+        "parallel_time": 4.069709777832031,
+        "improvement_percentage": 73.7119800409653,
+        "efficiency": 6.14294418146881
+      },
+      "50_gates": {
+        "scenario": "Large batch",
+        "gate_count": 50,
+        "sequential_time": 30.84123134613037,
+        "parallel_time": 7.799005508422852,
+        "improvement_percentage": 74.71240554277874,
+        "efficiency": 6.411073815244838
+      }
+    },
+    "target_performance": {
+      "target_total_time": 97.0,
+      "estimated_total_time": 67.4746150970459,
+      "target_phase5_time": 10.0,
+      "actual_phase5_time": 5.474615097045898,
+      "other_phases_time": 62,
+      "phase5_achievement_rate": 1.0,
+      "total_achievement_rate": 1.0,
+      "phase5_meets_target": true,
+      "total_meets_target": true
+    }
+  },
+  "summary": {
+    "phase5_avg_improvement": 84.46236202518016,
+    "phase5_avg_speedup": 6.458687555658352,
+    "quality_avg_improvement": 72.85250478516849,
+    "phase5_target_achievement": 1.0,
+    "total_target_achievement": 1.0,
+    "overall_score": 78.65743340517432
+  }
+}

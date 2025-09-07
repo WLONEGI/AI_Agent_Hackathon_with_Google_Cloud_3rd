@@ -18,14 +18,14 @@ router = APIRouter()
 class FeedbackContent(BaseModel):
     """Feedback content structure (API Design Document Compliant)."""
     natural_language: Optional[str] = Field(None, description="Natural language feedback")
-    quick_option: Optional[str] = Field(None, regex="^(make_brighter|more_serious|add_detail|simplify)$", description="Quick option selection")
+    quick_option: Optional[str] = Field(None, pattern="^(make_brighter|more_serious|add_detail|simplify)$", description="Quick option selection")
     intensity: float = Field(0.7, ge=0.0, le=1.0, description="Modification intensity")
     target_elements: List[str] = Field(default_factory=list, description="Target elements for modification")
 
 class FeedbackRequest(BaseModel):
     """Request to submit feedback (API Design Document Compliant)."""
     phase: int = Field(..., ge=1, le=7, description="Phase number")
-    feedback_type: str = Field(..., regex="^(natural_language|quick_option|skip)$", description="Feedback type")
+    feedback_type: str = Field(..., pattern="^(natural_language|quick_option|skip)$", description="Feedback type")
     content: FeedbackContent = Field(..., description="Feedback content")
     
     class Config:
@@ -108,7 +108,7 @@ class AppliedModification(BaseModel):
 class ModificationStatusResponse(BaseModel):
     """Modification status response (API Design Document Compliant)."""
     feedback_id: UUID = Field(..., description="Feedback ID")
-    status: str = Field(..., regex="^(processing|completed|failed)$", description="Overall status")
+    status: str = Field(..., pattern="^(processing|completed|failed)$", description="Overall status")
     progress: int = Field(..., ge=0, le=100, description="Progress percentage")
     applied_modifications: List[AppliedModification] = Field(..., description="Applied modifications")
     estimated_completion: str = Field(..., description="ISO8601 estimated completion")
@@ -117,7 +117,7 @@ class ModificationStatusResponse(BaseModel):
 class SkipFeedbackRequest(BaseModel):
     """Request to skip feedback (API Design Document Compliant)."""
     phase: int = Field(..., ge=1, le=7, description="Phase number")
-    skip_reason: str = Field(..., regex="^(satisfied|time_constraint|default_acceptable)$", description="Skip reason")
+    skip_reason: str = Field(..., pattern="^(satisfied|time_constraint|default_acceptable)$", description="Skip reason")
 
 class SkipFeedbackResponse(BaseModel):
     """Response for feedback skip (API Design Document Compliant)."""

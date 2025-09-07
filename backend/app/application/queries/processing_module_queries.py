@@ -52,7 +52,7 @@ class ListProcessingModulesQuery(Query[List[ProcessingModuleDTO]], RequireUserMi
                 raise QueryValidationError(f"Module name must be one of: {', '.join(valid_modules)}")
         
         if self.status is not None:
-            valid_statuses = ["pending", "processing", "completed", "failed"]
+            valid_statuses = ["pending", "processing", "completed", "error"]
             if self.status not in valid_statuses:
                 raise QueryValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
         
@@ -82,7 +82,7 @@ class GetProcessingModulesByRequestQuery(Query[List[ProcessingModuleDTO]], Requi
                 raise QueryValidationError("Module number must be between 1 and 7")
         
         if self.status is not None:
-            valid_statuses = ["pending", "processing", "completed", "failed"]
+            valid_statuses = ["pending", "processing", "completed", "error"]
             if self.status not in valid_statuses:
                 raise QueryValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
 

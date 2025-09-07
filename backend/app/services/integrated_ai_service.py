@@ -16,14 +16,14 @@ from sqlalchemy import select, update
 
 from app.core.config import settings
 from app.core.logging import LoggerMixin
-from app.core.redis_client import RedisClient
+from app.core.redis_client import redis_manager
 from app.models.manga import (
     MangaSession, 
     PhaseResult, 
     PreviewVersion,
     UserFeedback,
     GeneratedImage,
-    MangaSessionStatus
+    GenerationStatus
 )
 from app.models.quality_gates import (
     PhaseQualityGate,
@@ -51,7 +51,7 @@ class IntegratedAIService(LoggerMixin):
     
     def __init__(self):
         super().__init__()
-        self.redis_client = RedisClient()
+        self.redis_client = redis_manager
         
         # フェーズエージェントの初期化
         self.agents = {
@@ -214,7 +214,7 @@ class IntegratedAIService(LoggerMixin):
                         "type": "phase_completed",
                         "phase": phase_num,
                         "phase_name": phase_config["name"],
-                        "quality_score": quality_score,
+                        "quality_score": quality_gate_result["quality_score"],
                         "execution_time": phase_time,
                         "result_preview": await self._generate_preview(
                             phase_num, phase_result
@@ -270,7 +270,7 @@ class IntegratedAIService(LoggerMixin):
             )
             
             # セッション完了
-            manga_session.status = MangaSessionStatus.COMPLETED
+            manga_session.status = GenerationStatus.COMPLETED
             manga_session.completed_at = datetime.utcnow()
             manga_session.total_processing_time = time.time() - start_time
             manga_session.final_quality_score = final_quality
@@ -295,7 +295,7 @@ class IntegratedAIService(LoggerMixin):
             
             # エラー状態の更新
             if manga_session:
-                manga_session.status = MangaSessionStatus.FAILED
+                manga_session.status = GenerationStatus.FAILED
                 manga_session.error_message = str(e)
                 await db.commit()
             
@@ -638,7 +638,7 @@ class IntegratedAIService(LoggerMixin):
             id=session_id,
             user_id=user_id,
             input_text=user_input,
-            status=MangaSessionStatus.IN_PROGRESS,
+            status=GenerationStatus.PROCESSING,
             created_at=datetime.utcnow()
         )
         
@@ -731,7 +731,7 @@ class IntegratedAIService(LoggerMixin):
             update(MangaSession)
             .where(MangaSession.id == session_id)
             .values(
-                status=MangaSessionStatus.CANCELLED,
+                status=GenerationStatus.CANCELLED,
                 completed_at=datetime.utcnow()
             )
         )

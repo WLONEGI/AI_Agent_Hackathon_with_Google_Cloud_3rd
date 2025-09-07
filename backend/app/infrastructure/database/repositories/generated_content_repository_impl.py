@@ -681,11 +681,13 @@ class GeneratedContentRepositoryImpl(GeneratedContentRepository):
         db = await self._get_session()
         
         # Simple text search - in production would use full-text search
+        # Use parameterized queries to prevent SQL injection
+        search_pattern = f"%{query}%"
         conditions = [
             or_(
-                GeneratedContentModel.title.ilike(f"%{query}%"),
-                GeneratedContentModel.description.ilike(f"%{query}%"),
-                GeneratedContentModel.content_text.ilike(f"%{query}%")
+                GeneratedContentModel.title.ilike(search_pattern),
+                GeneratedContentModel.description.ilike(search_pattern),
+                GeneratedContentModel.content_text.ilike(search_pattern)
             )
         ]
         

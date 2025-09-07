@@ -1,7 +1,10 @@
 """Security configuration settings."""
 
 from typing import List, Optional
-from pydantic_settings import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    from pydantic import BaseSettings
 from pydantic import Field, field_validator
 import secrets
 
@@ -139,8 +142,9 @@ class SecuritySettings(BaseSettings):
         return v
     
     class Config:
-        env_prefix = "SECURITY_"
+        env_file = ".env"
         case_sensitive = False
+        extra = "ignore"
     
     def generate_secret_key(self) -> str:
         """Generate a secure secret key."""

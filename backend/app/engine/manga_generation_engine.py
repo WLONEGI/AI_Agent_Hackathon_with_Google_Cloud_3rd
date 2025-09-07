@@ -42,17 +42,17 @@ class ProcessingStatus(Enum):
     WAITING_FEEDBACK = "waiting_feedback"
     RETRYING = "retrying"
     COMPLETED = "completed"
-    FAILED = "failed"
+    FAILED = "error"
     CANCELLED = "cancelled"
 
 
 class PhaseStatus(Enum):
     """Individual phase status."""
     PENDING = "pending"
-    RUNNING = "running"
+    PROCESSING = "processing"
     COMPLETED = "completed"
-    FAILED = "failed"
-    WAITING_HITL = "waiting_hitl"
+    ERROR = "error"
+    WAITING_FEEDBACK = "waiting_feedback"
     RETRYING = "retrying"
     SKIPPED = "skipped"
 
@@ -349,7 +349,7 @@ class MangaGenerationEngine(LoggerMixin):
                 
             except Exception as e:
                 self.logger.error(f"Phase {phase_number} execution failed: {e}")
-                session_data["phase_statuses"][phase_number] = PhaseStatus.FAILED
+                session_data["phase_statuses"][phase_number] = PhaseStatus.ERROR
                 
                 # Retry logic
                 if session_data["retry_counts"][phase_number] < 3:

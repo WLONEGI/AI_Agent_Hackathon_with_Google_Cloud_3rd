@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 class QualityGateResult(Enum):
     """Quality gate assessment results."""
     PASSED = "passed"
-    FAILED = "failed"
+    FAILED = "error"
     WARNING = "warning"
     NEEDS_REVIEW = "needs_review"
 
@@ -692,8 +692,10 @@ class QualityGateService:
                 quality_variance = max(quality_levels) - min(quality_levels)
                 consistency_factor = 1.0 - (quality_variance / 4.0)  # Max variance is 4 (levels 1-5)
                 score *= max(0.6, consistency_factor)
-        except:
-            pass  # Use base score if comparison fails
+        except (AttributeError, KeyError, ValueError, TypeError) as e:
+            import logging
+            logging.warning(f"Quality comparison failed, using base score: {e}")
+            # Use base score if comparison fails
         
         consistency_score = min(1.0, max(0.0, score))
         

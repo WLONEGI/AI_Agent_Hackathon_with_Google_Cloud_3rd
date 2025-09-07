@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/modal';
 import { Button } from '@/components/ui/button';
@@ -16,7 +16,7 @@ interface ImagePreviewProps {
   onDownload?: () => void;
 }
 
-export function ImagePreview({
+export const ImagePreview = React.memo<ImagePreviewProps>(({
   src,
   alt,
   title,
@@ -24,7 +24,7 @@ export function ImagePreview({
   height = 300,
   className = '',
   onDownload,
-}: ImagePreviewProps) {
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [scale, setScale] = useState(1);
   const [rotation, setRotation] = useState(0);
@@ -153,4 +153,6 @@ export function ImagePreview({
       </Dialog>
     </>
   );
-}
+});
+
+ImagePreview.displayName = 'ImagePreview';

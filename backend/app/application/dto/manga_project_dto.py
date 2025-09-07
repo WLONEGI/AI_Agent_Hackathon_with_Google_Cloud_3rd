@@ -34,7 +34,7 @@ class MangaProjectDTO(BaseDTO):
         validate_required_fields(self, ['project_id', 'user_id', 'title', 'status'])
         validate_field_length(self, {'title': (1, 255)})
         
-        if self.status not in ["completed", "processing", "failed"]:
+        if self.status not in ["completed", "processing", "error"]:
             raise ValueError("Status must be 'completed', 'processing', or 'failed'")
         
         if self.visibility not in ["private", "public", "unlisted"]:
@@ -90,7 +90,7 @@ class MangaProjectUpdateDTO(BaseDTO):
             raise ValueError("Total pages cannot be negative")
         
         if self.status is not None:
-            if self.status not in ["completed", "processing", "failed"]:
+            if self.status not in ["completed", "processing", "error"]:
                 raise ValueError("Status must be 'completed', 'processing', or 'failed'")
 
 
@@ -275,7 +275,7 @@ class GenerationRequestSummaryDTO(BaseDTO):
         """Validate generation request summary DTO."""
         validate_required_fields(self, ['request_id', 'status', 'priority'])
         
-        valid_statuses = ["queued", "processing", "completed", "failed"]
+        valid_statuses = ["queued", "processing", "completed", "error"]
         if self.status not in valid_statuses:
             raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
         

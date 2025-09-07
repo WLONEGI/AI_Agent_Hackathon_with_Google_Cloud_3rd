@@ -274,8 +274,10 @@ class WebSocketManager(LoggerMixin):
                     "timestamp": datetime.utcnow().isoformat()
                 })
             
-        except:
-            pass  # Connection might already be closed
+        except (ConnectionError, RuntimeError, ValueError) as e:
+            import logging
+            logging.debug(f"WebSocket cleanup error (expected): {e}")
+            # Connection might already be closed
         
         # Update connection state
         connection.state = ConnectionState.DISCONNECTED

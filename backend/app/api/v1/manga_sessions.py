@@ -50,7 +50,7 @@ class FeedbackModeSettings(BaseModel):
 
 class GenerationOptions(BaseModel):
     """Additional generation options."""
-    priority: str = Field("normal", regex="^(normal|high)$", description="Processing priority")
+    priority: str = Field("normal", pattern="^(normal|high)$", description="Processing priority")
     webhook_url: Optional[str] = Field(None, description="Webhook URL for completion notification")
     auto_publish: bool = Field(False, description="Automatically publish after completion")
 

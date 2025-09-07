@@ -38,7 +38,7 @@ class GenerationRequestDTO(BaseDTO):
             'input_text', 'request_settings', 'status'
         ])
         
-        valid_statuses = ["queued", "processing", "completed", "failed"]
+        valid_statuses = ["queued", "processing", "completed", "error"]
         if self.status not in valid_statuses:
             raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
         
@@ -95,7 +95,7 @@ class GenerationRequestUpdateDTO(BaseDTO):
     def validate(self) -> None:
         """Validate generation request update DTO."""
         if self.status is not None:
-            valid_statuses = ["queued", "processing", "completed", "failed"]
+            valid_statuses = ["queued", "processing", "completed", "error"]
             if self.status not in valid_statuses:
                 raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
         
@@ -196,7 +196,7 @@ class GenerationRequestProgressDTO(BaseDTO):
         if not (0.0 <= self.progress_percentage <= 100.0):
             raise ValueError("Progress percentage must be between 0.0 and 100.0")
         
-        valid_statuses = ["queued", "processing", "completed", "failed"]
+        valid_statuses = ["queued", "processing", "completed", "error"]
         if self.status not in valid_statuses:
             raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
 
@@ -230,7 +230,7 @@ class PhaseExecutionDTO(BaseDTO):
         if not (1 <= self.phase_number <= 7):
             raise ValueError("Phase number must be between 1 and 7")
         
-        valid_statuses = ["pending", "processing", "feedback_waiting", "completed", "failed"]
+        valid_statuses = ["pending", "processing", "feedback_waiting", "completed", "error"]
         if self.status not in valid_statuses:
             raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
         
@@ -288,7 +288,7 @@ class FeedbackRequestDTO(BaseDTO):
         if self.feedback_type not in valid_types:
             raise ValueError(f"Feedback type must be one of: {', '.join(valid_types)}")
         
-        valid_statuses = ["pending", "processing", "completed", "failed"]
+        valid_statuses = ["pending", "processing", "completed", "error"]
         if self.status not in valid_statuses:
             raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
         

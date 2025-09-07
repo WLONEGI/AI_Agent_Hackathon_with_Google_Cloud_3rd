@@ -1,1 +1,0 @@
-# Test package for AI Manga Generation Service

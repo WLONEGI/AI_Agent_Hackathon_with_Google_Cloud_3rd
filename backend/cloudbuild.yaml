@@ -1,0 +1,29 @@
+# Cloud Build configuration for Cloud Run deployment
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/${PROJECT_ID}/manga-service/backend:$BUILD_ID'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/${PROJECT_ID}/manga-service/backend:latest'
+      - '.'
+
+  # Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'asia-northeast1-docker.pkg.dev/${PROJECT_ID}/manga-service/backend'
+
+# Deploy to Cloud Run step removed - will deploy manually
+
+
+# Build timeout
+timeout: '1200s'
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'

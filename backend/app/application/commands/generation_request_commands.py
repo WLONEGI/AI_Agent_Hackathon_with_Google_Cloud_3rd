@@ -57,11 +57,11 @@ class UpdateGenerationRequestStatusCommand(Command[bool], RequireUserMixin, Requ
         self.validate_user_required()
         self.validate_id_required("request_id")
         
-        valid_statuses = ["queued", "processing", "completed", "failed"]
+        valid_statuses = ["queued", "processing", "completed", "error"]
         if self.status not in valid_statuses:
             raise CommandValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
         
-        if self.status == "failed" and not self.error_message:
+        if self.status == "error" and not self.error_message:
             raise CommandValidationError("Error message is required when status is 'failed'")
         
         if self.current_module is not None:
@@ -169,7 +169,7 @@ class UpdateGenerationProgressCommand(Command[bool], RequireUserMixin, RequireId
         if not (1 <= self.current_phase <= 7):
             raise CommandValidationError("Current phase must be between 1 and 7")
         
-        valid_statuses = ["pending", "processing", "feedback_waiting", "completed", "failed"]
+        valid_statuses = ["pending", "processing", "feedback_waiting", "completed", "error"]
         if self.phase_status not in valid_statuses:
             raise CommandValidationError(f"Phase status must be one of: {', '.join(valid_statuses)}")
         
@@ -231,10 +231,10 @@ class CompleteFeedbackRequestCommand(Command[bool], RequireUserMixin, RequireIdM
         self.validate_user_required()
         self.validate_id_required("feedback_id")
         
-        if self.status not in ["completed", "failed"]:
+        if self.status not in ["completed", "error"]:
             raise CommandValidationError("Status must be 'completed' or 'failed'")
         
-        if self.status == "failed" and not self.error_message:
+        if self.status == "error" and not self.error_message:
             raise CommandValidationError("Error message is required when status is 'failed'")
         
         if self.status == "completed" and not self.processing_result:

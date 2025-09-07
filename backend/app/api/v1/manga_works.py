@@ -78,7 +78,7 @@ class MangaWorkUpdateRequest(BaseModel):
     title: Optional[str] = Field(None, max_length=255, description="New title")
     description: Optional[str] = Field(None, max_length=1000, description="New description")
     tags: List[str] = Field(default_factory=list, description="Tags for organization")
-    visibility: str = Field("private", regex="^(private|public|unlisted)$", description="Visibility setting")
+    visibility: str = Field("private", pattern="^(private|public|unlisted)$", description="Visibility setting")
 
 class MangaWorkUpdateResponse(BaseModel):
     """Response for manga work update (API Design Document Compliant)."""
@@ -93,9 +93,9 @@ class MangaWorkUpdateResponse(BaseModel):
 async def list_manga_works(
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(20, ge=1, le=100, description="Items per page"),
-    sort: str = Query("created_at", regex="^(created_at|updated_at|title)$", description="Sort field"),
-    order: str = Query("desc", regex="^(asc|desc)$", description="Sort order"),
-    status: str = Query("all", regex="^(all|completed|processing|failed)$", description="Status filter"),
+    sort: str = Query("created_at", pattern="^(created_at|updated_at|title)$", description="Sort field"),
+    order: str = Query("desc", pattern="^(asc|desc)$", description="Sort order"),
+    status: str = Query("all", pattern="^(all|completed|processing|failed)$", description="Status filter"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(check_api_limit)
 ) -> MangaWorksListResponse:

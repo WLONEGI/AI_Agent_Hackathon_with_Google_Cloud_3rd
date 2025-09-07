@@ -16,7 +16,7 @@ class QualityGateStatus(str, Enum):
     PENDING = "pending"
     PROCESSING = "processing"
     PASSED = "passed"
-    FAILED = "failed"
+    FAILED = "error"
     OVERRIDE_APPROVED = "override_approved"
     OVERRIDE_DENIED = "override_denied"
     SKIPPED = "skipped"

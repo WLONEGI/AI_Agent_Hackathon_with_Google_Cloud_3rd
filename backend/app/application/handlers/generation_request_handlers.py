@@ -142,7 +142,7 @@ class UpdateStatusCommandHandler(AbstractCommandHandler[UpdateStatusCommand, boo
                     UUID(command.request_id),
                     command.output_data
                 )
-            elif command.status == "failed":
+            elif command.status == "error":
                 success = await self.request_repository.mark_processing_failed(
                     UUID(command.request_id),
                     command.error_message or "Processing failed",

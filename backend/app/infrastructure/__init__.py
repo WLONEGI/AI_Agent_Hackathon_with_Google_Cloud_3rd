@@ -5,7 +5,8 @@ Infrastructure Layer Package
 データベース、外部API、ファイルシステムなどの技術的関心事を処理
 """
 
-from .database import *
+# Import specific database components as needed
+# from .database import specific_component
 
 __all__ = [
     # データベース関連のエクスポートをここに追加

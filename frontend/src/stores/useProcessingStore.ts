@@ -63,6 +63,87 @@ export const useProcessingStore = create<ProcessingStore>((set) => ({
     };
   }),
   
+  updatePhaseResult: (phaseId, result) => set((state) => {
+    if (!state.currentSession) return state;
+    
+    const updatedPhases = state.currentSession.phases.map(phase =>
+      phase.id === phaseId ? { ...phase, result, endTime: new Date() } : phase
+    );
+    
+    return {
+      currentSession: {
+        ...state.currentSession,
+        phases: updatedPhases,
+      }
+    };
+  }),
+  
+  setPhaseError: (phaseId, error) => set((state) => {
+    if (!state.currentSession) return state;
+    
+    const updatedPhases = state.currentSession.phases.map(phase =>
+      phase.id === phaseId ? { ...phase, error, endTime: new Date() } : phase
+    );
+    
+    return {
+      currentSession: {
+        ...state.currentSession,
+        phases: updatedPhases,
+      }
+    };
+  }),
+  
+  setPhasePreview: (phaseId, preview) => set((state) => {
+    if (!state.currentSession) return state;
+    
+    // Store preview data in phase result for now
+    const updatedPhases = state.currentSession.phases.map(phase =>
+      phase.id === phaseId ? {
+        ...phase,
+        result: {
+          phaseId,
+          data: preview,
+        } as PhaseResult
+      } : phase
+    );
+    
+    return {
+      currentSession: {
+        ...state.currentSession,
+        phases: updatedPhases,
+      }
+    };
+  }),
+  
+  setSessionId: (sessionId) => set((state) => {
+    if (!state.currentSession) return state;
+    
+    return {
+      currentSession: {
+        ...state.currentSession,
+        id: sessionId,
+      }
+    };
+  }),
+  
+  completeSession: (results) => set((state) => {
+    if (!state.currentSession) return state;
+    
+    const updatedPhases = state.currentSession.phases.map(phase => {
+      const result = results.find(r => r.phaseId === phase.id);
+      return result ? { ...phase, result } : phase;
+    });
+    
+    return {
+      currentSession: {
+        ...state.currentSession,
+        phases: updatedPhases,
+        status: 'completed',
+        endTime: new Date(),
+      }
+    };
+  }),
+  
   addFeedback: (phaseId, feedback) => set((state) => {
     if (!state.currentSession) return state;
     

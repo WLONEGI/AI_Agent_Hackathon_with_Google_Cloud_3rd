@@ -379,7 +379,7 @@ class PipelineCoordinator(LoggerMixin):
                 elif update.get("type") == "error":
                     self.stats["failed_requests"] += 1
                     if session_id:
-                        session_data["status"] = "failed"
+                        session_data["status"] = "error"
                         session_data["error"] = update.get("error")
                     
                     await self._track_error(update.get("error", "Unknown error"))
@@ -389,7 +389,7 @@ class PipelineCoordinator(LoggerMixin):
             self.stats["failed_requests"] += 1
             
             if session_id:
-                session_data["status"] = "failed"
+                session_data["status"] = "error"
                 session_data["error"] = str(e)
                 
                 # Send error to WebSocket

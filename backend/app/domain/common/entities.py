@@ -209,7 +209,7 @@ class MangaProjectEntity(DomainEntity):
         if len(self.title) > 255:
             raise ValueError("Project title too long")
         
-        valid_statuses = ["draft", "processing", "completed", "failed", "archived"]
+        valid_statuses = ["draft", "processing", "completed", "error", "archived"]
         if self.status not in valid_statuses:
             raise ValueError(f"Invalid status: {self.status}")
         
@@ -218,7 +218,7 @@ class MangaProjectEntity(DomainEntity):
     
     def update_status(self, new_status: str) -> None:
         """Update project status with validation."""
-        valid_statuses = ["draft", "processing", "completed", "failed", "archived"]
+        valid_statuses = ["draft", "processing", "completed", "error", "archived"]
         if new_status not in valid_statuses:
             raise ValueError(f"Invalid status: {new_status}")
         
@@ -267,7 +267,7 @@ class GenerationRequestEntity(DomainEntity):
     @property
     def is_failed(self) -> bool:
         """Check if request has failed."""
-        return self.status == "failed"
+        return self.status == "error"
     
     @property
     def can_retry(self) -> bool:
@@ -279,7 +279,7 @@ class GenerationRequestEntity(DomainEntity):
         if not self.input_text or not self.input_text.strip():
             raise ValueError("Input text is required")
         
-        valid_statuses = ["queued", "processing", "completed", "failed", "cancelled"]
+        valid_statuses = ["queued", "processing", "completed", "error", "cancelled"]
         if self.status not in valid_statuses:
             raise ValueError(f"Invalid status: {self.status}")
         
@@ -303,7 +303,7 @@ class GenerationRequestEntity(DomainEntity):
     
     def fail_processing(self, error_message: str = None) -> None:
         """Mark request as failed."""
-        self.status = "failed"
+        self.status = "error"
         self.updated_at = datetime.utcnow()
     
     def retry_processing(self) -> None:

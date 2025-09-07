@@ -17,7 +17,7 @@ class GenerationStatus(str, Enum):
     PROCESSING = "processing"
     WAITING_FEEDBACK = "waiting_feedback"
     COMPLETED = "completed"
-    FAILED = "failed"
+    FAILED = "error"
     CANCELLED = "cancelled"
 
 

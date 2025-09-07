@@ -5,23 +5,28 @@ from typing import Dict, Any, List, Optional
 from uuid import UUID
 
 
+class FeedbackMode(BaseModel):
+    """フィードバックモード設定"""
+    enabled: bool = Field(True, description="Enable HITL feedback")
+    timeout_minutes: int = Field(30, description="Feedback timeout in minutes", ge=1, le=60)
+    allow_skip: bool = Field(True, description="Allow skipping feedback")
+
+
 class MangaGenerationRequest(BaseModel):
-    """漫画生成リクエスト"""
+    """漫画生成リクエスト - 設計書準拠"""
     
-    user_input: str = Field(..., description="User's creative input/prompt", min_length=10, max_length=2000)
-    priority: int = Field(5, description="Generation priority (1-10, higher = more priority)", ge=1, le=10)
-    quality_level: str = Field("high", description="Target quality level")
-    enable_hitl: bool = Field(True, description="Enable human-in-the-loop feedback")
-    hitl_timeout: int = Field(30, description="HITL feedback timeout in seconds", ge=5, le=300)
+    title: Optional[str] = Field(None, description="Manga title", max_length=255)
+    text: str = Field(..., description="User's creative input/prompt", min_length=10, max_length=50000)
+    ai_auto_settings: bool = Field(True, description="Enable AI automatic settings")
+    feedback_mode: FeedbackMode = Field(default_factory=FeedbackMode, description="HITL feedback configuration")
     options: Optional[Dict[str, Any]] = Field(None, description="Additional generation options")
     
-    @validator("quality_level")
-    def validate_quality_level(cls, v):
-        """品質レベル検証"""
-        valid_levels = ["ultra_low", "low", "medium", "high", "ultra_high"]
-        if v not in valid_levels:
-            raise ValueError(f"Quality level must be one of {valid_levels}")
-        return v
+    @validator("text")
+    def validate_text(cls, v):
+        """テキスト入力検証"""
+        if len(v.strip()) < 10:
+            raise ValueError("Text must be at least 10 characters long")
+        return v.strip()
     
     @validator("options")
     def validate_options(cls, v):

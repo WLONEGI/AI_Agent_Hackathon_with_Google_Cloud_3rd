@@ -4,22 +4,35 @@
 
 @layer base {
   :root {
-    /* Ultra-Minimal Monochrome Palette */
-    --bg-primary: 26 26 26;        /* #1a1a1a - very dark gray */
-    --bg-secondary: 45 45 45;      /* #2d2d2d - dark gray for input */
-    --bg-tertiary: 50 50 50;       /* #323232 - minimal contrast */
-    --bg-accent: 55 55 55;         /* #373737 - hover states */
+    /* Design Specification Compliant Color System */
+    --color-bg-primary: #1a1a1a;      /* Deep black background */
+    --color-bg-secondary: #141414;    /* Card background */
+    --color-bg-tertiary: #1f1f1f;     /* Input area background */
+    --color-bg-accent: #373737;       /* Hover states */
     
-    /* Minimal Text Hierarchy */
-    --text-primary: 255 255 255;   /* #ffffff - pure white */
-    --text-secondary: 153 153 153; /* #999999 - medium gray */
-    --text-tertiary: 102 102 102;  /* #666666 - muted gray */
-    --text-muted: 64 64 64;        /* #404040 - very muted */
+    /* Typography Colors */
+    --color-text-primary: #ffffff;    /* Main text */
+    --color-text-secondary: #a1a1aa;  /* Sub text */
+    --color-text-tertiary: #71717a;   /* Placeholder/muted */
+    --color-text-muted: #404040;      /* Very muted */
     
-    /* No Color - Pure Monochrome */
-    --accent-primary: 255 255 255; /* #ffffff - white accent */
-    --accent-hover: 204 204 204;   /* #cccccc - gray hover */
-    --accent-active: 153 153 153;  /* #999999 - gray active */
+    /* Accent System */
+    --color-accent-primary: #2563eb;  /* Blue accent */
+    --color-accent-secondary: #3b82f6;/* Blue hover */
+    --color-accent-active: #1d4ed8;   /* Blue active */
+    
+    /* Legacy RGB Variables for Backward Compatibility */
+    --bg-primary: 26 26 26;
+    --bg-secondary: 20 20 20;
+    --bg-tertiary: 31 31 31;
+    --bg-accent: 55 55 55;
+    --text-primary: 255 255 255;
+    --text-secondary: 161 161 170;
+    --text-tertiary: 113 113 122;
+    --text-muted: 64 64 64;
+    --accent-primary: 37 99 235;
+    --accent-hover: 59 130 246;
+    --accent-active: 29 78 216;
     
     /* Muted Status Colors */
     --status-success: 34 197 94;   /* #22c55e - muted green */
@@ -27,10 +40,15 @@
     --status-error: 239 68 68;     /* #ef4444 - muted red */
     --status-info: 153 153 153;    /* #999999 - gray info */
     
-    /* Ultra-Minimal Borders */
-    --border-default: 25 25 25;    /* #191919 - almost invisible */
-    --border-light: 20 20 20;      /* #141414 - very subtle */
-    --border-heavy: 51 51 51;      /* #333333 - visible on focus */
+    /* Border System */
+    --color-border-primary: #27272a;  /* Subtle borders */
+    --color-border-secondary: #3f3f46;/* Medium borders */
+    --color-border-heavy: #52525b;    /* Heavy borders */
+    
+    /* Legacy RGB Border Variables */
+    --border-default: 39 39 42;
+    --border-light: 20 20 20;
+    --border-heavy: 82 82 91;
     
     /* Shadows */
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
@@ -57,15 +75,36 @@
 }
 
 @layer base {
+  /* Design Specification Font System */
+  :root {
+    --font-sans: 'Roboto', -apple-system, BlinkMacSystemFont, 
+                 "Segoe UI", "Helvetica Neue", Arial, "Noto Sans", 
+                 sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Consolas, 
+                 "Liberation Mono", Menlo, monospace;
+    
+    /* Font Weights */
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    
+    /* Font Sizes */
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-lg: 1.125rem;
+  }
+  
   body {
-    @apply bg-[rgb(var(--bg-primary))] text-[rgb(var(--text-primary))];
-    font-family: var(--font-roboto), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    @apply bg-[var(--color-bg-primary)] text-[var(--color-text-primary)];
+    font-family: var(--font-sans);
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
-    font-family: var(--font-roboto), -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: var(--font-sans);
   }
   
   h1 {
@@ -94,10 +133,10 @@
 }
 
 @layer components {
-  /* Genspark-style Card */
+  /* Design Specification Compliant Card */
   .card-genspark {
-    @apply bg-[rgb(var(--bg-secondary))] rounded-lg border border-[rgb(var(--border-default))];
-    @apply hover:border-[rgb(var(--border-heavy))] transition-colors duration-[var(--animation-normal)];
+    @apply bg-[var(--color-bg-secondary)] rounded-lg border border-[var(--color-border-primary)];
+    @apply hover:border-[var(--color-border-heavy)] transition-colors duration-[var(--animation-normal)];
   }
   
   /* Glow animations */

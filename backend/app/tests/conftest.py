@@ -468,7 +468,7 @@ async def mock_pipeline_orchestrator():
     
     orchestrator.execute_pipeline = AsyncMock(return_value=mock_results)
     orchestrator.get_pipeline_status = MagicMock(return_value={
-        "status": "running",
+        "status": "processing",
         "current_phase": 3,
         "progress_percentage": 42.8
     })

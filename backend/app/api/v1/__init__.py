@@ -11,11 +11,16 @@ from .feedback import router as feedback_router
 from .quality_gates import router as quality_gates_router
 from .preview_interactive import router as preview_interactive_router
 from .auth import router as auth_router
+from .user_management import router as user_management_router
+from .system_api import router as system_api_router
+from .generation_progress import router as generation_progress_router
+from .preview_system import router as preview_system_router
+from .hitl_chat import router as hitl_chat_router
 from .security import get_current_active_user
 from app.core.config import settings
 
-# Create main v1 router
-api_router = APIRouter(prefix="/v1")
+# Create main v1 router (prefix handled in main.py)
+api_router = APIRouter()
 
 # Include all sub-routers with proper prefixes
 
@@ -69,8 +74,47 @@ api_router.include_router(
     dependencies=[Depends(get_current_active_user)]
 )
 
+# User Management API
+api_router.include_router(
+    user_management_router,
+    prefix="/user",
+    tags=["user-management"],
+    dependencies=[Depends(get_current_active_user)]
+)
+
+# System API (public endpoints)
+api_router.include_router(
+    system_api_router,
+    prefix="/system",
+    tags=["system"]
+)
+
+# Generation Progress API
+api_router.include_router(
+    generation_progress_router,
+    prefix="",
+    tags=["generation-progress"],
+    dependencies=[Depends(get_current_active_user)]
+)
+
+# Preview System API
+api_router.include_router(
+    preview_system_router,
+    prefix="",
+    tags=["preview-system"],
+    dependencies=[Depends(get_current_active_user)]
+)
+
+# HITL Chat API
+api_router.include_router(
+    hitl_chat_router,
+    prefix="",
+    tags=["hitl-chat"],
+    dependencies=[Depends(get_current_active_user)]
+)
+
 # WebSocket router doesn't need authentication dependency (handled internally)
-websocket_router_v1 = APIRouter(prefix="/ws/v1")
+websocket_router_v1 = APIRouter(prefix="/ws")
 websocket_router_v1.include_router(websocket_router, tags=["websocket"])
 
 # API version info endpoint
@@ -130,18 +174,49 @@ async def api_info():
 # Health check endpoint
 @api_router.get("/health")
 async def health_check():
-    """API v1 health check endpoint."""
+    """API v1 health check endpoint with actual component validation."""
+    components = {"api": "healthy"}
+    overall_status = "healthy"
+    
+    # Database health check
+    try:
+        from app.core.database import get_db
+        db_session = next(get_db())
+        await db_session.execute("SELECT 1")
+        components["database"] = "healthy"
+    except Exception:
+        components["database"] = "unhealthy"
+        overall_status = "degraded"
+    
+    # Redis health check
+    try:
+        from app.core.redis_client import get_redis_client
+        redis_client = get_redis_client()
+        await redis_client.ping()
+        components["redis"] = "healthy"
+    except Exception:
+        components["redis"] = "unhealthy"
+        overall_status = "degraded"
+    
+    # WebSocket health check
+    try:
+        from app.services.websocket_service import WebSocketService
+        ws_service = WebSocketService()
+        stats = ws_service.get_stats()
+        components["websocket"] = "healthy" if stats.get("active_connections", 0) >= 0 else "unhealthy"
+    except Exception:
+        components["websocket"] = "unhealthy"
+        overall_status = "degraded"
+    
+    status_code = 200 if overall_status == "healthy" else 503
+    
     return JSONResponse(
+        status_code=status_code,
         content={
-            "status": "healthy",
+            "status": overall_status,
             "version": "1.0",
             "timestamp": datetime.utcnow().isoformat(),
-            "components": {
-                "api": "healthy",
-                "database": "healthy",  # TODO: Add actual health checks
-                "redis": "healthy",     # TODO: Add actual health checks
-                "websocket": "healthy"  # TODO: Add actual health checks
-            }
+            "components": components
         },
         headers={
             "Cache-Control": "no-cache, no-store, must-revalidate",

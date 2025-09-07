@@ -139,7 +139,7 @@ class BaseValidator(ABC, LoggerMixin):
         if "status" in output:
             if not isinstance(output["status"], str):
                 result.add_error("status", "Status must be a string")
-            elif output["status"] not in ["pending", "processing", "completed", "failed"]:
+            elif output["status"] not in ["pending", "processing", "completed", "error"]:
                 result.add_warning("status", f"Unexpected status value: {output['status']}")
     
     async def _validate_common_constraints(

@@ -2,7 +2,10 @@
 
 from typing import List, Optional
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    from pydantic import BaseSettings
 from functools import lru_cache
 
 from .database import DatabaseSettings
@@ -10,6 +13,7 @@ from .cache import CacheSettings
 from .ai_models import AIModelSettings
 from .security import SecuritySettings
 from .monitoring import MonitoringSettings
+from .firebase import FirebaseSettings
 
 
 class Settings(BaseSettings):
@@ -18,6 +22,7 @@ class Settings(BaseSettings):
     # Environment
     env: str = Field("development", env="ENV")
     debug: bool = Field(True, env="DEBUG")
+    log_level: str = Field("INFO", env="LOG_LEVEL")
     
     # Application
     app_name: str = "AI Manga Generation Service"
@@ -30,6 +35,7 @@ class Settings(BaseSettings):
     ai_models: AIModelSettings = AIModelSettings()
     security: SecuritySettings = SecuritySettings()
     monitoring: MonitoringSettings = MonitoringSettings()
+    firebase: FirebaseSettings = FirebaseSettings()
     
     # CORS Configuration
     cors_origins: List[str] = Field(

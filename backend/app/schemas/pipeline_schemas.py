@@ -20,9 +20,10 @@ class QualityLevel(str, Enum):
 class PhaseStatus(str, Enum):
     """Phase execution status."""
     PENDING = "pending"
-    RUNNING = "running"
+    PROCESSING = "processing"
+    WAITING_FEEDBACK = "waiting_feedback"
     COMPLETED = "completed"
-    FAILED = "failed"
+    ERROR = "error"
     CANCELLED = "cancelled"
 
 
@@ -424,6 +425,22 @@ class MangaGenerationRequestSchema(BaseModel):
         return v
 
 
+class HITLFeedback(BaseModel):
+    """Human-in-the-Loop feedback schema."""
+    phase_number: int = Field(..., ge=1, le=7)
+    feedback_text: str
+    feedback_type: str = "text"
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    user_id: Optional[str] = None
+    
+    @validator("feedback_type")
+    def validate_feedback_type(cls, v):
+        valid_types = ["text", "selection", "adjustment", "regeneration", "approval"]
+        if v not in valid_types:
+            raise ValueError(f"Feedback type must be one of {valid_types}")
+        return v
+
+
 class FeedbackRequestSchema(BaseModel):
     """User feedback request schema."""
     session_id: UUID
@@ -546,6 +563,41 @@ class QualityValidationSchema(BaseModel):
     quality_gate_passed: bool
 
 
+# Base Pipeline Classes
+class PhaseInput(BaseModel):
+    """Base input schema for pipeline phases."""
+    session_id: str
+    user_id: str
+    phase_number: int
+    previous_results: List[Dict[str, Any]] = []
+    accumulated_context: Dict[str, Any] = {}
+    user_preferences: Dict[str, Any] = {}
+
+
+class PhaseOutput(BaseModel):
+    """Base output schema for pipeline phases."""
+    phase_number: int
+    status: PhaseStatus
+    content: Dict[str, Any]
+    metadata: Dict[str, Any] = {}
+    quality_score: Optional[float] = Field(None, ge=0.0, le=1.0)
+    processing_time_seconds: Optional[float] = None
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class PipelineState(BaseModel):
+    """Pipeline execution state tracking."""
+    session_id: str
+    user_id: str
+    current_phase: int
+    total_phases: int = 7
+    phase_results: List[Dict[str, Any]] = []
+    accumulated_context: Dict[str, Any] = {}
+    status: PhaseStatus = PhaseStatus.PENDING
+    started_at: Optional[datetime] = None
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 # Export all schemas
 __all__ = [
     # Phase output schemas
@@ -561,9 +613,13 @@ __all__ = [
     "PipelineStatusSchema",
     "PipelineResultSchema",
     "PhaseExecutionStatusSchema",
+    "PhaseInput",
+    "PhaseOutput", 
+    "PipelineState",
     
     # Request schemas
     "MangaGenerationRequestSchema",
+    "HITLFeedback",
     "FeedbackRequestSchema",
     "RegenerationRequestSchema",
     "PreviewRequestSchema",

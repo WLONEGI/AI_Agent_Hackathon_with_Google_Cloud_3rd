@@ -1,7 +1,7 @@
 """Main FastAPI application entry point."""
 
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import uvicorn
@@ -41,32 +41,49 @@ async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting AI Manga Generation Service...")
     
-    # Initialize database
-    await init_db()
-    logger.info("Database initialized")
+    # Skip complex initialization for Cloud Run startup
+    try:
+        # Initialize database
+        await init_db()
+        logger.info("Database initialized")
+    except Exception as e:
+        logger.warning(f"Database initialization failed: {e}")
     
-    # Initialize Firebase
-    firebase_initialized = initialize_firebase(
-        settings.firebase_project_id,
-        settings.firebase_credentials_path
-    )
-    if firebase_initialized:
-        logger.info("Firebase initialized successfully")
-    else:
-        logger.warning("Firebase initialization failed - authentication may not work properly")
+    try:
+        # Initialize Firebase (optional for basic service)
+        firebase_initialized = initialize_firebase(
+            settings.firebase.firebase_project_id,
+            settings.firebase.firebase_credentials_path
+        )
+        if firebase_initialized:
+            logger.info("Firebase initialized successfully")
+        else:
+            logger.warning("Firebase initialization failed - authentication may not work properly")
+    except Exception as e:
+        logger.warning(f"Firebase initialization failed: {e}")
     
-    # Connect to Redis
-    await redis_manager.connect()
-    logger.info("Redis connected")
+    try:
+        # Connect to Redis
+        await redis_manager.connect()
+        logger.info("Redis connected")
+    except Exception as e:
+        logger.warning(f"Redis connection failed: {e}")
     
     # Initialize services
-    app.state.integrated_ai_service = IntegratedAIService()
-    app.state.cache_service = CacheService()
-    app.state.websocket_service = WebSocketService()
+    try:
+        app.state.integrated_ai_service = IntegratedAIService()
+        app.state.cache_service = CacheService()
+        app.state.websocket_service = WebSocketService()
+        logger.info("Services initialized")
+    except Exception as e:
+        logger.warning(f"Service initialization failed: {e}")
     
     # Start background tasks
-    await app.state.cache_service.start_background_tasks()
-    logger.info("Background tasks started")
+    try:
+        await app.state.cache_service.start_background_tasks()
+        logger.info("Background tasks started")
+    except Exception as e:
+        logger.warning(f"Background task startup failed: {e}")
     
     logger.info("Application started successfully")
     logger.info(f"7-Phase pipeline ready: Total processing time ~{sum(settings.phase_timeouts.values())}s")
@@ -137,7 +154,7 @@ async def root():
     return {
         "name": settings.app_name,
         "version": settings.app_version,
-        "status": "running",
+        "status": "processing",
         "api_versions": {
             "v1": {
                 "status": "stable",

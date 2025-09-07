@@ -1,20 +1,25 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
 import { checkSessionStatus, submitFeedback } from '@/lib/api';
-import { useWebSocket } from '@/lib/websocket';
-import PhasePreview from '@/components/PhasePreview';
+import { type SessionStatusResponse } from '@/types/api-schema';
+import { useWebSocket } from '@/hooks/useWebSocket';
+import { usePerformance } from '@/hooks/usePerformance';
+import { ErrorBoundary, NetworkError, ProcessingError, reportError } from '@/components/ErrorBoundary';
+import { type PhaseId, type PhaseData } from '@/types/processing';
+import ProcessingHeader from '@/components/ProcessingHeader';
+import LogPanel from '@/components/LogPanel';
+import PhaseListPanel from '@/components/PhaseListPanel';
 
 interface PreviewData {
-  type: string;
-  content: any;
+  type: 'concept' | 'character' | 'story' | 'panel' | 'scene' | 'dialogue' | 'final';
+  content: PhaseData;
   timestamp?: number;
 }
 
 interface Phase {
-  id: number;
+  id: PhaseId;
   name: string;
   status: 'pending' | 'processing' | 'completed' | 'waiting_feedback';
   progress: number;
@@ -22,9 +27,11 @@ interface Phase {
   preview?: PreviewData;
 }
 
+// Types moved to separate components
+
 export default function Processing() {
   const router = useRouter();
-  const [sessionId, setSessionId] = useState<string>('');
+  const [requestId, setRequestId] = useState<string>('');
   const [phases, setPhases] = useState<Phase[]>([
     { id: 1, name: 'コンセプト・世界観分析', status: 'pending', progress: 0, canProvideHitl: false },
     { id: 2, name: 'キャラクター設定', status: 'pending', progress: 0, canProvideHitl: false },
@@ -39,47 +46,90 @@ export default function Processing() {
   const [canProvideFeedback, setCanProvideFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
-  const logEndRef = useRef<HTMLDivElement>(null);
 
   // WebSocket接続
-  const { isConnected, sendMessage } = useWebSocket({
-    onMessage: (data) => {
-      handleWebSocketMessage(data);
-    },
-  });
+  const { isConnected, isConnecting, connect, sendFeedback: wsSendFeedback } = useWebSocket();
+  
+  // Performance monitoring
+  const { optimizeImages, lazyLoadResources } = usePerformance();
+
+  // Define callback functions first before usePolling
+  const addLog = useCallback((message: string) => {
+    const timestamp = new Date().toLocaleTimeString('ja-JP');
+    setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
+  }, []);
+
+  const updatePhaseStatus = useCallback((status: { phaseId: PhaseId; status: string; progress?: number }) => {
+    setPhases(prev => prev.map(p => 
+      p.id === status.phaseId 
+        ? { 
+            ...p, 
+            status: status.status as Phase['status'], 
+            progress: status.progress ?? (status.status === 'completed' ? 100 : 50) 
+          }
+        : p
+    ));
+    if (status.status === 'processing') {
+      setCurrentPhase(status.phaseId);
+    }
+  }, []);
+
+  const enableFeedback = useCallback((phaseId: PhaseId) => {
+    setCanProvideFeedback(true);
+    setPhases(prev => prev.map(p => 
+      p.id === phaseId ? { ...p, canProvideHitl: true, status: 'waiting_feedback' } : p
+    ));
+  }, []);
+
+  const updatePhasePreview = useCallback((phaseId: PhaseId, previewData: PhaseData) => {
+    setPhases(prev => prev.map(p => 
+      p.id === phaseId 
+        ? { ...p, preview: { type: 'phase_preview', content: previewData, timestamp: Date.now() } }
+        : p
+    ));
+    addLog(`Phase ${phaseId} プレビュー更新`);
+  }, [addLog]);
+
+  // Polling management - defined after all callback functions
+  const { startPolling, stopPolling } = usePolling(addLog, updatePhaseStatus);
 
   useEffect(() => {
-    const id = sessionStorage.getItem('sessionId');
+    const id = sessionStorage.getItem('requestId');
     if (!id) {
       router.push('/');
       return;
     }
-    setSessionId(id);
-    startPolling(id);
-  }, []);
-
-  useEffect(() => {
-    if (logEndRef.current) {
-      logEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [logs]);
-
-  const startPolling = async (id: string) => {
-    const interval = setInterval(async () => {
+    setRequestId(id);
+    
+    // Initialize all necessary connections and optimizations
+    const initialize = async () => {
       try {
-        const status = await checkSessionStatus(id);
-        if (status) {
-          updatePhaseStatus(status);
+        // Connect to WebSocket for real-time updates
+        if (!isConnected && !isConnecting) {
+          connect();
         }
+        
+        // Initialize performance optimizations
+        optimizeImages();
+        lazyLoadResources();
+        
+        // Start polling after other initializations
+        setTimeout(() => startPolling(id), 0);
       } catch (error) {
-        console.error('Polling error:', error);
+        console.error('Initialization failed:', error);
       }
-    }, 2000);
+    };
+    
+    initialize();
+    
+    // Cleanup polling on unmount
+    return () => {
+      stopPolling();
+    };
+  }, [connect, isConnected, isConnecting, startPolling, stopPolling, router, optimizeImages, lazyLoadResources]);
 
-    return () => clearInterval(interval);
-  };
 
-  const handleWebSocketMessage = (data: any) => {
+  const handleWebSocketMessage = useCallback((data: { type: string; phase?: number; status?: string; message?: string; preview?: PhaseData }) => {
     if (data.type === 'phase_update') {
       updatePhaseFromWS(data.phase, data.status);
     } else if (data.type === 'log') {
@@ -91,9 +141,9 @@ export default function Processing() {
     } else if (data.type === 'preview_update') {
       updatePhasePreview(data.phase, data.preview);
     }
-  };
+  }, [addLog, enableFeedback, updatePhasePreview]);
 
-  const updatePhaseFromWS = (phaseId: number, status: string) => {
+  const updatePhaseFromWS = useCallback((phaseId: PhaseId, status: string) => {
     setPhases(prev => prev.map(p => 
       p.id === phaseId 
         ? { ...p, status: status as Phase['status'], progress: status === 'completed' ? 100 : 50 }
@@ -102,38 +152,18 @@ export default function Processing() {
     if (status === 'processing') {
       setCurrentPhase(phaseId);
     }
-  };
+  }, []);
 
-  const updatePhaseStatus = (status: any) => {
-    // API応答に基づいてフェーズ状態を更新
-  };
-
-  const addLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString('ja-JP');
-    setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
-  };
-
-  const enableFeedback = (phaseId: number) => {
-    setCanProvideFeedback(true);
-    setPhases(prev => prev.map(p => 
-      p.id === phaseId ? { ...p, canProvideHitl: true, status: 'waiting_feedback' } : p
-    ));
-  };
-
-  const updatePhasePreview = (phaseId: number, previewData: any) => {
-    setPhases(prev => prev.map(p => 
-      p.id === phaseId 
-        ? { ...p, preview: { type: 'phase_preview', content: previewData, timestamp: Date.now() } }
-        : p
-    ));
-    addLog(`Phase ${phaseId} プレビュー更新`);
-  };
-
-  const handleFeedbackSubmit = async () => {
+  const handleFeedbackSubmit = useCallback(async () => {
     if (!feedbackText.trim()) return;
     
     try {
-      await submitFeedback(sessionId, currentPhase, feedbackText);
+      // Send via WebSocket for real-time feedback
+      wsSendFeedback(currentPhase, feedbackText);
+      
+      // Also send via HTTP API as fallback
+      await submitFeedback(requestId, currentPhase, feedbackText);
+      
       setFeedbackText('');
       setCanProvideFeedback(false);
       addLog(`フィードバックを送信しました: ${feedbackText}`);
@@ -142,225 +172,107 @@ export default function Processing() {
         p.id === currentPhase ? { ...p, status: 'processing', canProvideHitl: false } : p
       ));
     } catch (error) {
-      console.error('Feedback submission failed:', error);
+      const feedbackError = new ProcessingError(
+        'Failed to submit feedback',
+        currentPhase
+      );
+      reportError(feedbackError, { 
+        feedbackText: feedbackText.slice(0, 100), 
+        phaseId: currentPhase,
+        operation: 'feedback_submission'
+      });
+      addLog(`フィードバック送信エラー: ${feedbackError.message}`);
+      
+      // Reset feedback state on error for user recovery
+      setCanProvideFeedback(true);
     }
-  };
+  }, [feedbackText, currentPhase, requestId, wsSendFeedback, addLog]);
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] flex flex-col">
-      {/* Minimal Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-[#0a0a0a]/90 backdrop-blur-sm border-b border-white/5">
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          <h1 className="text-xs font-medium text-white/60">
-            生成中
-          </h1>
-          <div className="flex items-center gap-4">
-            {isConnected && (
-              <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-[14px] text-green-500/50 animate-pulse">
-                  wifi
-                </span>
-                <span className="text-[10px] text-white/40">接続中</span>
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+    <ErrorBoundary
+      onError={(error, errorInfo) => {
+        reportError(error, { 
+          component: 'Processing',
+          requestId,
+          currentPhase,
+          errorInfo 
+        });
+      }}
+    >
+      <div className="min-h-screen bg-[rgb(var(--bg-primary))] flex flex-col">
+        <ProcessingHeader isConnected={isConnected} />
 
-      {/* Split View Container */}
-      <div className="flex-1 flex mt-12">
-        {/* Left Panel - Logs */}
-        <div className="w-1/2 border-r border-white/5 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="space-y-1 font-mono text-[11px] text-white/40">
-              {logs.map((log, index) => (
-                <div 
-                  key={index}
-                  className={`
-                    ${log.includes('完了') ? 'text-green-500/60' : ''}
-                    ${log.includes('エラー') ? 'text-red-500/60' : ''}
-                    ${log.includes('処理中') ? 'text-blue-500/60' : ''}
-                  `}
-                >
-                  {log}
-                </div>
-              ))}
-              <div ref={logEndRef} />
-            </div>
-          </div>
+        {/* Split View Container */}
+        <div className="flex-1 flex mt-12">
+          <LogPanel logs={logs} />
+          <PhaseListPanel
+            phases={phases}
+            currentPhase={currentPhase}
+            canProvideFeedback={canProvideFeedback}
+            feedbackText={feedbackText}
+            onFeedbackChange={setFeedbackText}
+            onFeedbackSubmit={handleFeedbackSubmit}
+          />
         </div>
 
-        {/* Right Panel - Phases */}
-        <div className="w-1/2 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-6">
-            {/* Preview Section for Current Phase */}
-            {currentPhase && phases[currentPhase - 1]?.status === 'processing' && (
-              <div className="mb-6">
-                <PhasePreview 
-                  phaseId={currentPhase}
-                  phaseName={phases[currentPhase - 1].name}
-                  preview={phases[currentPhase - 1].preview}
-                />
-              </div>
-            )}
-            
-            {/* Phase Progress List */}
-            <div className="space-y-3">
-              {phases.map((phase) => (
-                <div
-                  key={phase.id}
-                  className={`
-                    relative p-4 
-                    bg-[#0f0f0f] border transition-all duration-500
-                    ${phase.status === 'processing' 
-                      ? 'border-white/20 bg-[#111111]' 
-                      : phase.status === 'completed'
-                      ? 'border-white/5 opacity-50'
-                      : 'border-white/5 opacity-30'
-                    }
-                  `}
-                >
-                  {/* Phase Info */}
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
-                      {/* Status Icon */}
-                      <span className={`
-                        material-symbols-outlined text-[18px]
-                        ${phase.status === 'completed' 
-                          ? 'text-green-500/60' 
-                          : phase.status === 'processing'
-                          ? 'text-blue-500/60 animate-spin'
-                          : phase.status === 'waiting_feedback'
-                          ? 'text-yellow-500/60'
-                          : 'text-white/20'
-                        }
-                      `}>
-                        {phase.status === 'completed' ? 'check_circle' :
-                         phase.status === 'processing' ? 'progress_activity' :
-                         phase.status === 'waiting_feedback' ? 'feedback' :
-                         'radio_button_unchecked'}
-                      </span>
-                      <span className="text-[10px] font-mono text-white/40">
-                        {String(phase.id).padStart(2, '0')}
-                      </span>
-                      <span className={`
-                        text-sm font-medium
-                        ${phase.status === 'processing' 
-                          ? 'text-white/90' 
-                          : phase.status === 'completed'
-                          ? 'text-white/50'
-                          : 'text-white/30'
-                        }
-                      `}>
-                        {phase.name}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-white/30">
-                      {phase.status === 'completed' ? '完了' :
-                       phase.status === 'processing' ? '処理中' :
-                       phase.status === 'waiting_feedback' ? 'フィードバック待機' :
-                       '待機中'}
-                    </span>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="h-[1px] bg-white/5 overflow-hidden">
-                    <div 
-                      className="h-full bg-white/20 transition-all duration-1000"
-                      style={{ width: `${phase.progress}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+        {/* Completion Actions */}
+        {isCompleted && (
+          <div className="fixed bottom-6 right-6 animate-fade-in">
+            <button
+              onClick={() => router.push('/result')}
+              className="
+                px-6 py-3 flex items-center gap-2
+                bg-white/10 hover:bg-white/15
+                text-sm font-medium text-[rgb(var(--text-primary))]
+                border border-[rgb(var(--border-heavy))]
+                transition-all duration-300
+              "
+            >
+              <span className="material-symbols-outlined text-[20px]">
+                visibility
+              </span>
+              結果を表示
+            </button>
           </div>
-
-          {/* HITL Input Section (Claude Style) */}
-          <div className="border-t border-white/5 p-4">
-            <div className={`
-              relative bg-[#2d2d2d] 
-              rounded-xl border transition-all duration-300
-              ${canProvideFeedback 
-                ? 'border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.05)]' 
-                : 'border-white/10 opacity-50'
-              }
-            `}>
-              <textarea
-                value={feedbackText}
-                onChange={(e) => setFeedbackText(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && e.metaKey && handleFeedbackSubmit()}
-                placeholder={canProvideFeedback ? "フィードバックを入力..." : "フェーズ完了を待機中..."}
-                disabled={!canProvideFeedback}
-                className="
-                  w-full px-4 py-3 pr-12 pb-10
-                  bg-transparent text-white/90
-                  placeholder:text-white/30
-                  resize-none outline-none
-                  min-h-[80px] max-h-[120px]
-                  text-sm leading-relaxed
-                  font-['Roboto',_-apple-system,_BlinkMacSystemFont,_'Segoe_UI',_sans-serif]
-                "
-              />
-              
-              {/* Bottom Bar */}
-              <div className="absolute bottom-0 left-0 right-0 px-3 py-2 flex items-center justify-between">
-                {feedbackText.length > 0 && (
-                  <span className="text-[10px] font-mono text-white/30">
-                    {feedbackText.length}/500
-                  </span>
-                )}
-                {feedbackText.length === 0 && canProvideFeedback && (
-                  <span className="text-[10px] text-white/20">
-                    フィードバックを入力してください
-                  </span>
-                )}
-                {!canProvideFeedback && (
-                  <span className="text-[10px] text-white/20">
-                    待機中
-                  </span>
-                )}
-                
-                <button
-                  onClick={handleFeedbackSubmit}
-                  disabled={!canProvideFeedback || feedbackText.length === 0}
-                  className={`
-                    p-1.5 rounded-md transition-all duration-300
-                    ${feedbackText.length > 0 && canProvideFeedback
-                      ? 'bg-white/90 hover:bg-white text-[#2d2d2d] cursor-pointer' 
-                      : 'bg-white/5 text-white/20 cursor-not-allowed'
-                    }
-                  `}
-                >
-                  <span className="material-symbols-outlined text-[18px]">
-                    send
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
-
-      {/* Completion Actions */}
-      {isCompleted && (
-        <div className="fixed bottom-6 right-6 animate-fade-in">
-          <button
-            onClick={() => router.push('/result')}
-            className="
-              px-6 py-3 flex items-center gap-2
-              bg-white/10 hover:bg-white/15
-              text-sm font-medium text-white/90
-              border border-white/20
-              transition-all duration-300
-            "
-          >
-            <span className="material-symbols-outlined text-[20px]">
-              visibility
-            </span>
-            結果を表示
-          </button>
-        </div>
-      )}
-    </div>
+    </ErrorBoundary>
   );
+}
+
+// Custom hook for polling management
+function usePolling(addLog: (message: string) => void, updatePhaseStatus: (status: any) => void) {
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  
+  const startPolling = useCallback(async (id: string) => {
+    // Clear existing interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    pollingIntervalRef.current = setInterval(async () => {
+      try {
+        const status = await checkSessionStatus(id);
+        if (status) {
+          updatePhaseStatus(status);
+        }
+      } catch (error) {
+        const networkError = new NetworkError(
+          'Failed to check session status',
+          error instanceof Error && 'status' in error ? (error as any).status : undefined
+        );
+        reportError(networkError, { sessionId: id, operation: 'polling' });
+        addLog(`ステータスチェックエラー: ${networkError.message}`);
+      }
+    }, 2000);
+  }, [addLog, updatePhaseStatus]);
+  
+  const stopPolling = useCallback(() => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+  }, []);
+  
+  return { startPolling, stopPolling };
 }

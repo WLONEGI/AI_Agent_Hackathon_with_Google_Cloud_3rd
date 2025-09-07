@@ -532,7 +532,7 @@ class TestPipelinePerformance:
         
         # Verify that timeout was handled properly
         phase_3_execution = orchestrator.execution_plan[3]
-        assert phase_3_execution.status in ["failed", "cancelled"]
+        assert phase_3_execution.status in ["error", "cancelled"]
 
 
 @pytest.mark.asyncio  

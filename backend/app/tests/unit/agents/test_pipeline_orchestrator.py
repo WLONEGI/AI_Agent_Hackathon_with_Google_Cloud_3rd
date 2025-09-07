@@ -324,7 +324,7 @@ class TestPipelineOrchestrator:
         orchestrator = PipelineOrchestrator()
         
         # Set some phases as running
-        orchestrator.execution_plan[1].status = "running"
+        orchestrator.execution_plan[1].status = "processing"
         orchestrator.execution_plan[2].status = "pending"
         
         reason = "User requested cancellation"
@@ -344,7 +344,7 @@ class TestPipelineOrchestrator:
         
         status = orchestrator.get_pipeline_status()
         
-        assert status["status"] == "running"
+        assert status["status"] == "processing"
         assert status["current_phase"] == 3
         assert status["total_phases"] == 7
         assert status["progress_percentage"] == pytest.approx(42.857, rel=1e-2)

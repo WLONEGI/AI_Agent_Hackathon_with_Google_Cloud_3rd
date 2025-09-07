@@ -205,7 +205,7 @@ class GenerationRequestsRepositoryImpl(GenerationRequestsRepository, BaseReposit
         try:
             # Count by status
             status_counts = {}
-            for status in ["queued", "processing", "completed", "failed"]:
+            for status in ["queued", "processing", "completed", "error"]:
                 count_query = select(func.count(GenerationRequest.request_id)).where(
                     GenerationRequest.status == status
                 )
@@ -313,7 +313,7 @@ class GenerationRequestsRepositoryImpl(GenerationRequestsRepository, BaseReposit
             if not db_request:
                 raise RequestNotFoundError(f"Request {request_id} not found")
             
-            if db_request.status != "failed":
+            if db_request.status != "error":
                 raise RetryLimitExceededError("Only failed requests can be retried")
             
             if db_request.retry_count >= 3:
@@ -529,7 +529,7 @@ class GenerationRequestsRepositoryImpl(GenerationRequestsRepository, BaseReposit
                 update(GenerationRequest)
                 .where(GenerationRequest.request_id == request_id)
                 .values(
-                    status="failed",
+                    status="error",
                     completed_at=datetime.utcnow(),
                     updated_at=datetime.utcnow(),
                     request_settings=settings
@@ -609,7 +609,7 @@ class GenerationRequestsRepositoryImpl(GenerationRequestsRepository, BaseReposit
                     )
                 )
                 .values(
-                    status="failed",
+                    status="error",
                     completed_at=datetime.utcnow(),
                     updated_at=datetime.utcnow()
                 )

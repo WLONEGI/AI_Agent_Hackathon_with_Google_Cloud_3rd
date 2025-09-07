@@ -15,7 +15,7 @@ class PhaseStatus(str, Enum):
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
-    FAILED = "failed"
+    FAILED = "error"
     RETRYING = "retrying"
     SKIPPED = "skipped"
 
@@ -310,45 +310,45 @@ class PhaseResult:
 # Domain Events
 @dataclass
 class PhaseStartedEvent(DomainEvent):
-    phase_result_id: PhaseResultId
-    session_id: str
-    phase_number: int
-    timestamp: datetime
+    phase_result_id: PhaseResultId = field(default=None)
+    session_id: str = field(default="")
+    phase_number: int = field(default=0)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class PhaseCompletedEvent(DomainEvent):
-    phase_result_id: PhaseResultId
-    session_id: str
-    phase_number: int
-    quality_score: Optional[float]
-    processing_time: Optional[float]
-    timestamp: datetime
+    phase_result_id: PhaseResultId = field(default=None)
+    session_id: str = field(default="")
+    phase_number: int = field(default=0)
+    quality_score: Optional[float] = field(default=None)
+    processing_time: Optional[float] = field(default=None)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class PhaseFailedEvent(DomainEvent):
-    phase_result_id: PhaseResultId
-    session_id: str
-    phase_number: int
-    error_message: str
-    error_code: Optional[str]
-    timestamp: datetime
+    phase_result_id: PhaseResultId = field(default=None)
+    session_id: str = field(default="")
+    phase_number: int = field(default=0)
+    error_message: str = field(default="")
+    error_code: Optional[str] = field(default=None)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class PhaseRetryEvent(DomainEvent):
-    phase_result_id: PhaseResultId
-    session_id: str
-    phase_number: int
-    retry_count: int
-    timestamp: datetime
+    phase_result_id: PhaseResultId = field(default=None)
+    session_id: str = field(default="")
+    phase_number: int = field(default=0)
+    retry_count: int = field(default=0)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class PhaseSkippedEvent(DomainEvent):
-    phase_result_id: PhaseResultId
-    session_id: str
-    phase_number: int
-    reason: str
-    timestamp: datetime
+    phase_result_id: PhaseResultId = field(default=None)
+    session_id: str = field(default="")
+    phase_number: int = field(default=0)
+    reason: str = field(default="")
+    timestamp: datetime = field(default_factory=datetime.utcnow)

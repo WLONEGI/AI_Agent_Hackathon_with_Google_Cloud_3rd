@@ -1,7 +1,10 @@
 """AI Models and Google Cloud configuration settings."""
 
 from typing import Dict, List, Optional
-from pydantic_settings import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    from pydantic import BaseSettings
 from pydantic import Field, field_validator
 
 
@@ -140,8 +143,9 @@ class AIModelSettings(BaseSettings):
         return v
     
     class Config:
-        env_prefix = "AI_"
+        env_file = ".env"
         case_sensitive = False
+        extra = "ignore"
     
     def get_gemini_config(self, phase_number: Optional[int] = None) -> dict:
         """Get Gemini model configuration for specific phase."""

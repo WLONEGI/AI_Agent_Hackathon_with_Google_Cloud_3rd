@@ -25,8 +25,8 @@ class RedisManager:
         """Initialize Redis connection pool."""
         try:
             self._pool = aioredis.ConnectionPool.from_url(
-                settings.redis_url,
-                max_connections=settings.redis_max_connections,
+                settings.cache.redis_url,
+                max_connections=settings.cache.redis_max_connections,
                 decode_responses=True
             )
             self.redis = aioredis.Redis(connection_pool=self._pool)
@@ -223,6 +223,58 @@ class RedisManager:
     def is_healthy(self) -> bool:
         """Check if Redis connection is healthy."""
         return self._healthy
+    
+    async def get_info(self) -> dict:
+        """Get Redis server information and statistics."""
+        try:
+            if not self.redis:
+                return {
+                    "l1_memory": {"hit_rate": "0%", "used_memory": "0"},
+                    "error": "Redis not connected"
+                }
+            
+            # Get Redis info
+            info = await self.redis.info()
+            
+            # Calculate hit rate
+            hits = info.get('keyspace_hits', 0)
+            misses = info.get('keyspace_misses', 0)
+            total_ops = hits + misses
+            hit_rate = (hits / total_ops * 100) if total_ops > 0 else 0
+            
+            return {
+                "l1_memory": {
+                    "hit_rate": f"{hit_rate:.1f}%",
+                    "used_memory": info.get("used_memory_human", "0")
+                },
+                "memory": {
+                    "used_memory": info.get("used_memory_human", "0"),
+                    "used_memory_peak": info.get("used_memory_peak_human", "0"),
+                    "used_memory_rss": info.get("used_memory_rss_human", "0"),
+                    "mem_fragmentation_ratio": info.get("mem_fragmentation_ratio", 1.0)
+                },
+                "stats": {
+                    "total_connections_received": info.get("total_connections_received", 0),
+                    "total_commands_processed": info.get("total_commands_processed", 0),
+                    "instantaneous_ops_per_sec": info.get("instantaneous_ops_per_sec", 0),
+                    "keyspace_hits": hits,
+                    "keyspace_misses": misses,
+                    "hit_rate_percentage": hit_rate
+                },
+                "keyspace": {
+                    "total_keys": sum(
+                        int(db_info.split(',')[0].split('=')[1]) 
+                        for key, db_info in info.items() 
+                        if key.startswith('db')
+                    ) if any(key.startswith('db') for key in info.keys()) else 0
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error getting Redis info: {e}")
+            return {
+                "l1_memory": {"hit_rate": "0%", "used_memory": "0"},
+                "error": str(e)
+            }
 
 
 class CacheService:
@@ -233,11 +285,11 @@ class CacheService:
         
         # TTL strategies in seconds
         self.ttl_strategies = {
-            'session': settings.cache_l1_ttl_seconds,
+            'session': settings.cache.l1_ttl_seconds,
             'preview': 120,  # 2 minutes for preview data
-            'phase_result': settings.cache_l2_ttl_seconds,
+            'phase_result': settings.cache.l2_default_ttl,
             'user_data': 1800,  # 30 minutes
-            'generated_image': settings.cache_l3_ttl_seconds,
+            'generated_image': settings.cache.l3_ttl_seconds,
         }
     
     async def get_cached_or_compute(

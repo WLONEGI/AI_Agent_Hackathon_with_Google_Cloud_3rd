@@ -52,6 +52,43 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = Field(7, env="REFRESH_TOKEN_EXPIRE_DAYS")
     bcrypt_rounds: int = Field(12, env="BCRYPT_ROUNDS")
     
+    @field_validator("secret_key")
+    def validate_secret_key(cls, v):
+        if len(v) < 32:
+            raise ValueError("Secret key must be at least 32 characters long")
+        
+        # Detect insecure patterns
+        insecure_patterns = [
+            "dev-", "test-", "default", "secret", "password", "key", 
+            "CHANGE", "GENERATE", "PRODUCTION", "123", "abc"
+        ]
+        if any(pattern.upper() in v.upper() for pattern in insecure_patterns):
+            raise ValueError(f"Secret key contains insecure patterns. Use cryptographically secure random key.")
+        
+        # Ensure sufficient entropy
+        unique_chars = len(set(v.lower()))
+        if unique_chars < 16:
+            raise ValueError("Secret key has insufficient entropy. Use random generator.")
+        
+        return v
+    
+    def is_production(self) -> bool:
+        """Check if running in production environment."""
+        return self.env.lower() == "production"
+    
+    def is_development(self) -> bool:
+        """Check if running in development environment."""
+        return self.env.lower() in ("development", "dev", "local")
+    
+    def get_phase_config(self, phase_num: int) -> dict:
+        """Get phase-specific configuration."""
+        return {
+            "timeout_seconds": self.phase_timeouts.get(phase_num, 30),
+            "quality_threshold": 0.7,
+            "max_retries": 3,
+            "parallel_enabled": phase_num in [2, 3, 5]  # Parallelizable phases
+        }
+    
     # Rate Limiting
     rate_limit_per_ip: int = Field(100, env="RATE_LIMIT_PER_IP")
     rate_limit_window_seconds: int = Field(60, env="RATE_LIMIT_WINDOW_SECONDS")
@@ -80,7 +117,9 @@ class Settings(BaseSettings):
         ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         env="CORS_ALLOW_METHODS"
     )
-    cors_allow_headers: List[str] = Field(["*"], env="CORS_ALLOW_HEADERS")
+    cors_allow_headers: List[str] = Field([
+        "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"
+    ], env="CORS_ALLOW_HEADERS")
     
     # Monitoring
     enable_metrics: bool = Field(True, env="ENABLE_METRICS")

@@ -2,7 +2,7 @@
 
 from abc import ABC
 from datetime import datetime
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from uuid import uuid4
 

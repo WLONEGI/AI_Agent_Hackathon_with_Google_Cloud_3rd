@@ -53,10 +53,39 @@ Usage in API Layer:
         return IdResponseDTO(id=result.data)
 """
 
-from .commands import *
-from .queries import *
-from .handlers import *
-from .dto import *
+# Explicit imports to avoid namespace pollution
+from .commands import (
+    base_command,
+    user_commands,
+    manga_project_commands,
+    generation_request_commands,
+    processing_module_commands,
+    preview_commands
+)
+from .queries import (
+    base_query,
+    user_queries,
+    manga_project_queries,
+    generation_request_queries,
+    processing_module_queries,
+    preview_queries
+)
+from .handlers import (
+    base_handler,
+    user_handlers,
+    manga_project_handlers,
+    generation_request_handlers,
+    processing_module_handlers,
+    preview_command_handlers,
+    preview_query_handlers
+)
+from .dto import (
+    base_dto,
+    user_dto,
+    manga_project_dto,
+    generation_request_dto,
+    processing_module_dto
+)
 
 __all__ = [
     "commands",

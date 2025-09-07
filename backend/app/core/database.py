@@ -11,14 +11,20 @@ from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
-# Create async engine
+# Create async engine with optimized production settings
 engine = create_async_engine(
-    settings.database_url,
-    echo=settings.database_echo,
-    pool_size=settings.database_pool_size,
-    max_overflow=settings.database_max_overflow,
+    settings.database.async_url,
+    echo=settings.database.echo,
+    pool_size=20,  # Increased from default for production load
+    max_overflow=10,  # Allow temporary spike connections
     pool_pre_ping=True,  # Verify connections before using
     pool_recycle=3600,  # Recycle connections after 1 hour
+    pool_timeout=30,  # Connection timeout in seconds
+    connect_args={
+        "server_settings": {"jit": "off"},  # Disable JIT for consistent performance
+        "command_timeout": 60,
+        "timeout": 60,
+    },
 )
 
 # Create async session factory

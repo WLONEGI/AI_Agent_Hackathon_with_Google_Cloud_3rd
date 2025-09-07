@@ -10,9 +10,8 @@ import time
 from typing import Dict, Any, Optional, List, Set
 from datetime import datetime, timedelta
 from collections import OrderedDict
-import pickle
 
-from app.core.redis_client import RedisClient
+from app.core.redis_client import redis_manager
 from app.core.logging import LoggerMixin
 
 
@@ -93,7 +92,7 @@ class CacheService(LoggerMixin):
         self.memory_cache = LRUCache(capacity=1000)
         
         # L2: Redisクライアント
-        self.redis_client = RedisClient()
+        self.redis_client = redis_manager
         
         # キャッシュ設定
         self.ttl_config = {
@@ -156,10 +155,9 @@ class CacheService(LoggerMixin):
                 self.memory_cache.set(key, data, ttl=60)  # 1分間メモリに保持
                 return data
             except json.JSONDecodeError:
-                # バイナリデータの場合
-                data = pickle.loads(redis_data.encode('latin-1'))
-                self.memory_cache.set(key, data, ttl=60)
-                return data
+                # バイナリデータはサポートしない（セキュリティリスクのため）
+                self.logger.warning(f"Skipping invalid JSON data for key: {key}")
+                return None
         
         # L3: PostgreSQLは別途実装（必要に応じて）
         self.stats["l3_requests"] += 1
@@ -186,10 +184,14 @@ class CacheService(LoggerMixin):
             self.memory_cache.set(key, value, ttl=min(ttl, 300))  # メモリは最大5分
             
             # L2: Redis
-            if isinstance(value, (dict, list)):
-                serialized = json.dumps(value)
+            if isinstance(value, (dict, list, str, int, float, bool)) or value is None:
+                serialized = json.dumps(value, default=str)
             else:
-                serialized = pickle.dumps(value).decode('latin-1')
+                # 複雑なオブジェクトは辞書に変換してからシリアライズ
+                if hasattr(value, '__dict__'):
+                    serialized = json.dumps(value.__dict__, default=str)
+                else:
+                    serialized = json.dumps(str(value))
             
             await self.redis_client.set(key, serialized, ttl=ttl)
             

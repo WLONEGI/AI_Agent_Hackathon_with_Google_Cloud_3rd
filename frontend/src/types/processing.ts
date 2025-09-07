@@ -14,11 +14,99 @@ export interface ProcessingPhase {
   error?: string;
 }
 
+// Phase-specific result data types
+export interface ConceptAnalysisData {
+  themes: string[];
+  worldSetting: string;
+  genre: string;
+  targetAudience: string;
+  mood: string;
+}
+
+export interface CharacterData {
+  characters: {
+    name: string;
+    role: string;
+    appearance: string;
+    personality: string;
+    imageUrl?: string;
+  }[];
+  imageUrl?: string;
+}
+
+export interface StoryStructureData {
+  acts: {
+    title: string;
+    description: string;
+    scenes: string[];
+  }[];
+  overallArc: string;
+}
+
+export interface PanelLayoutData {
+  panels: {
+    description: string;
+    composition: string;
+    characters: string[];
+    dialogues: string[];
+    cameraAngle: string;
+  }[];
+  pageCount: number;
+}
+
+export interface SceneImageData {
+  images: {
+    url?: string;
+    prompt: string;
+    panelId: number;
+    status: 'generating' | 'completed' | 'error';
+  }[];
+}
+
+export interface DialogueLayoutData {
+  dialogues: {
+    character: string;
+    text: string;
+    position: string;
+    style: string;
+    bubbleType: 'speech' | 'thought' | 'narration';
+  }[];
+  soundEffects: string[];
+}
+
+export interface FinalIntegrationData {
+  finalPages?: {
+    imageUrl?: string;
+    pageNumber: number;
+    panels: number;
+  }[];
+  qualityChecks?: {
+    item: string;
+    status: 'pending' | 'processing' | 'completed';
+    score?: number;
+  }[];
+  overallQuality: number;
+}
+
+export type PhaseData = 
+  | ConceptAnalysisData
+  | CharacterData 
+  | StoryStructureData
+  | PanelLayoutData
+  | SceneImageData
+  | DialogueLayoutData
+  | FinalIntegrationData;
+
 export interface PhaseResult {
   phaseId: PhaseId;
-  data: any;
+  data: PhaseData;
   preview?: string;
-  metadata?: Record<string, any>;
+  metadata?: {
+    processingTime: number;
+    quality: number;
+    confidence: number;
+    [key: string]: string | number | boolean;
+  };
 }
 
 export interface LogEntry {
@@ -48,6 +136,19 @@ export interface FeedbackEntry {
   feedback: string;
   timestamp: Date;
   applied: boolean;
+}
+
+// WebSocket event types
+export interface WebSocketEventData {
+  phaseStart: { phaseId: PhaseId; phaseName: string };
+  phaseComplete: { phaseId: PhaseId; result: PhaseResult };
+  phaseError: { phaseId: PhaseId; error: { code: string; message: string; details?: string } };
+  feedbackRequest: { phaseId: PhaseId; preview: PhaseData };
+  sessionStart: { requestId: string; sessionId: string };
+  sessionComplete: { results: PhaseResult[]; sessionId: string };
+  log: LogEntry;
+  error: { code: string; message: string; phaseId?: PhaseId };
+  connected: boolean;
 }
 
 export const PHASE_DEFINITIONS: Record<PhaseId, { name: string; description: string; estimatedTime: number }> = {

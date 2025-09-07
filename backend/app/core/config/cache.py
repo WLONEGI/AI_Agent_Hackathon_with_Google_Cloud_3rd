@@ -1,7 +1,10 @@
 """Cache configuration settings."""
 
 from typing import Dict, Optional
-from pydantic_settings import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    from pydantic import BaseSettings
 from pydantic import Field, field_validator
 
 
@@ -104,8 +107,9 @@ class CacheSettings(BaseSettings):
         return v
     
     class Config:
-        env_prefix = "CACHE_"
+        env_file = ".env"
         case_sensitive = False
+        extra = "ignore"
     
     def get_redis_config(self) -> dict:
         """Get Redis connection configuration."""

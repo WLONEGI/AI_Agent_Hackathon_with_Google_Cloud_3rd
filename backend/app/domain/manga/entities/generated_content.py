@@ -377,56 +377,56 @@ class GeneratedContent:
 # Domain Events
 @dataclass
 class ContentGeneratedEvent(DomainEvent):
-    content_id: ContentId
-    session_id: str
-    content_type: ContentType
-    generated_by: str
-    generation_time: float
-    timestamp: datetime
+    content_id: ContentId = field(default=None)
+    session_id: str = field(default="")
+    content_type: ContentType = field(default=None)
+    generated_by: str = field(default="")
+    generation_time: float = field(default=0.0)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class ContentSubmittedForReviewEvent(DomainEvent):
-    content_id: ContentId
-    session_id: str
-    timestamp: datetime
+    content_id: ContentId = field(default=None)
+    session_id: str = field(default="")
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class ContentApprovedEvent(DomainEvent):
-    content_id: ContentId
-    session_id: str
-    approval_score: float
-    timestamp: datetime
+    content_id: ContentId = field(default=None)
+    session_id: str = field(default="")
+    approval_score: float = field(default=0.0)
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class ContentRejectedEvent(DomainEvent):
-    content_id: ContentId
-    session_id: str
-    reason: str
-    timestamp: datetime
+    content_id: ContentId = field(default=None)
+    session_id: str = field(default="")
+    reason: str = field(default="")
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class ContentRevisedEvent(DomainEvent):
-    content_id: ContentId
-    session_id: str
-    version: int
-    revision_reason: str
-    timestamp: datetime
+    content_id: ContentId = field(default=None)
+    session_id: str = field(default="")
+    version: int = field(default=1)
+    revision_reason: str = field(default="")
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class ContentFinalizedEvent(DomainEvent):
-    content_id: ContentId
-    session_id: str
-    timestamp: datetime
+    content_id: ContentId = field(default=None)
+    session_id: str = field(default="")
+    timestamp: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
 class ContentArchivedEvent(DomainEvent):
-    content_id: ContentId
-    session_id: str
-    reason: Optional[str]
-    timestamp: datetime
+    content_id: ContentId = field(default=None)
+    session_id: str = field(default="")
+    reason: Optional[str] = field(default=None)
+    timestamp: datetime = field(default_factory=datetime.utcnow)

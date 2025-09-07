@@ -38,7 +38,7 @@ class ProcessingModuleDTO(BaseDTO):
         if not (1 <= self.module_number <= 7):
             raise ValueError("Module number must be between 1 and 7")
         
-        valid_statuses = ["pending", "processing", "completed", "failed"]
+        valid_statuses = ["pending", "processing", "completed", "error"]
         if self.status not in valid_statuses:
             raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
         
@@ -107,7 +107,7 @@ class ProcessingModuleUpdateDTO(BaseDTO):
     def validate(self) -> None:
         """Validate processing module update DTO."""
         if self.status is not None:
-            valid_statuses = ["pending", "processing", "completed", "failed"]
+            valid_statuses = ["pending", "processing", "completed", "error"]
             if self.status not in valid_statuses:
                 raise ValueError(f"Status must be one of: {', '.join(valid_statuses)}")
         
@@ -204,7 +204,7 @@ class ProcessingModuleResultDTO(BaseDTO):
         if not (1 <= self.module_number <= 7):
             raise ValueError("Module number must be between 1 and 7")
         
-        if self.execution_status not in ["completed", "failed"]:
+        if self.execution_status not in ["completed", "error"]:
             raise ValueError("Execution status must be 'completed' or 'failed'")
         
         if self.processing_time_ms < 0:

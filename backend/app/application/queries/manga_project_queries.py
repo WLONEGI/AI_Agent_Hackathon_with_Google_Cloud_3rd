@@ -40,7 +40,7 @@ class ListMangaProjectsQuery(Query[List[MangaProjectDTO]], RequireUserMixin):
         self.validate_user_required()
         
         if self.status is not None:
-            if self.status not in ["completed", "processing", "failed"]:
+            if self.status not in ["completed", "processing", "error"]:
                 raise QueryValidationError("Status must be 'completed', 'processing', or 'failed'")
         
         if self.visibility is not None:
@@ -84,7 +84,7 @@ class SearchMangaProjectsQuery(Query[List[MangaProjectDTO]], RequireUserMixin):
                 raise QueryValidationError(f"Invalid search field: {field}")
         
         if self.status is not None:
-            if self.status not in ["completed", "processing", "failed"]:
+            if self.status not in ["completed", "processing", "error"]:
                 raise QueryValidationError("Status must be 'completed', 'processing', or 'failed'")
         
         if self.visibility is not None:
@@ -109,7 +109,7 @@ class GetMangaProjectsByUserQuery(Query[List[MangaProjectDTO]], RequireUserMixin
         self.validate_id_required("owner_user_id")
         
         if self.status is not None:
-            if self.status not in ["completed", "processing", "failed"]:
+            if self.status not in ["completed", "processing", "error"]:
                 raise QueryValidationError("Status must be 'completed', 'processing', or 'failed'")
         
         if self.visibility is not None:

@@ -49,7 +49,7 @@ class Phase5ImageAgent(BaseAgent):
         )
         
         # Parallel processing control
-        self.max_concurrent_generations = settings.max_parallel_image_generation
+        self.max_concurrent_generations = settings.ai_models.max_parallel_image_generation
         self.semaphore = asyncio.Semaphore(self.max_concurrent_generations)
         
         # Style templates for different scenarios

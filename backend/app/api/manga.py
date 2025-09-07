@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 import json
 
 from app.core.database import get_db
-from app.models.manga import MangaSession, MangaSessionStatus
+from app.models.manga import MangaSession, GenerationStatus
 from app.models.user import User
 from app.services.integrated_ai_service import IntegratedAIService
 from app.services.cache_service import CacheService
@@ -249,7 +249,7 @@ async def submit_feedback(
     if session.user_id != current_user.id:
         raise HTTPException(403, "Access denied")
     
-    if session.status != MangaSessionStatus.WAITING_FEEDBACK:
+    if session.status != GenerationStatus.WAITING_FEEDBACK:
         raise HTTPException(400, "Session is not waiting for feedback")
     
     # Store feedback
@@ -267,9 +267,8 @@ async def submit_feedback(
     
     # Notify processing engine via Redis pub/sub
     feedback_channel = f"feedback:{session_id}"
-    from app.core.redis_client import RedisClient
-    redis_client = RedisClient()
-    await redis_client.redis.publish(
+    from app.core.redis_client import redis_manager
+    await redis_manager.redis.publish(
         feedback_channel,
         json.dumps({
             "phase": phase_number,
@@ -302,15 +301,15 @@ async def cancel_generation(
         raise HTTPException(400, "Session is not active")
     
     # Update status  
-    session.status = MangaSessionStatus.CANCELLED
+    session.status = GenerationStatus.CANCELLED
     session.updated_at = datetime.utcnow()
     
     await db.commit()
     
     # Notify processing engine
     cancel_channel = f"cancel:{session_id}"
-    redis_client = RedisClient()
-    await redis_client.redis.publish(cancel_channel, "cancel")
+    from app.core.redis_client import redis_manager
+    await redis_manager.redis.publish(cancel_channel, "cancel")
     
     return {"status": "success", "message": "Generation cancelled successfully"}
 

@@ -25,11 +25,11 @@ from app.models.manga import MangaSession, PhaseResult
 class PipelineStatus(str, Enum):
     """Pipeline execution status."""
     INITIALIZING = "initializing"
-    RUNNING = "running"
+    PROCESSING = "processing"
     PARALLEL_EXECUTION = "parallel_execution"
     WAITING_FEEDBACK = "waiting_feedback"
     COMPLETED = "completed"
-    FAILED = "failed"
+    ERROR = "error"
     CANCELLED = "cancelled"
 
 
@@ -247,7 +247,7 @@ class PipelineOrchestrator(LoggerMixin):
                     for i, result in enumerate(parallel_results):
                         phase_execution = group_phases[i]
                         if isinstance(result, Exception):
-                            phase_execution.status = "failed"
+                            phase_execution.status = "error"
                             phase_execution.error = str(result)
                             self.log_error(
                                 f"Phase {phase_execution.phase_number} failed in parallel execution",
@@ -272,7 +272,7 @@ class PipelineOrchestrator(LoggerMixin):
         
         for phase_num, phase_exec in self.execution_plan.items():
             if (phase_num not in executed_phases and 
-                phase_exec.status in ["pending", "failed"] and
+                phase_exec.status in ["pending", "error"] and
                 all(dep in executed_phases for dep in phase_exec.dependencies)):
                 
                 ready_phases.append(phase_exec)
@@ -319,7 +319,7 @@ class PipelineOrchestrator(LoggerMixin):
         
         for attempt in range(phase_execution.max_retries + 1):
             try:
-                phase_execution.status = "running"
+                phase_execution.status = "processing"
                 phase_execution.start_time = time.time()
                 phase_execution.retry_count = attempt
                 
@@ -371,7 +371,7 @@ class PipelineOrchestrator(LoggerMixin):
                     # Exponential backoff
                     await asyncio.sleep(2 ** attempt)
                 else:
-                    phase_execution.status = "failed"
+                    phase_execution.status = "error"
                     phase_execution.end_time = time.time()
                     self.log_error(
                         f"Phase {phase_num} failed after {phase_execution.max_retries + 1} attempts",
@@ -491,7 +491,7 @@ class PipelineOrchestrator(LoggerMixin):
             "parallel_efficiency_percentage": self.execution_stats["parallel_efficiency"] * 100,
             "phases_completed": len(self.phase_results),
             "phases_failed": len([
-                p for p in self.execution_plan.values() if p.status == "failed"
+                p for p in self.execution_plan.values() if p.status == "error"
             ]),
             "retry_count": sum(p.retry_count for p in self.execution_plan.values()),
             "performance_metrics": self.execution_stats
@@ -603,7 +603,7 @@ class PipelineOrchestrator(LoggerMixin):
         
         # Cancel any running phases
         for phase_execution in self.execution_plan.values():
-            if phase_execution.status == "running":
+            if phase_execution.status == "processing":
                 phase_execution.status = "cancelled"
                 phase_execution.error = reason
     

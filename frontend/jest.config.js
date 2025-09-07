@@ -15,6 +15,7 @@ const customJestConfig = {
   testMatch: [
     '<rootDir>/tests/unit/**/*.test.{js,jsx,ts,tsx}',
     '<rootDir>/tests/integration/**/*.test.{js,jsx,ts,tsx}',
+    '<rootDir>/src/**/__tests__/**/*.test.{js,jsx,ts,tsx}',
   ],
   testPathIgnorePatterns: ['<rootDir>/.next/', '<rootDir>/node_modules/', '<rootDir>/tests/e2e/'],
   moduleDirectories: ['node_modules', '<rootDir>/'],
@@ -25,6 +26,12 @@ const customJestConfig = {
     '!src/**/_*.{js,jsx,ts,tsx}',
   ],
   coverageDirectory: '<rootDir>/test-artifacts/coverage',
+  testTimeout: 30000,
+  maxWorkers: '50%',
+  workerIdleMemoryLimit: '512MB',
+  logHeapUsage: true,
+  forceExit: true,
+  detectOpenHandles: true,
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async

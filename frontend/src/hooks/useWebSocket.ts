@@ -1,7 +1,14 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { getWebSocketClient, type WebSocketMessage } from '@/lib/websocket';
 import { useProcessingStore } from '@/stores/useProcessingStore';
-import { type PhaseId, type LogEntry } from '@/types/processing';
+import { useAuthStore } from '@/stores/useAuthStore';
+import { 
+  type PhaseId, 
+  type LogEntry, 
+  type PhaseResult,
+  type PhaseData,
+  type WebSocketEventData 
+} from '@/types/processing';
 import { logger } from '@/lib/logger';
 
 export function useWebSocket() {
@@ -9,35 +16,42 @@ export function useWebSocket() {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const store = useProcessingStore();
+  const authStore = useAuthStore();
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     const client = wsClient.current;
 
     // Set up event handlers
-    client.on('connected', (connected: boolean) => {
+    client.on('connected', (connected: WebSocketEventData['connected']) => {
       setIsConnected(connected);
       setIsConnecting(false);
+      setAuthError(null);
       store.setConnectionStatus(connected);
     });
 
-    client.on('sessionStart', (data: { sessionId: string }) => {
-      logger.debug('Session started:', data.sessionId);
+    client.on('sessionStart', (data: WebSocketEventData['sessionStart']) => {
+      logger.debug('Session started:', data.requestId);
+      store.setSessionId(data.sessionId);
     });
 
     client.on('phaseStart', (data: { phaseId: PhaseId; phaseName: string }) => {
       store.updatePhaseStatus(data.phaseId, 'processing');
     });
 
-    client.on('phaseComplete', (data: { phaseId: PhaseId; result: any }) => {
+    client.on('phaseComplete', (data: WebSocketEventData['phaseComplete']) => {
       store.updatePhaseStatus(data.phaseId, 'completed');
+      store.updatePhaseResult(data.phaseId, data.result);
     });
 
-    client.on('phaseError', (data: { phaseId: PhaseId; error: string }) => {
+    client.on('phaseError', (data: WebSocketEventData['phaseError']) => {
       store.updatePhaseStatus(data.phaseId, 'error');
+      store.setPhaseError(data.phaseId, data.error.message);
     });
 
-    client.on('feedbackRequest', (data: { phaseId: PhaseId; preview: any }) => {
+    client.on('feedbackRequest', (data: WebSocketEventData['feedbackRequest']) => {
       store.updatePhaseStatus(data.phaseId, 'waiting_feedback');
+      store.setPhasePreview(data.phaseId, data.preview);
     });
 
     client.on('log', (logEntry: LogEntry) => {
@@ -45,13 +59,25 @@ export function useWebSocket() {
       logger.debug('Log:', logEntry);
     });
 
-    client.on('sessionComplete', (data: { results: any }) => {
-      logger.info('Session completed:', data);
-      // Handle session completion
+    client.on('sessionComplete', (data: WebSocketEventData['sessionComplete']) => {
+      logger.info('Session completed:', data.sessionId);
+      store.completeSession(data.results);
     });
 
-    client.on('error', (error: any) => {
-      logger.error('WebSocket error:', error);
+    client.on('error', (error: WebSocketEventData['error']) => {
+      logger.error('WebSocket error:', error.message);
+      
+      // Handle authentication errors
+      if (error.message.includes('AUTH_REQUIRED') || error.message.includes('INVALID_TOKEN')) {
+        setAuthError('Authentication failed. Please log in again.');
+        authStore.logout();
+        return;
+      }
+      
+      if (error.phaseId) {
+        store.updatePhaseStatus(error.phaseId, 'error');
+        store.setPhaseError(error.phaseId, error.message);
+      }
     });
 
     // Clean up on unmount
@@ -61,17 +87,36 @@ export function useWebSocket() {
     };
   }, [store]);
 
-  const connect = useCallback(async () => {
+  const connect = useCallback(async (sessionId?: string) => {
     if (isConnecting || isConnected) return;
     
+    // Check authentication
+    if (!authStore.isAuthenticated || !authStore.tokens) {
+      setAuthError('Authentication required for WebSocket connection');
+      return;
+    }
+    
     setIsConnecting(true);
+    setAuthError(null);
+    
     try {
-      await wsClient.current.connect();
+      if (sessionId && authStore.tokens) {
+        // Connect to specific session with JWT token
+        wsClient.current.connectToSession(sessionId, authStore.tokens.access_token);
+      } else {
+        // General connection (if supported)
+        await wsClient.current.connect();
+      }
     } catch (error) {
       logger.error('Failed to connect:', error);
       setIsConnecting(false);
+      
+      if (error instanceof Error && error.message.includes('401')) {
+        setAuthError('Authentication failed. Please log in again.');
+        authStore.logout();
+      }
     }
-  }, [isConnected, isConnecting]);
+  }, [isConnected, isConnecting, authStore]);
 
   const disconnect = useCallback(() => {
     wsClient.current.disconnect();
@@ -116,11 +161,13 @@ export function useWebSocket() {
   return {
     isConnected,
     isConnecting,
+    authError,
     connect,
     disconnect,
     startGeneration,
     sendFeedback,
     skipFeedback,
     cancelGeneration,
+    getSessionInfo: () => wsClient.current.getSessionInfo(),
   };
 }

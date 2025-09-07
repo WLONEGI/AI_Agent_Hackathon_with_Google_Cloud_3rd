@@ -60,10 +60,10 @@ class CompleteProcessingModuleCommand(Command[bool], RequireUserMixin, RequireId
         self.validate_user_required()
         self.validate_id_required("module_id")
         
-        if self.status not in ["completed", "failed"]:
+        if self.status not in ["completed", "error"]:
             raise CommandValidationError("Status must be 'completed' or 'failed'")
         
-        if self.status == "failed" and not self.error_message:
+        if self.status == "error" and not self.error_message:
             raise CommandValidationError("Error message is required when status is 'failed'")
         
         if self.status == "completed" and not self.output_data:
@@ -219,7 +219,7 @@ class CompletePhaseExecutionCommand(Command[bool], RequireUserMixin, RequireIdMi
         self.validate_user_required()
         self.validate_id_required("execution_id")
         
-        valid_statuses = ["completed", "failed", "feedback_waiting"]
+        valid_statuses = ["completed", "error", "feedback_waiting"]
         if self.status not in valid_statuses:
             raise CommandValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
         

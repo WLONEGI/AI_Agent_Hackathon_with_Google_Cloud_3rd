@@ -12,7 +12,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from starlette.websockets import WebSocketState
 
 from app.core.logging import LoggerMixin
-from app.core.redis_client import RedisClient
+from app.core.redis_client import redis_manager
 from app.schemas.pipeline_schemas import HITLFeedback
 
 
@@ -119,7 +119,7 @@ class WebSocketService(LoggerMixin):
     def __init__(self):
         super().__init__()
         self.connection_manager = ConnectionManager()
-        self.redis_client = RedisClient()
+        self.redis_client = redis_manager
         
         # メッセージタイプの定義
         self.message_types = {

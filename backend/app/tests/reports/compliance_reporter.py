@@ -284,7 +284,7 @@ class ComplianceReporter:
                 "name": config["name"],
                 "total": len(category_tests),
                 "passed": len([t for t in category_tests if t.status == "PASSED"]),
-                "failed": len([t for t in category_tests if t.status == "FAILED"]),
+                "error": len([t for t in category_tests if t.status == "FAILED"]),
                 "compliance_rate": (
                     len([t for t in category_tests if t.status == "PASSED"]) / len(category_tests) * 100
                     if category_tests else 0

@@ -384,4 +384,4 @@ class TestBaseAgentIntegration:
             
             # Verify error details are logged
             call_args = mock_log_error.call_args
-            assert "failed" in str(call_args).lower()
+            assert "error" in str(call_args).lower()

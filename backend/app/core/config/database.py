@@ -1,7 +1,10 @@
 """Database configuration settings."""
 
 from typing import Optional
-from pydantic_settings import BaseSettings
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    from pydantic import BaseSettings
 from pydantic import Field, field_validator
 
 
@@ -81,8 +84,10 @@ class DatabaseSettings(BaseSettings):
         return v
     
     class Config:
+        env_file = ".env"
         env_prefix = "DATABASE_"
         case_sensitive = False
+        extra = "ignore"
     
     @property
     def async_url(self) -> str:

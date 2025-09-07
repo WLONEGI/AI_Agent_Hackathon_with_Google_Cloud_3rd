@@ -41,7 +41,7 @@ class ListGenerationRequestsQuery(Query[List[GenerationRequestDTO]], RequireUser
         self.validate_user_required()
         
         if self.status is not None:
-            valid_statuses = ["queued", "processing", "completed", "failed"]
+            valid_statuses = ["queued", "processing", "completed", "error"]
             if self.status not in valid_statuses:
                 raise QueryValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
         
@@ -70,7 +70,7 @@ class GetGenerationRequestsByUserQuery(Query[List[GenerationRequestDTO]], Requir
         self.validate_id_required("user_id")
         
         if self.status is not None:
-            valid_statuses = ["queued", "processing", "completed", "failed"]
+            valid_statuses = ["queued", "processing", "completed", "error"]
             if self.status not in valid_statuses:
                 raise QueryValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
         
@@ -96,7 +96,7 @@ class GetGenerationRequestsByProjectQuery(Query[List[GenerationRequestDTO]], Req
         self.validate_id_required("project_id")
         
         if self.status is not None:
-            valid_statuses = ["queued", "processing", "completed", "failed"]
+            valid_statuses = ["queued", "processing", "completed", "error"]
             if self.status not in valid_statuses:
                 raise QueryValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
 
@@ -207,7 +207,7 @@ class GetGenerationFeedbackQuery(Query[List[dict]], RequireUserMixin, RequireIdM
                 raise QueryValidationError("Phase number must be between 1 and 7")
         
         if self.status is not None:
-            valid_statuses = ["pending", "processing", "completed", "failed"]
+            valid_statuses = ["pending", "processing", "completed", "error"]
             if self.status not in valid_statuses:
                 raise QueryValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
 
@@ -231,7 +231,7 @@ class GetGenerationPhaseExecutionsQuery(Query[List[dict]], RequireUserMixin, Req
                 raise QueryValidationError("Phase number must be between 1 and 7")
         
         if self.status is not None:
-            valid_statuses = ["pending", "processing", "feedback_waiting", "completed", "failed"]
+            valid_statuses = ["pending", "processing", "feedback_waiting", "completed", "error"]
             if self.status not in valid_statuses:
                 raise QueryValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
 
@@ -302,7 +302,7 @@ class GetGenerationHistoryQuery(Query[List[dict]], RequireUserMixin, RequireIdMi
         if self.action_types:
             valid_types = [
                 "created", "started", "phase_completed", "feedback_requested",
-                "feedback_received", "retried", "completed", "failed", "cancelled"
+                "feedback_received", "retried", "completed", "error", "cancelled"
             ]
             for action_type in self.action_types:
                 if action_type not in valid_types:

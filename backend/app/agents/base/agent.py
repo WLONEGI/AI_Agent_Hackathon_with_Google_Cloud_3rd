@@ -149,7 +149,7 @@ class BaseAgent(ABC, LoggerMixin):
             return {
                 "phase_number": self.phase_number,
                 "phase_name": self.phase_name,
-                "status": "failed",
+                "status": "error",
                 "processing_time": processing_time,
                 "error": str(e),
                 "validation_passed": False,

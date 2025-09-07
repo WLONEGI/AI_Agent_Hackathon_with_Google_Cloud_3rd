@@ -12,7 +12,7 @@ def setup_logging() -> None:
     """Configure structured logging for the application."""
     
     # Set log level
-    log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    log_level = getattr(logging, settings.monitoring.log_level.upper(), logging.INFO)
     
     # Configure standard library logging
     logging.basicConfig(
@@ -38,7 +38,7 @@ def setup_logging() -> None:
     ]
     
     # Add appropriate renderer based on format
-    if settings.log_format == "json":
+    if settings.monitoring.log_format == "json":
         processors.append(structlog.processors.JSONRenderer())
     else:
         processors.append(structlog.dev.ConsoleRenderer())

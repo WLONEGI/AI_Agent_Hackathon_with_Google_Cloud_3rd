@@ -121,10 +121,10 @@ class UpdateMangaProjectStatusCommand(Command[bool], RequireUserMixin, RequireId
         self.validate_user_required()
         self.validate_id_required("project_id")
         
-        if self.status not in ["completed", "processing", "failed"]:
+        if self.status not in ["completed", "processing", "error"]:
             raise CommandValidationError("Status must be 'completed', 'processing', or 'failed'")
         
-        if self.status == "failed" and not self.error_message:
+        if self.status == "error" and not self.error_message:
             raise CommandValidationError("Error message is required when status is 'failed'")
 
 

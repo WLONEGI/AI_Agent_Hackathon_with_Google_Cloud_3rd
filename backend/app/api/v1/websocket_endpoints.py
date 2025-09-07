@@ -18,54 +18,48 @@ security = HTTPBearer(auto_error=False)
 
 
 async def authenticate_websocket_user(token: str, db: AsyncSession) -> Optional[User]:
-    """Authenticate user via WebSocket token."""
+    """Authenticate user via WebSocket token using shared JWT logic."""
     
     try:
-        # Decode JWT token
-        payload = jwt.decode(
-            token,
-            settings.security.jwt_secret_key,
-            algorithms=[settings.security.jwt_algorithm]
-        )
+        # Use shared JWT verification from security module
+        from app.api.v1.security import verify_token
+        payload = verify_token(token)
         
         user_id: str = payload.get("sub")
         if not user_id:
-            return None
-            
-        # Check expiration
-        exp = payload.get("exp")
-        if exp and datetime.utcnow().timestamp() > exp:
             return None
             
         # Get user from database
         user = await db.get(User, user_id)
         return user if user and user.is_active else None
         
-    except jwt.InvalidTokenError:
+    except Exception:
         return None
 
 
-@router.websocket("/sessions/{session_id}")
-async def websocket_session_endpoint(
+@router.websocket("/generation/{session_id}")
+async def websocket_generation_endpoint(
     websocket: WebSocket,
     session_id: str,
     token: Optional[str] = None,
     db: AsyncSession = Depends(get_db)
 ):
-    """Primary WebSocket endpoint for real-time session communication.
+    """WebSocket endpoint for real-time generation communication (Design Document Compliant).
+    
+    Endpoint: WSS /ws/generation/{session_id}?token={jwt_token}
     
     Protocol:
-    - Authentication via 'token' query parameter
+    - Authentication via query parameter 'token' (JWT)
     - JSON message format with 'type' field
     - Automatic heartbeat every 30 seconds
-    - Graceful disconnection handling
+    - Real-time generation updates and HITL feedback
     
     Message Types:
-    - 'authenticate': Initial authentication
-    - 'hitl_feedback': Submit HITL feedback
-    - 'progress_request': Request progress update
+    - 'start_generation': Start generation process
+    - 'feedback': Submit HITL feedback
+    - 'skip_feedback': Skip current feedback phase
+    - 'cancel_generation': Cancel generation
     - 'ping': Heartbeat ping
-    - 'subscribe_events': Subscribe to specific event types
     """
     
     websocket_service = WebSocketService()
@@ -74,39 +68,32 @@ async def websocket_session_endpoint(
     await websocket.accept()
     
     try:
-        # Initial authentication
-        if token:
-            user = await authenticate_websocket_user(token, db)
-            if not user:
-                await websocket.send_json({
-                    "type": "error",
-                    "code": "AUTHENTICATION_FAILED",
-                    "message": "Invalid or expired token",
-                    "timestamp": datetime.utcnow().isoformat()
-                })
-                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-                return
-        else:
-            # Wait for authentication message
-            auth_data = await websocket.receive_json()
-            if auth_data.get("type") != "authenticate":
-                await websocket.send_json({
-                    "type": "error", 
+        # Authentication via query parameter (Design Document Compliant)
+        if not token:
+            await websocket.send_json({
+                "type": "auth_required",
+                "data": {
                     "code": "AUTH_REQUIRED",
+                    "message": "JWT token required in query parameter"
+                }
+            })
+            await websocket.close(code=1008)
+            return
+        
+        # Authenticate user via JWT token
+        user = await authenticate_websocket_user(token, db)
+        if not user:
+            await websocket.send_json({
+                "type": "auth_required",
+                "data": {
+                    "code": "INVALID_TOKEN",
                     "message": "Authentication required as first message"
-                })
-                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-                return
-            
-            user = await authenticate_websocket_user(auth_data.get("token", ""), db)
-            if not user:
-                await websocket.send_json({
-                    "type": "error",
-                    "code": "AUTHENTICATION_FAILED", 
-                    "message": "Invalid credentials"
-                })
-                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
-                return
+                }
+            })
+            await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+            return
+        
+        # Already authenticated via token parameter above
         
         # Send authentication confirmation
         await websocket.send_json({
@@ -156,8 +143,10 @@ async def websocket_session_endpoint(
                 "message": "Internal server error",
                 "timestamp": datetime.utcnow().isoformat()
             })
-        except:
-            pass
+        except Exception as e:
+            # Log the specific error for debugging
+            import logging
+            logging.error(f"WebSocket error during cleanup: {e}")
         finally:
             await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
 
@@ -187,19 +176,27 @@ async def websocket_phase_specific_endpoint(
     await websocket.accept()
     
     try:
-        # Authentication (similar to main endpoint)
-        if token:
-            user = await authenticate_websocket_user(token, db)
-        else:
-            auth_data = await websocket.receive_json()
-            if auth_data.get("type") == "authenticate":
-                user = await authenticate_websocket_user(auth_data.get("token", ""), db)
+        # Authentication via query parameter (Design Document Compliant)
+        if not token:
+            await websocket.send_json({
+                "type": "auth_required",
+                "data": {
+                    "code": "AUTH_REQUIRED",
+                    "message": "JWT token required in query parameter"
+                }
+            })
+            await websocket.close(code=1008)
+            return
         
+        # Authenticate user via JWT token
+        user = await authenticate_websocket_user(token, db)
         if not user:
             await websocket.send_json({
-                "type": "error",
-                "code": "AUTHENTICATION_FAILED",
-                "message": "Authentication required"
+                "type": "auth_required",
+                "data": {
+                    "code": "INVALID_TOKEN",
+                    "message": "Authentication required as first message"
+                }
             })
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
@@ -250,19 +247,27 @@ async def websocket_user_global_endpoint(
     await websocket.accept()
     
     try:
-        # Authentication
-        if token:
-            user = await authenticate_websocket_user(token, db)
-        else:
-            auth_data = await websocket.receive_json()
-            if auth_data.get("type") == "authenticate":
-                user = await authenticate_websocket_user(auth_data.get("token", ""), db)
+        # Authentication via query parameter (Design Document Compliant)
+        if not token:
+            await websocket.send_json({
+                "type": "auth_required",
+                "data": {
+                    "code": "AUTH_REQUIRED",
+                    "message": "JWT token required in query parameter"
+                }
+            })
+            await websocket.close(code=1008)
+            return
         
+        # Authenticate user via JWT token
+        user = await authenticate_websocket_user(token, db)
         if not user or str(user.id) != user_id:
             await websocket.send_json({
-                "type": "error",
-                "code": "AUTHORIZATION_FAILED",
-                "message": "User ID mismatch or invalid credentials"
+                "type": "auth_required",
+                "data": {
+                    "code": "AUTHORIZATION_FAILED",
+                    "message": "User ID mismatch or invalid credentials"
+                }
             })
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
@@ -319,7 +324,9 @@ async def websocket_health_check(websocket: WebSocket):
         
     except WebSocketDisconnect:
         pass
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.error(f"WebSocket error in global endpoint: {e}")
         await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
 
 
