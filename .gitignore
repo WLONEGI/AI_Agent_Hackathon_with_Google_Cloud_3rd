@@ -58,6 +58,9 @@ service-account-key.json
 *.json.key
 gcloud-key.json
 
+# Credentials directory
+backend/credentials/
+
 # IDE
 .vscode/launch.json
 .vscode/tasks.json
