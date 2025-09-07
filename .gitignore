@@ -102,3 +102,11 @@ coverage/
 # Cache directories
 .cache/
 .parcel-cache/
+# Ignore Terraform local state and providers
+.terraform/
+**/.terraform/**
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+.terraform.lock.hcl
