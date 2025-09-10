@@ -25,9 +25,9 @@ export const usePerformance = () => {
   useEffect(() => {
     // Dynamic import for web-vitals library when available
     if (typeof window !== 'undefined') {
-      import('web-vitals').then(({ onCLS, onFID, onFCP, onLCP, onTTFB }) => {
+      import('web-vitals').then(({ onCLS, onINP, onFCP, onLCP, onTTFB }) => {
         onCLS(reportMetric);
-        onFID(reportMetric);
+        onINP(reportMetric);
         onFCP(reportMetric);
         onLCP(reportMetric);
         onTTFB(reportMetric);

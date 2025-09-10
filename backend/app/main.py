@@ -51,9 +51,10 @@ async def lifespan(app: FastAPI):
     
     try:
         # Initialize Firebase (optional for basic service)
+        # Fix: Use correct nested settings path
         firebase_initialized = initialize_firebase(
-            settings.firebase.firebase_project_id,
-            settings.firebase.firebase_credentials_path
+            settings.firebase_project_id,
+            settings.firebase_credentials_path
         )
         if firebase_initialized:
             logger.info("Firebase initialized successfully")
@@ -143,6 +144,11 @@ app.include_router(manga.router, prefix=f"{settings.api_prefix}/manga", tags=["m
 # New v1 API routes
 app.include_router(api_v1_router, prefix=settings.api_prefix, tags=["api-v1"])
 
+# Mock API routes for local development
+if settings.mock_enabled:
+    from app.api.v1.manga_mock import router as manga_mock_router
+    app.include_router(manga_mock_router, prefix=f"{settings.api_prefix}", tags=["manga-mock"])
+
 # WebSocket routes
 app.include_router(websocket_router_v1, tags=["websocket-v1"])
 
@@ -158,8 +164,8 @@ async def root():
         "api_versions": {
             "v1": {
                 "status": "stable",
-                "base_url": f"{settings.api_prefix}/v1",
-                "docs": f"{settings.api_prefix}/v1/info",
+                "base_url": f"{settings.api_prefix}",
+                "docs": f"{settings.api_prefix}/info",
                 "websocket": "/ws/v1"
             },
             "v0": {
@@ -171,7 +177,7 @@ async def root():
         "endpoints": {
             "health": "/health",
             "docs": "/docs" if settings.debug else None,
-            "api_info": f"{settings.api_prefix}/v1/info",
+            "api_info": f"{settings.api_prefix}/info",
             "websocket_health": "/ws/v1/health"
         },
         "pipeline": {

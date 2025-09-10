@@ -1,94 +1,74 @@
-# コードベース構造
+# Codebase Structure
 
-## プロジェクトディレクトリ構造
-
+## Root Directory
 ```
-├── backend/              # Python FastAPI + AI処理
-│   ├── app/
-│   │   ├── agents/       # 8段階AI処理モジュール
-│   │   ├── api/          # APIエンドポイント
-│   │   ├── core/         # 核心設定・ユーティリティ
-│   │   ├── models/       # データベースモデル (SQLAlchemy)
-│   │   ├── schemas/      # Pydanticスキーマ
-│   │   ├── services/     # ビジネスロジック
-│   │   ├── domain/       # ドメインロジック
-│   │   ├── infrastructure/ # 外部API統合・リポジトリ
-│   │   ├── application/  # アプリケーション層
-│   │   ├── engine/       # AI処理エンジン
-│   │   ├── preview/      # プレビューシステム
-│   │   ├── websocket/    # WebSocket通信
-│   │   ├── utils/        # 共通ユーティリティ
-│   │   └── tests/        # テストコード
-│   ├── migrations/       # Alembicマイグレーション
-│   ├── alembic/          # Alembic設定
-│   ├── scripts/          # バックエンドスクリプト
-│   ├── requirements.txt  # Python依存関係
-│   ├── alembic.ini       # Alembic設定
-│   └── docker-compose.yml # ローカル開発環境
-
-├── frontend/             # React Next.js UI
-│   ├── src/
-│   │   ├── app/          # Next.js App Router
-│   │   ├── components/   # Reactコンポーネント
-│   │   ├── hooks/        # カスタムフック
-│   │   ├── lib/          # ライブラリ・ユーティリティ
-│   │   ├── styles/       # CSS・Tailwind
-│   │   └── types/        # TypeScript型定義
-│   ├── public/           # 静的ファイル
-│   └── mock/             # モックデータ
-
-├── shared/               # 共通型定義・ユーティリティ
-├── infrastructure/       # Terraform IaC・Docker設定
-├── scripts/              # 開発・デプロイスクリプト
-├── tests/                # E2E・統合テスト
-└── docs/                 # 設計書・ドキュメント
+AI_Agent_Hackathon_with_Google_Cloud_3rd/
+├── backend/              # Python FastAPI backend
+├── frontend/             # React Next.js frontend  
+├── infrastructure/       # Terraform and Docker configs
+├── docs/                 # Documentation
+├── .github/              # GitHub Actions workflows
+├── .serena/              # Serena MCP cache and memories
+├── .claude/              # Claude configuration
+└── README.md            # Main project documentation
 ```
 
-## バックエンド主要ファイル
+## Backend Structure
+```
+backend/
+├── app/                  # Main application code
+│   ├── agents/          # 8-stage AI processing modules
+│   ├── api/             # API endpoints
+│   ├── core/            # Core utilities and config
+│   ├── models/          # Database models
+│   ├── schemas/         # Pydantic schemas
+│   ├── services/        # Business logic
+│   ├── websocket/       # WebSocket handlers
+│   ├── domain/          # Domain logic
+│   ├── infrastructure/ # Infrastructure layer
+│   ├── application/     # Application layer
+│   └── main.py          # FastAPI app entry point
+├── alembic/             # Database migrations
+├── scripts/             # Python utility scripts
+├── tests/               # Test files
+├── deployment/          # Deployment configs
+├── Dockerfile           # Container definition
+└── requirements.txt     # Python dependencies
+```
 
-### Core Files
-- `backend/app/main.py` - FastAPIアプリケーションエントリポイント
-- `backend/app/core/` - 設定・セキュリティ・依存注入
-- `backend/app/api/` - REST APIエンドポイント定義
+## Frontend Structure  
+```
+frontend/
+├── src/                 # Source code
+│   ├── app/            # Next.js app directory
+│   ├── components/     # React components
+│   ├── lib/            # Utilities and helpers
+│   ├── types/          # TypeScript type definitions
+│   └── styles/         # CSS/styling files
+├── public/             # Static assets
+├── tests/              # Test files
+├── mock/               # Mock data for testing
+├── claudedocs/         # Claude-specific documentation
+├── package.json        # Node dependencies
+├── tsconfig.json       # TypeScript config
+├── next.config.ts      # Next.js configuration
+└── tailwind.config.ts  # TailwindCSS config
+```
 
-### AI Processing
-- `backend/app/agents/` - 8段階AI処理モジュール
-- `backend/app/engine/` - AI処理エンジン統合
-- `backend/app/infrastructure/` - Google AI API統合
+## Key Directories
+- **agents/**: Contains the 8-stage AI pipeline modules for manga generation
+- **api/**: RESTful API endpoints and route handlers
+- **websocket/**: Real-time communication for progress updates
+- **infrastructure/**: Terraform IaC and Docker configurations
+- **tests/**: Comprehensive test suites (unit, integration, E2E)
 
-### Data Layer  
-- `backend/app/models/` - SQLAlchemyデータベースモデル
-- `backend/app/schemas/` - Pydantic リクエスト/レスポンススキーマ
-- `backend/migrations/` - データベースマイグレーション
+## File Naming Conventions
+- Python: snake_case (e.g., `manga_generator.py`)
+- TypeScript/JavaScript: camelCase for files, PascalCase for components
+- Tests: `test_*.py` for Python, `*.test.ts` for TypeScript
+- Config files: lowercase with extensions (e.g., `jest.config.js`)
 
-### Business Logic
-- `backend/app/services/` - ビジネスロジック
-- `backend/app/domain/` - ドメインモデル
-- `backend/app/application/` - アプリケーションサービス
-
-## 主要設定ファイル
-
-### Python Requirements
-- `requirements.txt` - 本番依存関係
-- `dev-requirements.txt` - 開発依存関係 (存在する場合)
-
-### Database
-- `alembic.ini` - データベースマイグレーション設定
-- `docker-compose.yml` - ローカルPostgreSQL+Redis
-
-### Environment
-- `.env` - 環境変数設定 (ローカル開発用)
-- `.env.example` - 環境変数テンプレート
-
-## 開発ファイルパターン
-
-### Python Code Style
-- Black - コードフォーマッター
-- isort - import文ソート
-- flake8 - リンター
-- mypy - 型チェック (使用される場合)
-
-### File Naming Conventions
-- Python: snake_case (例: `phase_executor.py`)
-- TypeScript: camelCase (例: `PhasePreview.tsx`)
-- 設定ファイル: kebab-case (例: `docker-compose.yml`)
+## Import Patterns
+- Python: Absolute imports from app root
+- TypeScript: Alias imports using `@/` for src directory
+- External libraries imported before internal modules

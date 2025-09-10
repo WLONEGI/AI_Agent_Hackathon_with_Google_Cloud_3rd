@@ -1,8 +1,13 @@
 # Production Environment Outputs
 
-output "service_url" {
-  description = "URL of the deployed manga service"
-  value       = module.cloud_run.service_url
+output "backend_service_url" {
+  description = "URL of the deployed manga backend service"
+  value       = module.backend_cloud_run.service_url
+}
+
+output "frontend_service_url" {
+  description = "URL of the deployed manga frontend service"
+  value       = module.frontend_cloud_run.service_url
 }
 
 output "vpc_network_name" {

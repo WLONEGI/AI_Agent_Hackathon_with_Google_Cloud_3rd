@@ -7,7 +7,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests/e2e',
-  testMatch: /.*comprehensive.*\.spec\.ts/,
+  testMatch: /.*\.spec\.ts/,
   
   /* Run tests in files in parallel */
   fullyParallel: false, // Disable for integration tests that may conflict
@@ -23,17 +23,16 @@ export default defineConfig({
   
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: [
-    ['html', { outputFolder: './test-results/comprehensive-html' }],
-    ['json', { outputFile: './test-results/comprehensive-results.json' }],
-    ['junit', { outputFile: './test-results/comprehensive-junit.xml' }],
-    ['line'],
-    ...(process.env.CI ? [['github']] : [])
+    ['html', { outputFolder: './test-results-comprehensive/html' }],
+    ['json', { outputFile: './test-results-comprehensive/results.json' }],
+    ['junit', { outputFile: './test-results-comprehensive/junit.xml' }],
+    ['line']
   ],
   
   /* Shared settings for all the projects below. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: process.env.BASE_URL || 'http://localhost:3000',
+    baseURL: process.env.BASE_URL || 'http://localhost:3001',
     
     /* Collect trace when retrying the failed test. */
     trace: 'on-first-retry',
@@ -183,15 +182,14 @@ export default defineConfig({
   /* Global timeout for expect assertions */
   expect: {
     timeout: 10000,
-    toHaveScreenshot: { threshold: 0.2 },
-    toMatchScreenshot: { threshold: 0.2 }
+    toHaveScreenshot: { threshold: 0.2 }
   },
 
   /* Run your local dev server before starting the tests */
   webServer: [
     {
       command: 'npm run dev',
-      port: 3000,
+      port: 3001,
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
     },
@@ -205,8 +203,8 @@ export default defineConfig({
   ],
 
   /* Global setup and teardown */
-  globalSetup: './tests/helpers/global-setup.ts',
-  globalTeardown: './tests/helpers/global-teardown.ts',
+  // globalSetup: './tests/helpers/global-setup.ts',
+  // globalTeardown: './tests/helpers/global-teardown.ts',
 
   /* Test metadata */
   metadata: {

@@ -110,7 +110,7 @@ PhaseItem.displayName = 'PhaseItem';
 
 interface PhaseListPanelProps {
   phases: Phase[];
-  currentPhase: number;
+  currentPhase: PhaseId;
   canProvideFeedback: boolean;
   feedbackText: string;
   onFeedbackChange: (text: string) => void;

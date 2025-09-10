@@ -1,0 +1,475 @@
+/* HITL Feedback Input Component */
+
+.feedbackContainer {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.5rem;
+  background: rgba(245, 158, 11, 0.05);
+  border-top: 2px solid rgba(245, 158, 11, 0.3);
+  position: relative;
+}
+
+.feedbackContainer.urgent {
+  background: rgba(239, 68, 68, 0.08);
+  border-top-color: rgba(239, 68, 68, 0.4);
+  animation: urgentPulse 1s ease-in-out infinite;
+}
+
+/* Feedback Header */
+.feedbackHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.feedbackInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.phaseIndicator {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #f59e0b;
+}
+
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #9ca3af;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.timer.urgent {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  animation: timerPulse 0.5s ease-in-out infinite;
+}
+
+.timer .material-symbols-outlined {
+  font-size: 0.875rem;
+}
+
+.skipAllButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: transparent;
+  border: 1px solid rgba(156, 163, 175, 0.3);
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.skipAllButton:hover:not(:disabled) {
+  background: rgba(156, 163, 175, 0.1);
+  border-color: rgba(156, 163, 175, 0.5);
+  color: #ffffff;
+}
+
+.skipAllButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.skipAllButton .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+/* Quick Options */
+.quickOptions {
+  margin-bottom: 0.75rem;
+}
+
+.quickLabel {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #d1d5db;
+  margin-bottom: 0.5rem;
+}
+
+.quickButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.quickButton {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  color: #f59e0b;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.quickButton:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.quickButton:active {
+  transform: translateY(0);
+}
+
+.quickButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Input Section */
+.inputSection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inputLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #e5e7eb;
+  margin-bottom: 0.25rem;
+}
+
+.feedbackInput {
+  background: #1f1f1f;
+  border: 1px solid #3f3f46;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feedbackInput:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3);
+}
+
+.feedbackInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.feedbackInput::placeholder {
+  color: #6b7280;
+}
+
+/* Input Footer */
+.inputFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.inputHints {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.hint {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.625rem;
+  color: #6b7280;
+}
+
+.hint kbd {
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.25rem;
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.6875rem;
+  color: #d1d5db;
+}
+
+.inputActions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.cancelButton {
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  color: #d1d5db;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: #4b5563;
+  border-color: #6b7280;
+  color: #ffffff;
+}
+
+.cancelButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.submitButton {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  background: #f59e0b;
+  border: none;
+  border-radius: 0.375rem;
+  padding: 0.5rem 1rem;
+  color: #000000;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #d97706;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(245, 158, 11, 0.3);
+}
+
+.submitButton:active {
+  transform: translateY(0);
+}
+
+.submitButton:disabled {
+  background: #4b5563;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.submitButton .material-symbols-outlined {
+  font-size: 1rem;
+}
+
+/* Spinner */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid currentColor;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* Progress Bar */
+.progressBar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+  transition: width 1s linear;
+  border-radius: 0 3px 3px 0;
+}
+
+.feedbackContainer.urgent .progressFill {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  animation: progressPulse 0.5s ease-in-out infinite;
+}
+
+/* Animations */
+@keyframes urgentPulse {
+  0%, 100% {
+    background: rgba(239, 68, 68, 0.08);
+  }
+  50% {
+    background: rgba(239, 68, 68, 0.12);
+  }
+}
+
+@keyframes timerPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes progressPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .feedbackContainer {
+    padding: 0.75rem 1rem;
+  }
+  
+  .feedbackHeader {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  
+  .feedbackInfo {
+    justify-content: center;
+  }
+  
+  .quickButtons {
+    justify-content: center;
+  }
+  
+  .quickButton {
+    flex: 1;
+    text-align: center;
+  }
+  
+  .inputHints {
+    display: none; /* Hide keyboard hints on mobile */
+  }
+  
+  .inputFooter {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 480px) {
+  .feedbackContainer {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .quickOptions {
+    margin-bottom: 0.5rem;
+  }
+  
+  .quickButtons {
+    flex-direction: column;
+  }
+  
+  .quickButton {
+    flex: none;
+    width: 100%;
+  }
+  
+  .feedbackInput {
+    min-height: 60px;
+    font-size: 0.75rem;
+  }
+  
+  .inputActions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .cancelButton,
+  .submitButton {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .feedbackContainer {
+    border-top-color: #ffff00;
+  }
+  
+  .feedbackContainer.urgent {
+    border-top-color: #ff0000;
+  }
+  
+  .quickButton {
+    border-color: #ffff00;
+  }
+  
+  .submitButton {
+    background: #ffff00;
+    color: #000000;
+  }
+  
+  .feedbackInput:focus {
+    border-color: #ffff00;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .urgentPulse,
+  .timerPulse,
+  .progressPulse {
+    animation: none;
+  }
+  
+  .quickButton:hover,
+  .submitButton:hover {
+    transform: none;
+  }
+  
+  .feedbackContainer,
+  .timer,
+  .skipAllButton,
+  .quickButton,
+  .feedbackInput,
+  .cancelButton,
+  .submitButton,
+  .progressFill {
+    transition: none !important;
+  }
+}
+
+/* Focus management for accessibility */
+.skipAllButton:focus,
+.quickButton:focus,
+.feedbackInput:focus,
+.cancelButton:focus,
+.submitButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #2563eb;
+}

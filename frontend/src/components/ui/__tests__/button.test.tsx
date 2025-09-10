@@ -11,11 +11,11 @@ describe('Button Component', () => {
   it('applies correct variant classes', () => {
     const { rerender } = render(<Button variant="default">Default</Button>);
     let button = screen.getByRole('button');
-    expect(button).toHaveClass('bg-[rgb(var(--accent-primary))]');
+    expect(button).toHaveClass('bg-[var(--color-accent-primary)]');
 
     rerender(<Button variant="secondary">Secondary</Button>);
     button = screen.getByRole('button');
-    expect(button).toHaveClass('bg-[rgb(var(--bg-tertiary))]');
+    expect(button).toHaveClass('bg-[var(--color-bg-tertiary)]');
 
     rerender(<Button variant="destructive">Destructive</Button>);
     button = screen.getByRole('button');

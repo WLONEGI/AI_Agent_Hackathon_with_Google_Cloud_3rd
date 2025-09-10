@@ -1,0 +1,330 @@
+/* Chat Panel - Genspark Design System */
+
+.chatPanel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--genspark-gray-800);
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* === FEED CONTAINER === */
+
+.feedContainer {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.messageContainer {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--genspark-space-2) var(--genspark-space-4);
+  background: var(--genspark-gray-800);
+  position: relative;
+}
+
+/* === SCROLL INDICATOR === */
+
+.scrollIndicator {
+  position: absolute;
+  bottom: var(--genspark-space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  animation: genspark-fade-in var(--genspark-duration-normal) var(--genspark-ease-out);
+  box-shadow: var(--genspark-shadow-md);
+  border-radius: var(--genspark-radius-lg);
+}
+
+.scrollIndicator button {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-2);
+  padding: var(--genspark-space-2) var(--genspark-space-4);
+  background: var(--genspark-gray-600);
+  border: var(--genspark-border-thin) solid var(--genspark-accent);
+  color: var(--genspark-accent);
+  font-size: var(--genspark-text-sm);
+  font-weight: var(--genspark-font-medium);
+}
+
+.scrollIndicator button:hover {
+  background: var(--genspark-accent-muted);
+  color: var(--genspark-white);
+}
+
+/* === FEEDBACK CONTAINER === */
+
+.feedbackContainer {
+  flex-shrink: 0;
+  background: var(--genspark-gray-700);
+  border-top: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  padding: var(--genspark-space-4);
+  animation: genspark-slide-in var(--genspark-duration-normal) var(--genspark-ease-out);
+}
+
+/* === STATUS BAR === */
+
+.statusBar {
+  flex-shrink: 0;
+  height: 32px;
+  background: var(--genspark-gray-900);
+  border-top: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--genspark-space-4);
+  font-size: var(--genspark-text-xs);
+}
+
+.statusLeft {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-4);
+}
+
+.statusRight {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-3);
+}
+
+/* === STATUS INDICATORS === */
+
+.feedbackIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-1);
+  color: var(--genspark-warning);
+  font-size: var(--genspark-text-xs);
+  font-weight: var(--genspark-font-medium);
+}
+
+.feedbackIndicator .material-symbols-outlined {
+  font-size: 14px;
+  animation: genspark-pulse 2s var(--genspark-ease) infinite;
+}
+
+.autoScrollIndicator {
+  display: flex;
+  align-items: center;
+  color: var(--genspark-gray-300);
+  transition: color var(--genspark-duration-fast) var(--genspark-ease);
+}
+
+.autoScrollIndicator.active {
+  color: var(--genspark-accent);
+}
+
+.autoScrollIndicator .material-symbols-outlined {
+  font-size: 14px;
+}
+
+/* === EMPTY STATE === */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--genspark-space-8);
+  text-align: center;
+}
+
+.emptyState .material-symbols-outlined {
+  font-size: 48px;
+  color: var(--genspark-gray-400);
+  margin-bottom: var(--genspark-space-4);
+}
+
+.emptyStateText {
+  color: var(--genspark-gray-300);
+  font-size: var(--genspark-text-base);
+  margin-bottom: var(--genspark-space-2);
+}
+
+.emptyStateSubtext {
+  color: var(--genspark-gray-400);
+  font-size: var(--genspark-text-sm);
+}
+
+/* === LOADING STATE === */
+
+.loadingState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--genspark-space-8);
+  text-align: center;
+}
+
+.loadingSpinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--genspark-gray-600);
+  border-top: 2px solid var(--genspark-accent);
+  border-radius: 50%;
+  animation: genspark-spin 1s linear infinite;
+  margin-bottom: var(--genspark-space-4);
+}
+
+.loadingText {
+  color: var(--genspark-gray-300);
+  font-size: var(--genspark-text-sm);
+}
+
+/* === RESPONSIVE DESIGN === */
+
+@media (max-width: 768px) {
+  .messageContainer {
+    padding: var(--genspark-space-2) var(--genspark-space-3);
+  }
+  
+  .feedbackContainer {
+    padding: var(--genspark-space-3);
+  }
+  
+  .statusBar {
+    padding: 0 var(--genspark-space-3);
+    height: 28px;
+    font-size: 10px;
+  }
+  
+  .statusLeft,
+  .statusRight {
+    gap: var(--genspark-space-2);
+  }
+  
+  .scrollIndicator {
+    bottom: var(--genspark-space-3);
+  }
+  
+  .scrollIndicator button {
+    padding: var(--genspark-space-1) var(--genspark-space-3);
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .statusLeft {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--genspark-space-1);
+    font-size: 9px;
+  }
+  
+  .statusRight {
+    gap: var(--genspark-space-1);
+  }
+  
+  .feedbackIndicator span:not(.material-symbols-outlined) {
+    display: none; /* Hide text, keep icon on very small screens */
+  }
+  
+  .emptyState {
+    padding: var(--genspark-space-6);
+  }
+  
+  .emptyState .material-symbols-outlined {
+    font-size: 32px;
+  }
+}
+
+/* === HIGH CONTRAST MODE === */
+
+@media (prefers-contrast: high) {
+  .chatPanel {
+    background: #000000;
+  }
+  
+  .messageContainer {
+    background: #000000;
+  }
+  
+  .statusBar, .feedbackContainer {
+    background: #000000;
+    border-color: #ffffff;
+  }
+  
+  .scrollIndicator button {
+    background: #333333;
+    border-color: var(--genspark-accent);
+  }
+}
+
+/* === REDUCED MOTION === */
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollIndicator,
+  .feedbackContainer {
+    animation: none;
+  }
+  
+  .feedbackIndicator .material-symbols-outlined {
+    animation: none;
+  }
+  
+  .loadingSpinner {
+    animation: none;
+  }
+  
+  .autoScrollIndicator {
+    transition: none;
+  }
+}
+
+/* === FOCUS MANAGEMENT === */
+
+.chatPanel:focus-within {
+  outline: none;
+}
+
+/* === ACCESSIBILITY === */
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* === SCROLLBAR STYLING === */
+
+.messageContainer::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messageContainer::-webkit-scrollbar-track {
+  background: var(--genspark-gray-700);
+}
+
+.messageContainer::-webkit-scrollbar-thumb {
+  background: var(--genspark-gray-500);
+  border-radius: var(--genspark-radius-sm);
+}
+
+.messageContainer::-webkit-scrollbar-thumb:hover {
+  background: var(--genspark-gray-400);
+}
+
+/* === DARK MODE SPECIFIC === */
+
+@media (prefers-color-scheme: dark) {
+  .chatPanel {
+    color-scheme: dark;
+  }
+}

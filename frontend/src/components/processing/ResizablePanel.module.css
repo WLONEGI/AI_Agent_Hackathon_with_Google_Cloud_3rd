@@ -1,0 +1,247 @@
+/* Resizable Panel Component */
+
+.resizablePanelContainer {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.resizablePanelContainer.dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+
+/* Left Panel */
+.leftPanel {
+  background: #141414;
+  border-right: 1px solid #27272a;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  overflow: hidden;
+  transition: width 0.1s ease-out;
+}
+
+/* Right Panel */  
+.rightPanel {
+  background: #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  overflow: hidden;
+  transition: width 0.1s ease-out;
+}
+
+/* Resizer Handle */
+.resizer {
+  width: 4px;
+  background: transparent;
+  cursor: col-resize;
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  transition: background 0.2s ease;
+}
+
+.resizer:hover {
+  background: rgba(37, 99, 235, 0.1);
+}
+
+.resizer:focus {
+  outline: none;
+  background: rgba(37, 99, 235, 0.2);
+  box-shadow: 0 0 0 1px #2563eb;
+}
+
+.resizer.active {
+  background: rgba(37, 99, 235, 0.3);
+}
+
+.resizer.disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.resizer.disabled:hover {
+  background: transparent;
+}
+
+/* Resizer Handle Visual */
+.resizerHandle {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.resizerGrip {
+  width: 2px;
+  height: 40px;
+  background: #3f3f46;
+  border-radius: 1px;
+  opacity: 0;
+  transition: opacity 0.2s ease, background 0.2s ease;
+  position: relative;
+}
+
+.resizerGrip::before,
+.resizerGrip::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 6px;
+  background: inherit;
+  border-radius: 1px;
+  left: 0;
+}
+
+.resizerGrip::before {
+  top: -8px;
+}
+
+.resizerGrip::after {
+  bottom: -8px;
+}
+
+.resizer:hover .resizerGrip,
+.resizer:focus .resizerGrip,
+.resizer.active .resizerGrip {
+  opacity: 1;
+  background: #6b7280;
+}
+
+/* Animation states */
+.resizablePanelContainer.dragging .leftPanel,
+.resizablePanelContainer.dragging .rightPanel {
+  transition: none; /* Disable transitions during drag */
+  pointer-events: none; /* Prevent interference during drag */
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .resizablePanelContainer {
+    flex-direction: column;
+  }
+  
+  .leftPanel, .rightPanel {
+    width: 100% !important;
+    min-width: unset;
+    border-right: none;
+  }
+  
+  .leftPanel {
+    border-bottom: 1px solid #27272a;
+    flex: 0 0 60%;
+  }
+  
+  .rightPanel {
+    flex: 1;
+  }
+  
+  .resizer {
+    width: 100%;
+    height: 4px;
+    cursor: row-resize;
+  }
+  
+  .resizerGrip {
+    width: 40px;
+    height: 2px;
+  }
+  
+  .resizerGrip::before,
+  .resizerGrip::after {
+    width: 6px;
+    height: 2px;
+    top: 0;
+    bottom: auto;
+  }
+  
+  .resizerGrip::before {
+    left: -8px;
+    top: 0;
+  }
+  
+  .resizerGrip::after {
+    right: -8px;
+    left: auto;
+    bottom: auto;
+    top: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .leftPanel {
+    flex: 0 0 50%;
+  }
+  
+  .rightPanel {
+    flex: 1;
+  }
+  
+  .resizer {
+    height: 6px;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .leftPanel {
+    border-right-color: #ffffff;
+  }
+  
+  .leftPanel {
+    border-bottom-color: #ffffff;
+  }
+  
+  .resizerGrip {
+    background: #ffffff;
+  }
+  
+  .resizer:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .leftPanel,
+  .rightPanel,
+  .resizerGrip {
+    transition: none !important;
+  }
+}
+
+/* Focus indicators for accessibility */
+@media (prefers-reduced-motion: no-preference) {
+  .resizer:focus .resizerGrip {
+    animation: pulse 2s infinite;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Tablet specific adjustments */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .leftPanel {
+    min-width: 280px;
+  }
+  
+  .rightPanel {
+    min-width: 280px;
+  }
+}

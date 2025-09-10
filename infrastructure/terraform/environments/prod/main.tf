@@ -232,28 +232,48 @@ module "storage" {
   cors_origins           = var.cors_origins
 }
 
-# Cloud Run Module
-module "cloud_run" {
+# Backend Cloud Run Module
+module "backend_cloud_run" {
   source = "../../modules/cloud-run"
 
   project_id              = var.project_id
   region                 = var.region
-  service_name           = "manga-service-${local.environment}"
-  container_image        = var.container_image
+  service_name           = "manga-backend-${local.environment}"
+  container_image        = var.backend_container_image
   environment            = local.environment
   vpc_network            = google_compute_network.manga_vpc.name
   subnet_name            = google_compute_subnetwork.manga_private.name
   service_account_email  = google_service_account.manga_service.email
   database_url           = module.cloud_sql.database_url
   redis_url              = "redis://${google_redis_instance.manga_redis.host}:${google_redis_instance.manga_redis.port}/0"
-  cpu_limit              = var.cloud_run_cpu
-  memory_limit           = var.cloud_run_memory
-  min_instances          = var.cloud_run_min_instances
-  max_instances          = var.cloud_run_max_instances
-  concurrency            = var.cloud_run_concurrency
-  timeout_seconds        = var.cloud_run_timeout
+  cpu_limit              = var.backend_cpu_limit
+  memory_limit           = var.backend_memory_limit
+  min_instances          = var.backend_min_instances
+  max_instances          = var.backend_max_instances
+  concurrency            = var.backend_concurrency
+  timeout_seconds        = var.backend_timeout
   allow_unauthenticated  = var.allow_unauthenticated
-  custom_domain          = var.custom_domain
+  custom_domain          = var.backend_custom_domain
+}
+
+# Frontend Cloud Run Module
+module "frontend_cloud_run" {
+  source = "../../modules/frontend-cloud-run"
+
+  project_id              = var.project_id
+  region                 = var.region
+  service_name           = "manga-frontend-${local.environment}"
+  container_image        = var.frontend_container_image
+  environment            = local.environment
+  service_account_email  = google_service_account.manga_service.email
+  backend_url            = module.backend_cloud_run.service_url
+  cpu_limit              = var.frontend_cpu_limit
+  memory_limit           = var.frontend_memory_limit
+  min_instances          = var.frontend_min_instances
+  max_instances          = var.frontend_max_instances
+  concurrency            = var.frontend_concurrency
+  timeout_seconds        = var.frontend_timeout
+  custom_domain          = var.frontend_custom_domain
 }
 
 # CDN Module for Global Image Delivery

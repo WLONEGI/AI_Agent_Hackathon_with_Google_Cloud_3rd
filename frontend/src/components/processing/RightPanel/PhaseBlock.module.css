@@ -1,0 +1,687 @@
+/* Phase Block Component */
+
+.phaseBlock {
+  background: #141414;
+  border: 1px solid #27272a;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.phaseBlock.active {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.3);
+}
+
+/* Status Variants */
+.phaseBlock.statusprocessing {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.05);
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.1);
+}
+
+.phaseBlock.statuscompleted {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.phaseBlock.statuswaitingfeedback {
+  border-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
+  animation: feedbackPulse 2s infinite;
+}
+
+.phaseBlock.statuserror {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* Phase Header */
+.phaseHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.phaseHeader:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.phaseHeader:focus {
+  outline: none;
+  background: rgba(37, 99, 235, 0.05);
+}
+
+/* Phase Info */
+.phaseInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.phaseNumber {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #2563eb;
+  color: #ffffff;
+  border-radius: 50%;
+  font-weight: 600;
+  font-size: 0.875rem;
+  flex-shrink: 0;
+}
+
+.statusprocessing .phaseNumber {
+  background: #2563eb;
+  animation: processing 2s ease-in-out infinite;
+}
+
+.statuscompleted .phaseNumber {
+  background: #10b981;
+}
+
+.statuserror .phaseNumber {
+  background: #ef4444;
+}
+
+.statuswaitingfeedback .phaseNumber {
+  background: #f59e0b;
+}
+
+.number {
+  z-index: 2;
+}
+
+.statuscompleted .number {
+  display: none;
+}
+
+.statusIcon {
+  position: absolute;
+  font-size: 1.25rem;
+  z-index: 1;
+}
+
+.statuspending .statusIcon,
+.statusprocessing .statusIcon {
+  display: none;
+}
+
+.statuswaitingfeedback .statusIcon {
+  color: #000000;
+}
+
+.statuscompleted .statusIcon {
+  color: #ffffff;
+}
+
+.statuserror .statusIcon {
+  color: #ffffff;
+}
+
+/* Phase Meta */
+.phaseMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.phaseName {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 0.25rem 0;
+  line-height: 1.3;
+}
+
+.phaseDescription {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Phase Status */
+.phaseStatus {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.statusInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+  text-align: right;
+}
+
+.statusText {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #a1a1aa;
+}
+
+.statusprocessing .statusText {
+  color: #2563eb;
+}
+
+.statuscompleted .statusText {
+  color: #10b981;
+}
+
+.statuserror .statusText {
+  color: #ef4444;
+}
+
+.statuswaitingfeedback .statusText {
+  color: #f59e0b;
+}
+
+.progressPercent {
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2563eb;
+}
+
+/* Expand Button */
+.expandButton {
+  background: transparent;
+  border: 1px solid #3f3f46;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.expandButton:hover {
+  background: rgba(156, 163, 175, 0.1);
+  border-color: #6b7280;
+  color: #ffffff;
+}
+
+.expandButton .material-symbols-outlined {
+  font-size: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.expandButton .material-symbols-outlined.expanded {
+  transform: rotate(180deg);
+}
+
+/* Progress Bar */
+.progressBarContainer {
+  height: 3px;
+  background: #27272a;
+  overflow: hidden;
+}
+
+.progressBar {
+  height: 100%;
+  background: linear-gradient(90deg, #2563eb, #3b82f6);
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progressBar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: shimmer 2s infinite;
+}
+
+/* Expanded Content */
+.expandedContent {
+  border-top: 1px solid #27272a;
+  background: rgba(0, 0, 0, 0.1);
+}
+
+/* Timing Info */
+.timingInfo {
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border-bottom: 1px solid #27272a;
+}
+
+.timingItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+}
+
+.timingLabel {
+  color: #9ca3af;
+}
+
+.timingValue {
+  color: #e5e7eb;
+  font-family: ui-monospace, 'SF Mono', monospace;
+  font-weight: 500;
+}
+
+/* Error Section */
+.errorSection {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #27272a;
+}
+
+.errorHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ef4444;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.errorMessage {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0.375rem;
+  padding: 0.75rem;
+  color: #fca5a5;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  font-family: ui-monospace, 'SF Mono', monospace;
+}
+
+/* Preview Section */
+.previewSection {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #27272a;
+}
+
+.previewHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #f59e0b;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.previewContent {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #3f3f46;
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.previewData {
+  padding: 0.75rem;
+  margin: 0;
+  color: #d1d5db;
+  font-size: 0.625rem;
+  line-height: 1.4;
+  overflow-x: auto;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+/* Feedback Section */
+.feedbackSection {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #27272a;
+}
+
+.feedbackHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #10b981;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.feedbackList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.feedbackItem {
+  background: rgba(16, 185, 129, 0.05);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 0.375rem;
+  padding: 0.5rem;
+}
+
+.feedbackMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.feedbackType {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+}
+
+.feedbackTime {
+  font-size: 0.625rem;
+  color: #9ca3af;
+  font-family: ui-monospace, 'SF Mono', monospace;
+}
+
+.feedbackContent {
+  color: #e5e7eb;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+/* Logs Section */
+.logsSection {
+  padding: 0.75rem 1rem;
+}
+
+.logsHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #6b7280;
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.logsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.logItem {
+  border-left: 2px solid transparent;
+  padding-left: 0.5rem;
+}
+
+.logItem.levelinfo {
+  border-left-color: #3b82f6;
+}
+
+.logItem.levelwarning {
+  border-left-color: #f59e0b;
+}
+
+.logItem.levelerror {
+  border-left-color: #ef4444;
+}
+
+.logItem.leveldebug {
+  border-left-color: #8b5cf6;
+}
+
+.logMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.125rem;
+}
+
+.logLevel {
+  font-size: 0.625rem;
+  font-weight: 600;
+  font-family: ui-monospace, 'SF Mono', monospace;
+  color: #6b7280;
+}
+
+.logItem.levelwarning .logLevel {
+  color: #f59e0b;
+}
+
+.logItem.levelerror .logLevel {
+  color: #ef4444;
+}
+
+.logItem.levelinfo .logLevel {
+  color: #3b82f6;
+}
+
+.logItem.leveldebug .logLevel {
+  color: #8b5cf6;
+}
+
+.logTime {
+  font-size: 0.625rem;
+  color: #6b7280;
+  font-family: ui-monospace, 'SF Mono', monospace;
+}
+
+.logMessage {
+  color: #d1d5db;
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+
+.logItem.levelwarning .logMessage {
+  color: #fbbf24;
+}
+
+.logItem.levelerror .logMessage {
+  color: #fca5a5;
+}
+
+/* Animations */
+@keyframes feedbackPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3), 0 0 20px rgba(245, 158, 11, 0.1);
+  }
+}
+
+@keyframes processing {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .phaseBlock {
+    border-radius: 0.5rem;
+  }
+  
+  .phaseHeader {
+    padding: 0.75rem;
+    gap: 0.75rem;
+  }
+  
+  .phaseNumber {
+    width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+  }
+  
+  .phaseName {
+    font-size: 0.75rem;
+  }
+  
+  .phaseDescription {
+    font-size: 0.625rem;
+  }
+  
+  .expandButton {
+    width: 20px;
+    height: 20px;
+  }
+  
+  .expandButton .material-symbols-outlined {
+    font-size: 0.875rem;
+  }
+  
+  .timingInfo,
+  .errorSection,
+  .previewSection,
+  .feedbackSection,
+  .logsSection {
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .previewData {
+    font-size: 0.5rem;
+    max-height: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .phaseHeader {
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+  
+  .phaseInfo {
+    gap: 0.5rem;
+  }
+  
+  .phaseNumber {
+    width: 24px;
+    height: 24px;
+    font-size: 0.625rem;
+  }
+  
+  .phaseName {
+    font-size: 0.6875rem;
+  }
+  
+  .phaseDescription {
+    font-size: 0.5625rem;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+  
+  .statusInfo {
+    gap: 0.125rem;
+  }
+  
+  .statusText,
+  .progressPercent {
+    font-size: 0.625rem;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .phaseBlock.statusprocessing {
+    border-color: #0000ff;
+  }
+  
+  .phaseBlock.statuscompleted {
+    border-color: #00ff00;
+  }
+  
+  .phaseBlock.statuserror {
+    border-color: #ff0000;
+  }
+  
+  .phaseBlock.statuswaitingfeedback {
+    border-color: #ffff00;
+  }
+  
+  .progressBar {
+    background: linear-gradient(90deg, #0000ff, #00ffff);
+  }
+  
+  .expandButton {
+    border-color: #ffffff;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .phaseBlock {
+    animation: none !important;
+  }
+  
+  .phaseNumber {
+    animation: none !important;
+  }
+  
+  .progressBar::after {
+    animation: none;
+  }
+  
+  .expandButton .material-symbols-outlined {
+    transition: none;
+  }
+  
+  .phaseBlock,
+  .phaseHeader,
+  .expandButton,
+  .progressBar {
+    transition: none !important;
+  }
+}
+
+/* Focus management for accessibility */
+.phaseHeader:focus,
+.expandButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #2563eb;
+}
+
+/* Scrollbar for preview content */
+.previewData::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.previewData::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.previewData::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 2px;
+}
+
+.previewData::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}

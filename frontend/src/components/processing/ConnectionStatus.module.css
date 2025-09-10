@@ -1,0 +1,287 @@
+/* Connection Status Component */
+
+.connectionStatus {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0;
+}
+
+/* Status Icon */
+.statusIcon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon {
+  font-size: 1rem;
+  transition: color 0.2s ease;
+}
+
+.statusDot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 2s infinite;
+}
+
+/* Status Text */
+.statusText {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.statusLabel {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.statusValue {
+  color: inherit;
+  font-weight: 500;
+}
+
+/* Connection Details */
+.connectionDetails {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.attemptCount {
+  color: #6b7280;
+  font-size: 0.625rem;
+  font-family: ui-monospace, 'SF Mono', monospace;
+}
+
+/* Error Message */
+.errorMessage {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #ef4444;
+  font-size: 0.625rem;
+  max-width: 200px;
+}
+
+.errorMessage .material-symbols-outlined {
+  font-size: 0.75rem;
+}
+
+.errorText {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+}
+
+/* Reconnect Button */
+.reconnectButton {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #374151;
+  border: 1px solid #4b5563;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  color: #ffffff;
+  font-size: 0.625rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.reconnectButton:hover:not(:disabled) {
+  background: #4b5563;
+  border-color: #6b7280;
+}
+
+.reconnectButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reconnectButton .material-symbols-outlined {
+  font-size: 0.875rem;
+}
+
+/* Quality Indicator */
+.qualityIndicator {
+  display: flex;
+  align-items: end;
+  gap: 1px;
+  height: 12px;
+}
+
+.qualityBar {
+  width: 2px;
+  background: #374151;
+  border-radius: 1px;
+  transition: background 0.2s ease, height 0.2s ease;
+}
+
+.qualityBar:nth-child(1) {
+  height: 4px;
+}
+
+.qualityBar:nth-child(2) {
+  height: 8px;
+}
+
+.qualityBar:nth-child(3) {
+  height: 12px;
+}
+
+.qualityBar.strong {
+  background: currentColor;
+}
+
+.qualityBar.weak {
+  background: #fbbf24;
+}
+
+.qualityBar.none {
+  background: #374151;
+}
+
+/* Status State Colors */
+.connected {
+  color: #10b981;
+}
+
+.connecting {
+  color: #3b82f6;
+}
+
+.reconnecting {
+  color: #f59e0b;
+}
+
+.disconnected {
+  color: #6b7280;
+}
+
+.error {
+  color: #ef4444;
+}
+
+.unknown {
+  color: #8b5cf6;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.connecting .icon,
+.reconnecting .icon {
+  animation: spin 2s linear infinite;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .connectionStatus {
+    gap: 0.5rem;
+    font-size: 0.625rem;
+  }
+  
+  .connectionDetails,
+  .errorMessage {
+    display: none; /* Hide details on small screens */
+  }
+  
+  .reconnectButton {
+    padding: 0.25rem;
+  }
+  
+  .reconnectButton span:not(.material-symbols-outlined) {
+    display: none; /* Hide text, keep icon */
+  }
+}
+
+@media (max-width: 480px) {
+  .statusText {
+    display: none;
+  }
+  
+  .qualityIndicator {
+    display: none;
+  }
+  
+  .connectionStatus {
+    gap: 0.25rem;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .connected {
+    color: #00ff00;
+  }
+  
+  .error {
+    color: #ff0000;
+  }
+  
+  .reconnectButton {
+    border-color: #ffffff;
+    background: #000000;
+  }
+  
+  .qualityBar.strong {
+    background: #ffffff;
+  }
+}
+
+/* Focus styles for accessibility */
+.reconnectButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #2563eb;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .statusDot {
+    animation: none;
+  }
+  
+  .connecting .icon,
+  .reconnecting .icon {
+    animation: none;
+  }
+  
+  .connectionStatus,
+  .statusIcon,
+  .icon,
+  .statusText,
+  .errorMessage,
+  .reconnectButton,
+  .qualityIndicator,
+  .qualityBar {
+    transition: none !important;
+  }
+}

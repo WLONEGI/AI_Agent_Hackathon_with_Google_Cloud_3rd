@@ -1,6 +1,6 @@
 """Database models."""
 
-from app.models.user import User, RefreshToken
+from app.models.user import User  # RefreshToken temporarily disabled
 from app.models.manga import (
     MangaSession,
     PhaseResult,
@@ -30,7 +30,7 @@ from app.models.preview_interactive import (
 
 __all__ = [
     "User",
-    "RefreshToken",
+    # "RefreshToken",  # Temporarily disabled
     "MangaSession",
     "PhaseResult", 
     "PreviewVersion",

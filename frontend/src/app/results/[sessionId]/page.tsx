@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { ImagePreview } from '@/components/features/preview/ImagePreview';
 import { ArrowLeft, Download, Share2, Grid2x2, Layers } from 'lucide-react';
 import { checkSessionStatus, downloadSessionPdf } from '@/lib/api';
-import { type SessionDetails } from '@/lib/api';
+import { type SessionStatusResponse } from '@/lib/api';
 import { logger } from '@/lib/logger';
 
 export default function ResultsPage() {
@@ -15,7 +15,7 @@ export default function ResultsPage() {
   const router = useRouter();
   const sessionId = params.sessionId as string;
   
-  const [sessionData, setSessionData] = useState<SessionDetails | null>(null);
+  const [sessionData, setSessionData] = useState<SessionStatusResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'grid' | 'single'>('grid');
   const [currentPage, setCurrentPage] = useState(0);

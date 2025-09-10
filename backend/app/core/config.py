@@ -11,8 +11,16 @@ class Settings(BaseSettings):
     """Application settings."""
     
     # Environment
-    env: str = Field("development", env="ENV")
+    environment: str = Field("development", env="ENVIRONMENT")
+    env: str = Field("development", env="ENV")  # Keep for backward compatibility
     debug: bool = Field(True, env="DEBUG")
+    
+    # Mock Settings (for local development)
+    mock_enabled: bool = Field(True, env="MOCK_ENABLED")
+    mock_database: bool = Field(True, env="MOCK_DATABASE")
+    mock_redis: bool = Field(True, env="MOCK_REDIS")
+    mock_google_auth: bool = Field(True, env="MOCK_GOOGLE_AUTH")
+    mock_ai_services: bool = Field(True, env="MOCK_AI_SERVICES")
     
     # Application
     app_name: str = "AI Manga Generation Service"

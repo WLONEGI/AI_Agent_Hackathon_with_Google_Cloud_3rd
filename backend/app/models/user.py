@@ -3,7 +3,7 @@
 from datetime import datetime
 from typing import Optional
 from uuid import uuid4
-from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, JSON
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, JSON, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 
@@ -15,8 +15,8 @@ class User(Base):
     
     __tablename__ = "users"
     
-    # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    # Primary key - Firebase UID (string format) not UUID
+    id = Column(String(128), primary_key=True)
     
     # Authentication fields
     email = Column(String(255), unique=True, nullable=False, index=True)
@@ -52,8 +52,8 @@ class User(Base):
     last_login_at = Column(DateTime(timezone=True), nullable=True)
     
     # Relationships
-    manga_sessions = relationship("MangaSession", back_populates="user", cascade="all, delete-orphan")
-    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    # manga_sessions = relationship("MangaSession", back_populates="user", cascade="all, delete-orphan")
+    # refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self) -> str:
         return f"<User {self.username}>"
@@ -76,23 +76,25 @@ class User(Base):
             self.last_generation_reset = now
 
 
-class RefreshToken(Base):
-    """Refresh token model for JWT authentication."""
-    
-    __tablename__ = "refresh_tokens"
-    
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
-    token = Column(String(500), unique=True, nullable=False)
-    expires_at = Column(DateTime(timezone=True), nullable=False)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
-    revoked_at = Column(DateTime(timezone=True), nullable=True)
-    
-    # Relationship
-    user = relationship("User", back_populates="refresh_tokens")
-    
-    @property
-    def is_valid(self) -> bool:
-        """Check if token is valid."""
-        now = datetime.utcnow()
-        return self.revoked_at is None and self.expires_at > now
+# Temporarily disabled RefreshToken to fix relationship issues
+# TODO: Re-enable after authentication works
+# class RefreshToken(Base):
+#     """Refresh token model for JWT authentication."""
+#     
+#     __tablename__ = "refresh_tokens"
+#     
+#     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+#     user_id = Column(String(128), ForeignKey('users.id'), nullable=False, index=True)
+#     token = Column(String(500), unique=True, nullable=False)
+#     expires_at = Column(DateTime(timezone=True), nullable=False)
+#     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+#     revoked_at = Column(DateTime(timezone=True), nullable=True)
+#     
+#     # Relationship
+#     # user = relationship("User", back_populates="refresh_tokens")
+#     
+#     @property
+#     def is_valid(self) -> bool:
+#         """Check if token is valid."""
+#         now = datetime.utcnow()
+#         return self.revoked_at is None and self.expires_at > now

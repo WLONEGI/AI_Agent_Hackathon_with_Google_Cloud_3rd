@@ -1,0 +1,308 @@
+/* MessageFeed - Genspark Design System */
+
+.messageList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--genspark-space-1);
+  padding: var(--genspark-space-2) 0;
+  min-height: 100%;
+}
+
+/* === MESSAGE STYLING === */
+
+.message {
+  display: flex;
+  flex-direction: column;
+  padding: var(--genspark-space-3) var(--genspark-space-4);
+  margin: var(--genspark-space-1) 0;
+  border-radius: var(--genspark-radius-md);
+  border-left: var(--genspark-border-thick) solid transparent;
+  background: var(--genspark-gray-700);
+  transition: all var(--genspark-duration-fast) var(--genspark-ease);
+  position: relative;
+}
+
+.message:hover {
+  background: var(--genspark-gray-600);
+  border-left-color: var(--genspark-gray-400);
+}
+
+/* Search match highlighting */
+.searchMatch {
+  border-left-color: var(--genspark-accent) !important;
+  background: var(--genspark-accent-muted) !important;
+  box-shadow: 0 0 0 1px var(--genspark-accent-muted);
+}
+
+/* === MESSAGE HEADER === */
+
+.messageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--genspark-space-2);
+  gap: var(--genspark-space-3);
+}
+
+.messageInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-3);
+  flex-wrap: wrap;
+}
+
+.timestamp {
+  color: var(--genspark-gray-300);
+  font-size: var(--genspark-text-xs);
+  font-family: var(--genspark-font-mono);
+  min-width: 65px;
+}
+
+.source {
+  color: var(--genspark-gray-200);
+  font-size: var(--genspark-text-xs);
+  font-family: var(--genspark-font-mono);
+  text-transform: uppercase;
+  font-weight: var(--genspark-font-medium);
+  min-width: 50px;
+}
+
+.level {
+  font-size: var(--genspark-text-xs);
+  font-family: var(--genspark-font-mono);
+  text-transform: uppercase;
+  font-weight: var(--genspark-font-medium);
+  padding: var(--genspark-space-1) var(--genspark-space-2);
+  border-radius: var(--genspark-radius-sm);
+  min-width: 45px;
+  text-align: center;
+}
+
+.level.info {
+  background: var(--genspark-gray-600);
+  color: var(--genspark-gray-200);
+}
+
+.level.warning {
+  background: var(--genspark-warning-muted);
+  color: var(--genspark-warning);
+}
+
+.level.error {
+  background: var(--genspark-error-muted);
+  color: var(--genspark-error);
+}
+
+.level.debug {
+  background: var(--genspark-gray-500);
+  color: var(--genspark-gray-300);
+}
+
+.phase {
+  color: var(--genspark-accent);
+  font-size: var(--genspark-text-xs);
+  font-family: var(--genspark-font-mono);
+  font-weight: var(--genspark-font-medium);
+  background: var(--genspark-accent-muted);
+  padding: var(--genspark-space-1) var(--genspark-space-2);
+  border-radius: var(--genspark-radius-sm);
+}
+
+.levelIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+}
+
+.levelIcon .material-symbols-outlined {
+  font-size: 16px;
+}
+
+/* === MESSAGE CONTENT === */
+
+.messageContent {
+  flex: 1;
+}
+
+.messageText {
+  color: var(--genspark-gray-100);
+  font-size: var(--genspark-text-sm);
+  line-height: var(--genspark-leading-relaxed);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Search highlighting within message text */
+.messageText :global(.search-highlight) {
+  background: var(--genspark-accent);
+  color: var(--genspark-white);
+  padding: 1px var(--genspark-space-1);
+  border-radius: var(--genspark-radius-sm);
+  font-weight: var(--genspark-font-medium);
+}
+
+/* === EMPTY STATE === */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 200px;
+  padding: var(--genspark-space-8);
+  text-align: center;
+  color: var(--genspark-gray-300);
+}
+
+.emptyState .material-symbols-outlined {
+  font-size: 48px;
+  color: var(--genspark-gray-400);
+  margin-bottom: var(--genspark-space-4);
+}
+
+.emptyStateText {
+  color: var(--genspark-gray-300);
+  font-size: var(--genspark-text-base);
+  font-weight: var(--genspark-font-medium);
+  margin-bottom: var(--genspark-space-2);
+}
+
+.emptyStateSubtext {
+  color: var(--genspark-gray-400);
+  font-size: var(--genspark-text-sm);
+  line-height: var(--genspark-leading-relaxed);
+  max-width: 300px;
+}
+
+/* === MESSAGE LEVEL VARIANTS === */
+
+/* System messages */
+.message.genspark-chat-message.system {
+  background: var(--genspark-gray-700);
+  border-left-color: var(--genspark-gray-400);
+}
+
+/* AI/Phase messages */
+.message.genspark-chat-message.phase {
+  background: var(--genspark-gray-600);
+  border-left-color: var(--genspark-accent);
+}
+
+/* Success messages */
+.message.genspark-chat-message.success {
+  background: var(--genspark-success-muted);
+  border-left-color: var(--genspark-success);
+}
+
+.message.genspark-chat-message.success .messageText {
+  color: var(--genspark-success);
+}
+
+/* Error messages */
+.message.genspark-chat-message.error {
+  background: var(--genspark-error-muted);
+  border-left-color: var(--genspark-error);
+}
+
+.message.genspark-chat-message.error .messageText {
+  color: var(--genspark-error);
+}
+
+/* Warning messages */
+.message.genspark-chat-message.warning {
+  background: var(--genspark-warning-muted);
+  border-left-color: var(--genspark-warning);
+}
+
+.message.genspark-chat-message.warning .messageText {
+  color: var(--genspark-warning);
+}
+
+/* === RESPONSIVE DESIGN === */
+
+@media (max-width: 768px) {
+  .messageInfo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--genspark-space-1);
+  }
+  
+  .timestamp,
+  .source,
+  .level,
+  .phase {
+    font-size: 10px;
+    min-width: auto;
+  }
+  
+  .level {
+    padding: 1px var(--genspark-space-1);
+  }
+  
+  .message {
+    padding: var(--genspark-space-2) var(--genspark-space-3);
+  }
+  
+  .messageText {
+    font-size: var(--genspark-text-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .messageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--genspark-space-2);
+  }
+  
+  .levelIcon {
+    display: none; /* Hide icons on very small screens */
+  }
+  
+  .emptyState {
+    padding: var(--genspark-space-6);
+    min-height: 150px;
+  }
+  
+  .emptyState .material-symbols-outlined {
+    font-size: 32px;
+  }
+}
+
+/* === HIGH CONTRAST MODE === */
+
+@media (prefers-contrast: high) {
+  .message {
+    background: #111111;
+    border-color: #ffffff;
+  }
+  
+  .message:hover {
+    background: #222222;
+  }
+  
+  .searchMatch {
+    background: #000000 !important;
+    border-left-color: var(--genspark-accent) !important;
+  }
+  
+  .level {
+    background: #333333;
+    color: #ffffff;
+  }
+  
+  .messageText {
+    color: #ffffff;
+  }
+}
+
+/* === REDUCED MOTION === */
+
+@media (prefers-reduced-motion: reduce) {
+  .message {
+    transition: none;
+  }
+}

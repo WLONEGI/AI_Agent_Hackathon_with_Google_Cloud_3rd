@@ -1,0 +1,345 @@
+/* ChatHeader - Genspark Design System */
+
+.chatHeader {
+  background: var(--genspark-gray-600);
+  border-bottom: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  padding: 0; /* Reset panel header padding */
+}
+
+/* === MAIN HEADER === */
+
+.headerMain {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--genspark-space-4) var(--genspark-space-5);
+  gap: var(--genspark-space-4);
+}
+
+.titleSection {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-4);
+  flex: 1;
+  min-width: 0; /* Allow text truncation */
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-2);
+}
+
+.title .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.title h2 {
+  margin: 0;
+  white-space: nowrap;
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-3);
+  flex-wrap: wrap;
+}
+
+.stats span {
+  font-size: var(--genspark-text-xs);
+  white-space: nowrap;
+}
+
+.searchInfo {
+  color: var(--genspark-accent);
+  background: var(--genspark-accent-muted);
+  padding: var(--genspark-space-1) var(--genspark-space-2);
+  border-radius: var(--genspark-radius-sm);
+  font-weight: var(--genspark-font-medium);
+}
+
+/* === ACTION BUTTONS === */
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-2);
+}
+
+.navControls,
+.toggleControls,
+.utilityActions {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-1);
+}
+
+.navControls {
+  padding-right: var(--genspark-space-2);
+  border-right: var(--genspark-border-thin) solid var(--genspark-gray-500);
+}
+
+.toggleControls {
+  padding-right: var(--genspark-space-2);
+  border-right: var(--genspark-border-thin) solid var(--genspark-gray-500);
+}
+
+.actions .genspark-button {
+  padding: var(--genspark-space-2);
+  min-width: 36px;
+  height: 36px;
+  border-radius: var(--genspark-radius-md);
+}
+
+.actions .genspark-button .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.actions .genspark-button.active {
+  background: var(--genspark-accent-muted);
+  border-color: var(--genspark-accent);
+  color: var(--genspark-accent);
+}
+
+.actions .genspark-button.active:hover {
+  background: var(--genspark-accent);
+  color: var(--genspark-white);
+}
+
+/* === SEARCH SECTION === */
+
+.searchSection {
+  background: var(--genspark-gray-700);
+  border-top: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  padding: var(--genspark-space-4) var(--genspark-space-5);
+  animation: genspark-slide-in var(--genspark-duration-normal) var(--genspark-ease-out);
+}
+
+.searchForm {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-3);
+  margin-bottom: var(--genspark-space-3);
+}
+
+.searchInput {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  background: var(--genspark-gray-800);
+  border: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  border-radius: var(--genspark-radius-md);
+  padding: 0 var(--genspark-space-3);
+  gap: var(--genspark-space-2);
+  transition: border-color var(--genspark-duration-fast) var(--genspark-ease);
+}
+
+.searchInput:focus-within {
+  border-color: var(--genspark-accent);
+  box-shadow: 0 0 0 1px var(--genspark-accent-muted);
+}
+
+.searchInput .material-symbols-outlined {
+  font-size: 18px;
+  color: var(--genspark-gray-400);
+}
+
+.searchField {
+  flex: 1;
+  background: transparent;
+  border: none;
+  padding: var(--genspark-space-2) 0;
+  color: var(--genspark-gray-100);
+  font-size: var(--genspark-text-sm);
+  outline: none;
+}
+
+.searchField::placeholder {
+  color: var(--genspark-gray-400);
+  font-style: italic;
+}
+
+.clearSearchButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: var(--genspark-gray-600);
+  border: none;
+  border-radius: var(--genspark-radius-sm);
+  color: var(--genspark-gray-300);
+  cursor: pointer;
+  transition: all var(--genspark-duration-fast) var(--genspark-ease);
+}
+
+.clearSearchButton:hover {
+  background: var(--genspark-gray-500);
+  color: var(--genspark-gray-100);
+}
+
+.clearSearchButton .material-symbols-outlined {
+  font-size: 14px;
+}
+
+.searchActions {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-2);
+}
+
+.searchActions .genspark-button {
+  padding: var(--genspark-space-2) var(--genspark-space-3);
+  font-size: var(--genspark-text-sm);
+  min-width: 70px;
+}
+
+.searchActions .genspark-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.searchHelp {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-2);
+}
+
+.searchHelp span {
+  font-size: var(--genspark-text-xs);
+  line-height: var(--genspark-leading-relaxed);
+}
+
+/* === RESPONSIVE DESIGN === */
+
+@media (max-width: 768px) {
+  .headerMain {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--genspark-space-3);
+    padding: var(--genspark-space-3) var(--genspark-space-4);
+  }
+  
+  .titleSection {
+    justify-content: space-between;
+  }
+  
+  .stats {
+    font-size: 10px;
+    gap: var(--genspark-space-2);
+  }
+  
+  .actions {
+    justify-content: space-between;
+    width: 100%;
+  }
+  
+  .navControls,
+  .toggleControls {
+    border-right: none;
+    padding-right: 0;
+  }
+  
+  .actions .genspark-button {
+    padding: var(--genspark-space-1);
+    min-width: 32px;
+    height: 32px;
+  }
+  
+  .searchSection {
+    padding: var(--genspark-space-3) var(--genspark-space-4);
+  }
+  
+  .searchForm {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--genspark-space-2);
+  }
+  
+  .searchActions {
+    justify-content: stretch;
+  }
+  
+  .searchActions .genspark-button {
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .titleSection {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--genspark-space-2);
+  }
+  
+  .title h2 {
+    font-size: var(--genspark-text-md);
+  }
+  
+  .actions {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: var(--genspark-space-1);
+  }
+  
+  .navControls,
+  .toggleControls,
+  .utilityActions {
+    gap: var(--genspark-space-1);
+  }
+  
+  .searchInput {
+    padding: 0 var(--genspark-space-2);
+  }
+  
+  .searchField {
+    font-size: var(--genspark-text-xs);
+  }
+  
+  .searchHelp {
+    display: none; /* Hide help text on very small screens */
+  }
+}
+
+/* === HIGH CONTRAST MODE === */
+
+@media (prefers-contrast: high) {
+  .chatHeader {
+    background: #000000;
+    border-color: #ffffff;
+  }
+  
+  .searchSection {
+    background: #111111;
+    border-color: #ffffff;
+  }
+  
+  .searchInput {
+    background: #222222;
+    border-color: #ffffff;
+  }
+  
+  .searchField {
+    color: #ffffff;
+  }
+  
+  .actions .genspark-button.active {
+    background: var(--genspark-accent);
+    color: #ffffff;
+  }
+}
+
+/* === REDUCED MOTION === */
+
+@media (prefers-reduced-motion: reduce) {
+  .searchSection {
+    animation: none;
+  }
+  
+  .searchInput,
+  .clearSearchButton,
+  .actions .genspark-button {
+    transition: none;
+  }
+}

@@ -26,23 +26,93 @@ export function GoogleLoginModal({ isOpen, onClose }: GoogleLoginModalProps) {
     setError(null);
 
     try {
-      // Temporary mock token for screen testing
-      const mockGoogleIdToken = 'mock_firebase_google_token_for_screen_test';
-      
-      const success = await loginWithGoogle(mockGoogleIdToken);
-      
-      if (success) {
-        onClose();
+      // 開発環境では Firebase モック、本番では実際の Firebase を使用
+      if (process.env.NEXT_PUBLIC_APP_ENV === 'development') {
+        // 開発用モック認証
+        const mockIdToken = await generateMockGoogleToken();
+        const success = await loginWithGoogle(mockIdToken);
+        
+        if (success) {
+          onClose();
+        } else {
+          setError('ログインに失敗しました。もう一度お試しください。');
+        }
       } else {
-        setError('ログインに失敗しました。もう一度お試しください。');
+        // 本番環境では実際のFirebase認証を使用
+        const { signInWithGoogle } = await import('@/lib/firebase');
+        
+        try {
+          const { idToken } = await signInWithGoogle();
+          const success = await loginWithGoogle(idToken);
+          
+          if (success) {
+            onClose();
+          } else {
+            setError('認証は成功しましたが、ログインに失敗しました。もう一度お試しください。');
+          }
+        } catch (firebaseError: any) {
+          console.error('Firebase authentication error:', firebaseError);
+          
+          // Firebase固有のエラーハンドリング
+          if (firebaseError.code === 'auth/popup-closed-by-user') {
+            setError('ログインがキャンセルされました。');
+          } else if (firebaseError.code === 'auth/popup-blocked') {
+            setError('ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
+          } else if (firebaseError.code === 'auth/unauthorized-domain') {
+            setError('この域名はFirebase認証で許可されていません。管理者に連絡してください。');
+          } else if (firebaseError.code === 'auth/network-request-failed') {
+            setError('ネットワークエラーが発生しました。インターネット接続を確認してください。');
+          } else {
+            setError(`認証エラー: ${firebaseError.message || 'Google認証に失敗しました'}`);
+          }
+          
+          throw firebaseError;
+        }
       }
     } catch (err) {
       console.error('Login error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'ログインエラーが発生しました';
-      setError(errorMessage);
+      
+      // 既にFirebaseエラーとして処理されていない場合のみ処理
+      if (!error) {
+        let errorMessage = 'ログインエラーが発生しました';
+        
+        if (err instanceof Error) {
+          if (err.message.includes('popup-closed-by-user')) {
+            errorMessage = 'ログインがキャンセルされました。';
+          } else if (err.message.includes('popup-blocked')) {
+            errorMessage = 'ポップアップがブロックされました。ポップアップを許可してください。';
+          } else {
+            errorMessage = err.message;
+          }
+        }
+        
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // 開発用モック認証トークン生成
+  const generateMockGoogleToken = async (): Promise<string> => {
+    // 開発用のモックユーザー情報（ASCII文字のみ）
+    const mockUser = {
+      uid: 'dev-user-123',
+      email: 'developer@example.com',
+      name: 'Developer User',
+      picture: 'https://via.placeholder.com/96',
+    };
+
+    // 簡単なJWTライクなトークン（開発用のみ）
+    const header = btoa(JSON.stringify({ alg: 'none', typ: 'JWT' }));
+    const payload = btoa(JSON.stringify({
+      ...mockUser,
+      iss: 'mock-google',
+      exp: Math.floor(Date.now() / 1000) + 3600, // 1時間有効
+      iat: Math.floor(Date.now() / 1000)
+    }));
+    
+    return `${header}.${payload}.mock-signature`;
   };
 
   return (

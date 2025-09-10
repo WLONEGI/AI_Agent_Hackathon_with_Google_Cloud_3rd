@@ -79,7 +79,7 @@ class MangaSession(Base):
     completed_at = Column(DateTime(timezone=True), nullable=True)
     
     # Relationships
-    user = relationship("User", back_populates="manga_sessions")
+    # user = relationship("User", back_populates="manga_sessions")
     phase_results = relationship("PhaseResult", back_populates="session", cascade="all, delete-orphan")
     preview_versions = relationship("PreviewVersion", back_populates="session", cascade="all, delete-orphan")
     feedbacks = relationship("UserFeedback", back_populates="session", cascade="all, delete-orphan")

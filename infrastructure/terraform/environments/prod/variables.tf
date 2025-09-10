@@ -44,59 +44,108 @@ variable "redis_memory_gb" {
   default     = 1
 }
 
-# Cloud Run Configuration
-variable "container_image" {
-  description = "Container image for Cloud Run"
+# Backend Cloud Run Configuration
+variable "backend_container_image" {
+  description = "Backend container image for Cloud Run"
   type        = string
-  default     = "gcr.io/comic-ai-agent-470309/manga-service:latest"
+  default     = "asia-northeast1-docker.pkg.dev/comic-ai-agent-470309/manga-service/backend:latest"
 }
 
-variable "cloud_run_cpu" {
-  description = "Cloud Run CPU allocation"
+variable "backend_cpu_limit" {
+  description = "Backend Cloud Run CPU allocation"
   type        = string
-  default     = "1"
+  default     = "2"
 }
 
-variable "cloud_run_memory" {
-  description = "Cloud Run memory allocation"
+variable "backend_memory_limit" {
+  description = "Backend Cloud Run memory allocation"
   type        = string
   default     = "2Gi"
 }
 
-variable "cloud_run_min_instances" {
-  description = "Minimum Cloud Run instances"
+variable "backend_min_instances" {
+  description = "Backend minimum Cloud Run instances"
   type        = number
   default     = 1
 }
 
-variable "cloud_run_max_instances" {
-  description = "Maximum Cloud Run instances"
+variable "backend_max_instances" {
+  description = "Backend maximum Cloud Run instances"
   type        = number
   default     = 50
 }
 
-variable "cloud_run_concurrency" {
-  description = "Cloud Run concurrent requests per instance"
+variable "backend_concurrency" {
+  description = "Backend Cloud Run concurrent requests per instance"
   type        = number
   default     = 50
 }
 
-variable "cloud_run_timeout" {
-  description = "Cloud Run request timeout in seconds"
+variable "backend_timeout" {
+  description = "Backend Cloud Run request timeout in seconds"
+  type        = number
+  default     = 900
+}
+
+variable "backend_custom_domain" {
+  description = "Backend custom domain"
+  type        = string
+  default     = ""
+}
+
+# Frontend Cloud Run Configuration
+variable "frontend_container_image" {
+  description = "Frontend container image for Cloud Run"
+  type        = string
+  default     = "asia-northeast1-docker.pkg.dev/comic-ai-agent-470309/manga-service/frontend:latest"
+}
+
+variable "frontend_cpu_limit" {
+  description = "Frontend Cloud Run CPU allocation"
+  type        = string
+  default     = "1"
+}
+
+variable "frontend_memory_limit" {
+  description = "Frontend Cloud Run memory allocation"
+  type        = string
+  default     = "512Mi"
+}
+
+variable "frontend_min_instances" {
+  description = "Frontend minimum Cloud Run instances"
+  type        = number
+  default     = 0
+}
+
+variable "frontend_max_instances" {
+  description = "Frontend maximum Cloud Run instances"
+  type        = number
+  default     = 10
+}
+
+variable "frontend_concurrency" {
+  description = "Frontend Cloud Run concurrent requests per instance"
+  type        = number
+  default     = 80
+}
+
+variable "frontend_timeout" {
+  description = "Frontend Cloud Run request timeout in seconds"
   type        = number
   default     = 300
 }
 
-variable "allow_unauthenticated" {
-  description = "Allow unauthenticated access to Cloud Run service"
-  type        = bool
-  default     = true
-}
-
-variable "custom_domain" {
-  description = "Custom domain for the service"
+variable "frontend_custom_domain" {
+  description = "Frontend custom domain"
   type        = string
   default     = ""
+}
+
+variable "allow_unauthenticated" {
+  description = "Allow unauthenticated access to Cloud Run services"
+  type        = bool
+  default     = true
 }
 
 # Storage Configuration

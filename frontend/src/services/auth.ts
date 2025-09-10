@@ -19,10 +19,10 @@ export class AuthService {
 
   async signInWithGoogle(): Promise<AuthResponse> {
     try {
-      // Check if Firebase is available, fallback to mock if not
-      if (!isFirebaseAvailable()) {
-        console.warn('Firebase not available, using mock authentication');
-        return mockAuth.signInWithGoogle();
+      // For development, directly use backend mock authentication
+      if (process.env.NODE_ENV === 'development' || !isFirebaseAvailable()) {
+        console.log('Using backend mock authentication');
+        return await this.signInWithBackendMock();
       }
 
       // Use the enhanced Firebase with Turbopack compatibility
@@ -35,9 +35,38 @@ export class AuthService {
     } catch (error) {
       console.error('Google sign-in error:', error);
       
-      // Fallback to mock auth in case of Firebase errors
-      console.warn('Falling back to mock authentication due to Firebase error');
-      return mockAuth.signInWithGoogle();
+      // Fallback to backend mock auth in case of Firebase errors
+      console.warn('Falling back to backend mock authentication due to Firebase error');
+      return await this.signInWithBackendMock();
+    }
+  }
+
+  async signInWithBackendMock(): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/google`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          email: 'test@example.com', 
+          password: 'testpassword' 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Mock authentication failed: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      return {
+        user: data.user,
+        idToken: data.token
+      };
+    } catch (error) {
+      console.error('Backend mock authentication error:', error);
+      throw error;
     }
   }
 

@@ -1,9 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    /* === GENSPARK CORE COLORS === */
+    
+    /* Monochrome Base Palette */
+    --genspark-black: #0a0a0a;           /* Pure black backgrounds */
+    --genspark-gray-900: #111111;        /* Deep background */  
+    --genspark-gray-800: #1a1a1a;        /* Main background */
+    --genspark-gray-700: #242424;        /* Card background */
+    --genspark-gray-600: #2d2d2d;        /* Elevated surfaces */
+    --genspark-gray-500: #3a3a3a;        /* Border subtle */
+    --genspark-gray-400: #4a4a4a;        /* Border normal */
+    --genspark-gray-300: #6a6a6a;        /* Text muted */
+    --genspark-gray-200: #9a9a9a;        /* Text secondary */
+    --genspark-gray-100: #b8b8b8;        /* Text primary */
+    --genspark-white: #e8e8e8;           /* Highlights */
+
+    /* === ACCENT SYSTEM === */
+    --genspark-accent: #4a9eff;          /* Bright blue accent */
+    --genspark-accent-muted: #1a3a5c;    /* Muted accent background */
+    --genspark-accent-dark: #2563eb;     /* Darker accent */
+    
+    /* === STATUS COLORS === */
+    --genspark-success: #22c55e;         /* Success green */
+    --genspark-success-muted: #1a3a23;   /* Muted success background */
+    --genspark-warning: #f59e0b;         /* Warning orange */
+    --genspark-warning-muted: #3a2a0a;   /* Muted warning background */
+    --genspark-error: #ef4444;           /* Error red */
+    --genspark-error-muted: #3a1a1a;     /* Muted error background */
+    --genspark-info: #3b82f6;            /* Info blue */
+    --genspark-info-muted: #1a2a3a;      /* Muted info background */
+    
+    /* === TYPOGRAPHY === */
+    
+    /* Font Family */
+    --genspark-font-mono: 'JetBrains Mono', 'Fira Code', 'Roboto Mono', 'SF Mono', Consolas, monospace;
+    --genspark-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    
+    /* Font Sizes (Genspark scale) */
+    --genspark-text-xs: 11px;            /* Micro text */
+    --genspark-text-sm: 12px;            /* Small labels */
+    --genspark-text-base: 13px;          /* Body text */
+    --genspark-text-md: 14px;            /* Emphasized body */
+    --genspark-text-lg: 16px;            /* Headings */
+    --genspark-text-xl: 18px;            /* Large headings */
+    --genspark-text-2xl: 24px;           /* Display text */
+    
+    /* Font Weights */
+    --genspark-font-light: 300;
+    --genspark-font-normal: 400;
+    --genspark-font-medium: 500;
+    --genspark-font-semibold: 600;
+    
+    /* Line Heights */
+    --genspark-leading-tight: 1.25;
+    --genspark-leading-normal: 1.4;
+    --genspark-leading-relaxed: 1.6;
+
+    /* === SPACING === */
+    
+    /* Genspark spacing scale */
+    --genspark-space-0: 0px;             /* 0 */
+    --genspark-space-px: 1px;            /* 1px */
+    --genspark-space-1: 4px;             /* 0.25rem */
+    --genspark-space-2: 8px;             /* 0.5rem */
+    --genspark-space-3: 12px;            /* 0.75rem */
+    --genspark-space-4: 16px;            /* 1rem */
+    --genspark-space-5: 20px;            /* 1.25rem */
+    --genspark-space-6: 24px;            /* 1.5rem */
+    --genspark-space-8: 32px;            /* 2rem */
+    --genspark-space-10: 40px;           /* 2.5rem */
+    --genspark-space-12: 48px;           /* 3rem */
+    --genspark-space-16: 64px;           /* 4rem */
+
+    /* === BORDERS === */
+    
+    /* Border Widths */
+    --genspark-border-none: 0px;
+    --genspark-border-thin: 1px;
+    --genspark-border-medium: 2px;
+    --genspark-border-thick: 3px;
+    
+    /* Border Radius */
+    --genspark-radius-none: 0px;
+    --genspark-radius-xs: 2px;
+    --genspark-radius-sm: 4px;
+    --genspark-radius-md: 6px;
+    --genspark-radius-lg: 8px;
+    --genspark-radius-xl: 12px;
+    --genspark-radius-2xl: 16px;
+    --genspark-radius-full: 9999px;
+
+    /* === SHADOWS === */
+    
+    --genspark-shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+    --genspark-shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.6), 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+    --genspark-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.6), 0 2px 4px -1px rgba(0, 0, 0, 0.4);
+    --genspark-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
+    --genspark-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 10px 10px -5px rgba(0, 0, 0, 0.4);
+
+    /* === ANIMATIONS === */
+    
+    /* Durations */
+    --genspark-duration-fast: 150ms;
+    --genspark-duration-normal: 250ms;
+    --genspark-duration-slow: 350ms;
+    
+    /* Easing */
+    --genspark-ease: cubic-bezier(0.4, 0, 0.2, 1);
+    --genspark-ease-in: cubic-bezier(0.4, 0, 1, 1);
+    --genspark-ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --genspark-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
     /* Design Specification Compliant Color System */
     --color-bg-primary: #1a1a1a;      /* Deep black background */
     --color-bg-secondary: #141414;    /* Card background */
@@ -71,6 +184,39 @@
     --radius-lg: 0.5rem;
     --radius-xl: 0.75rem;
     --radius-full: 9999px;
+
+    /* Claude Style Color System - Dark Gray Theme */
+    --claude-bg-primary: #2d2d2d;        /* Main background - dark gray */
+    --claude-bg-secondary: #242424;      /* Sidebar background - darker gray */
+    --claude-bg-tertiary: #1a1a1a;       /* Card background - darkest gray */
+    --claude-bg-hover: #3a3a3a;          /* Hover background - lighter gray */
+    
+    /* Text Colors */
+    --claude-text-primary: #f5f5f5;      /* Primary text - bright white */
+    --claude-text-secondary: #d0d0d0;    /* Secondary text - very light gray */
+    --claude-text-tertiary: #a0a0a0;     /* Placeholder text - lighter gray */
+    --claude-text-link: #4a9eff;         /* Link text - bright blue */
+    
+    /* Border Colors */
+    --claude-border-light: #404040;      /* Light border - subtle gray */
+    --claude-border-medium: #4a4a4a;     /* Medium border - medium gray */
+    --claude-border-focus: #4a9eff;      /* Focus border - bright blue */
+    
+    /* Accent Colors */
+    --claude-accent-primary: #0066cc;    /* Primary accent */
+    --claude-accent-hover: #0052a3;      /* Hover accent */
+    --claude-accent-light: #e6f0ff;      /* Light accent background */
+    
+    /* Status Colors */
+    --claude-success: #059862;           /* Success */
+    --claude-warning: #e07912;           /* Warning */
+    --claude-error: #d41919;             /* Error */
+    --claude-info: #0066cc;              /* Info */
+    
+    /* Transitions */
+    --claude-transition-fast: 150ms ease;
+    --claude-transition-normal: 250ms ease;
+    --claude-transition-slow: 350ms ease;
   }
 }
 
@@ -94,17 +240,36 @@
     --text-sm: 0.875rem;
     --text-base: 1rem;
     --text-lg: 1.125rem;
+
+    /* Claude Font Sizes */
+    --claude-text-xs: 12px;
+    --claude-text-sm: 13px;
+    --claude-text-base: 14px;
+    --claude-text-md: 15px;
+    --claude-text-lg: 16px;
+    --claude-text-xl: 18px;
+    --claude-text-2xl: 24px;
+    
+    /* Line Heights */
+    --claude-leading-tight: 1.3;
+    --claude-leading-normal: 1.5;
+    --claude-leading-relaxed: 1.7;
+    
+    /* Font Weights */
+    --claude-font-normal: 400;
+    --claude-font-medium: 500;
+    --claude-font-semibold: 600;
+    --claude-font-bold: 700;
   }
   
   body {
-    @apply bg-[var(--color-bg-primary)] text-[var(--color-text-primary)];
-    font-family: var(--font-sans);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   
   h1, h2, h3, h4, h5, h6 {
     @apply font-semibold tracking-tight;
-    font-family: var(--font-sans);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   }
   
   h1 {
@@ -129,6 +294,280 @@
   
   h6 {
     @apply text-base;
+  }
+}
+
+@layer components {
+  /* Claude Layout Components */
+  .claude-layout {
+    @apply min-h-screen;
+    background-color: var(--claude-bg-primary);
+    color: var(--claude-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  }
+  
+  .claude-sidebar {
+    @apply w-60 h-screen fixed left-0 top-0 border-r;
+    background-color: var(--claude-bg-secondary);
+    border-color: var(--claude-border-light);
+  }
+  
+  .claude-main {
+    @apply ml-60;
+    background-color: var(--claude-bg-primary);
+  }
+  
+  /* Claude Input Components */
+  .claude-chat-input {
+    @apply w-full min-h-[60px] max-h-[200px] p-4 rounded-lg border resize-none;
+    @apply focus:outline-none focus:ring-1;
+    background-color: var(--claude-bg-primary);
+    border-color: var(--claude-border-light);
+    color: var(--claude-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: var(--claude-text-base);
+    line-height: var(--claude-leading-normal);
+    transition: border-color var(--claude-transition-fast);
+  }
+  
+  .claude-chat-input:focus {
+    border-color: var(--claude-border-focus);
+    box-shadow: 0 0 0 1px var(--claude-border-focus);
+  }
+  
+  .claude-chat-input::placeholder {
+    color: var(--claude-text-tertiary);
+  }
+  
+  /* Claude Button Components */
+  .claude-button {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md font-medium;
+    @apply focus:outline-none focus:ring-2 focus:ring-offset-2;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: var(--claude-text-base);
+    transition: all var(--claude-transition-fast);
+  }
+  
+  .claude-button-primary {
+    @apply claude-button;
+    background-color: var(--claude-accent-primary);
+    color: #ffffff;
+  }
+  
+  .claude-button-primary:hover {
+    background-color: var(--claude-accent-hover);
+  }
+  
+  .claude-button-primary:focus {
+    box-shadow: 0 0 0 2px var(--claude-accent-light);
+  }
+  
+  /* Claude Message Components */
+  .claude-message {
+    @apply mb-6;
+  }
+  
+  .claude-message-content {
+    color: var(--claude-text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: var(--claude-text-base);
+    line-height: var(--claude-leading-relaxed);
+  }
+  
+  .claude-message-header {
+    @apply flex items-center mb-2;
+  }
+  
+  .claude-message-role {
+    @apply font-medium;
+    color: var(--claude-text-secondary);
+    font-size: var(--claude-text-sm);
+  }
+  
+  .claude-message-time {
+    @apply ml-auto text-sm;
+    color: var(--claude-text-tertiary);
+    font-size: var(--claude-text-xs);
+  }
+  
+  /* Claude Progress Components */
+  .claude-phase-list {
+    @apply space-y-2;
+  }
+  
+  .claude-phase-item {
+    @apply flex items-center p-3 rounded-lg;
+    background-color: var(--claude-bg-tertiary);
+    border: 1px solid var(--claude-border-light);
+    transition: all var(--claude-transition-fast);
+  }
+  
+  .claude-phase-item.active {
+    background-color: var(--claude-accent-light);
+    border-color: var(--claude-accent-primary);
+  }
+  
+  .claude-phase-item.completed {
+    background-color: var(--claude-bg-tertiary);
+    border-color: var(--claude-success);
+  }
+  
+  .claude-phase-item.error {
+    background-color: var(--claude-bg-tertiary);
+    border-color: var(--claude-error);
+  }
+  
+  .claude-phase-icon {
+    @apply w-5 h-5 mr-3 flex-shrink-0;
+  }
+  
+  .claude-phase-title {
+    @apply font-medium;
+    color: var(--claude-text-primary);
+    font-size: var(--claude-text-base);
+  }
+  
+  .claude-phase-status {
+    @apply ml-auto text-sm;
+    color: var(--claude-text-secondary);
+    font-size: var(--claude-text-sm);
+  }
+  
+  /* Claude Sidebar Components */
+  .claude-sidebar-header {
+    @apply p-4 border-b;
+    border-color: var(--claude-border-light);
+  }
+  
+  .claude-sidebar-title {
+    @apply font-semibold text-lg;
+    color: var(--claude-text-primary);
+    font-size: var(--claude-text-lg);
+  }
+  
+  .claude-sidebar-content {
+    @apply p-4;
+  }
+  
+  .claude-new-chat-button {
+    @apply w-full p-3 mb-4 rounded-lg border border-dashed;
+    @apply flex items-center justify-center text-sm font-medium;
+    @apply hover:bg-opacity-50 transition-colors;
+    background-color: var(--claude-bg-primary);
+    border-color: var(--claude-border-medium);
+    color: var(--claude-text-secondary);
+  }
+  
+  .claude-new-chat-button:hover {
+    background-color: var(--claude-bg-hover);
+    color: var(--claude-text-primary);
+  }
+  
+  .claude-chat-history {
+    @apply space-y-1;
+  }
+  
+  .claude-chat-history-item {
+    @apply p-2 rounded-md text-sm cursor-pointer;
+    @apply hover:bg-opacity-50 transition-colors;
+    color: var(--claude-text-secondary);
+    font-size: var(--claude-text-sm);
+  }
+  
+  .claude-chat-history-item:hover {
+    background-color: var(--claude-bg-hover);
+    color: var(--claude-text-primary);
+  }
+  
+  .claude-chat-history-item.active {
+    background-color: var(--claude-accent-light);
+    color: var(--claude-accent-primary);
+  }
+  
+  /* Claude Animations */
+  .claude-typing-indicator {
+    @apply flex items-center space-x-1;
+  }
+  
+  .claude-typing-dot {
+    @apply w-2 h-2 rounded-full;
+    background-color: var(--claude-text-tertiary);
+    animation: claude-typing-pulse 1.4s ease-in-out infinite both;
+  }
+  
+  .claude-typing-dot:nth-child(1) { animation-delay: -0.32s; }
+  .claude-typing-dot:nth-child(2) { animation-delay: -0.16s; }
+  .claude-typing-dot:nth-child(3) { animation-delay: 0s; }
+  
+  @keyframes claude-typing-pulse {
+    0%, 80%, 100% {
+      transform: scale(0);
+      opacity: 0.5;
+    }
+    40% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  
+  .claude-fade-in {
+    animation: claude-fade-in 0.3s ease-out;
+  }
+  
+  @keyframes claude-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .claude-sidebar {
+      @apply w-full -translate-x-full transition-transform;
+    }
+    
+    .claude-sidebar.open {
+      @apply translate-x-0;
+    }
+    
+    .claude-main {
+      @apply ml-0;
+    }
+    
+    .claude-chat-input {
+      @apply text-base;
+      font-size: 16px; /* Prevent zoom on iOS */
+    }
+  }
+}
+
+@layer utilities {
+  .claude-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: var(--claude-border-medium) var(--claude-bg-secondary);
+  }
+  
+  .claude-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .claude-scrollbar::-webkit-scrollbar-track {
+    background: var(--claude-bg-secondary);
+  }
+  
+  .claude-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--claude-border-medium);
+    border-radius: 3px;
+  }
+  
+  .claude-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: var(--claude-text-tertiary);
   }
 }
 
@@ -341,5 +780,150 @@
   
   .animate-spin {
     animation: spin 1s linear infinite;
+  }
+
+  /* === GENSPARK GLOBAL UTILITY CLASSES === */
+  
+  /* Button System */
+  .genspark-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--genspark-space-2);
+    padding: var(--genspark-space-2) var(--genspark-space-4);
+    background: var(--genspark-gray-600);
+    color: var(--genspark-gray-100);
+    border: var(--genspark-border-thin) solid var(--genspark-gray-500);
+    border-radius: var(--genspark-radius-md);
+    font-family: var(--genspark-font-sans);
+    font-size: var(--genspark-text-sm);
+    font-weight: var(--genspark-font-medium);
+    cursor: pointer;
+    transition: all var(--genspark-duration-fast) var(--genspark-ease);
+    text-decoration: none;
+    outline: none;
+    user-select: none;
+  }
+  
+  .genspark-button:hover {
+    background: var(--genspark-gray-500);
+    border-color: var(--genspark-gray-400);
+    color: var(--genspark-white);
+  }
+  
+  .genspark-button:focus-visible {
+    box-shadow: 0 0 0 2px var(--genspark-accent-muted);
+    border-color: var(--genspark-accent);
+  }
+  
+  .genspark-button:active {
+    transform: translateY(1px);
+  }
+  
+  .genspark-button.primary {
+    background: var(--genspark-accent);
+    border-color: var(--genspark-accent);
+    color: var(--genspark-white);
+  }
+  
+  .genspark-button.primary:hover {
+    background: var(--genspark-accent-dark);
+    border-color: var(--genspark-accent-dark);
+  }
+  
+  .genspark-button.ghost {
+    background: transparent;
+    border-color: transparent;
+    color: var(--genspark-gray-200);
+  }
+  
+  .genspark-button.ghost:hover {
+    background: var(--genspark-gray-600);
+    border-color: var(--genspark-gray-500);
+    color: var(--genspark-white);
+  }
+  
+  .genspark-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  /* Panel System */
+  .genspark-panel {
+    background: var(--genspark-gray-700);
+    border: var(--genspark-border-thin) solid var(--genspark-gray-500);
+    border-radius: var(--genspark-radius-lg);
+    overflow: hidden;
+  }
+  
+  /* Scroll System */
+  .genspark-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: var(--genspark-gray-500) var(--genspark-gray-800);
+  }
+  
+  .genspark-scroll::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  .genspark-scroll::-webkit-scrollbar-track {
+    background: var(--genspark-gray-800);
+  }
+  
+  .genspark-scroll::-webkit-scrollbar-thumb {
+    background: var(--genspark-gray-500);
+    border-radius: var(--genspark-radius-sm);
+  }
+  
+  .genspark-scroll::-webkit-scrollbar-thumb:hover {
+    background: var(--genspark-gray-400);
+  }
+  
+  /* Text Classes */
+  .genspark-text {
+    color: var(--genspark-gray-100);
+    font-family: var(--genspark-font-sans);
+    font-size: var(--genspark-text-base);
+    line-height: var(--genspark-leading-normal);
+  }
+  
+  .genspark-text-mono {
+    font-family: var(--genspark-font-mono);
+    font-size: var(--genspark-text-sm);
+    line-height: var(--genspark-leading-relaxed);
+  }
+  
+  .genspark-text-muted {
+    color: var(--genspark-gray-300);
+  }
+  
+  .genspark-text-secondary {
+    color: var(--genspark-gray-200);
+  }
+  
+  /* Icon System */
+  .genspark-icon {
+    color: var(--genspark-gray-200);
+    font-size: 20px;
+    line-height: 1;
+    transition: color var(--genspark-duration-fast) var(--genspark-ease);
+  }
+  
+  .genspark-icon.accent {
+    color: var(--genspark-accent);
+  }
+  
+  .genspark-icon.success {
+    color: var(--genspark-success);
+  }
+  
+  .genspark-icon.warning {
+    color: var(--genspark-warning);
+  }
+  
+  .genspark-icon.error {
+    color: var(--genspark-error);
   }
 }

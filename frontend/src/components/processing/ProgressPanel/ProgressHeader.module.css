@@ -1,0 +1,402 @@
+/* ProgressHeader - Genspark Design System */
+
+.progressHeader {
+  background: var(--genspark-gray-600);
+  border-bottom: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  padding: var(--genspark-space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--genspark-space-4);
+}
+
+/* === TITLE SECTION === */
+
+.titleSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--genspark-space-3);
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--genspark-space-4);
+}
+
+.titleContent {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--genspark-space-3);
+  flex: 1;
+}
+
+.titleContent .material-symbols-outlined {
+  font-size: 24px;
+  margin-top: var(--genspark-space-1);
+}
+
+.titleText {
+  flex: 1;
+}
+
+.titleText h2 {
+  margin: 0 0 var(--genspark-space-1) 0;
+}
+
+.titleText p {
+  margin: 0;
+  font-size: var(--genspark-text-sm);
+}
+
+/* Status Badge */
+.statusBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-2);
+  padding: var(--genspark-space-2) var(--genspark-space-3);
+  border-radius: var(--genspark-radius-md);
+  font-size: var(--genspark-text-sm);
+  font-weight: var(--genspark-font-medium);
+  white-space: nowrap;
+  border: var(--genspark-border-thin) solid transparent;
+}
+
+.statusBadge .material-symbols-outlined {
+  font-size: 16px;
+}
+
+.statusIdle {
+  background: var(--genspark-gray-700);
+  color: var(--genspark-gray-300);
+  border-color: var(--genspark-gray-500);
+}
+
+.statusConnecting {
+  background: var(--genspark-accent-muted);
+  color: var(--genspark-accent);
+  border-color: var(--genspark-accent);
+}
+
+.statusProcessing {
+  background: var(--genspark-accent-muted);
+  color: var(--genspark-accent);
+  border-color: var(--genspark-accent);
+  animation: genspark-pulse 2s var(--genspark-ease) infinite;
+}
+
+.statusCompleted {
+  background: var(--genspark-success-muted);
+  color: var(--genspark-success);
+  border-color: var(--genspark-success);
+}
+
+.statusError {
+  background: var(--genspark-error-muted);
+  color: var(--genspark-error);
+  border-color: var(--genspark-error);
+}
+
+.statusCancelled {
+  background: var(--genspark-warning-muted);
+  color: var(--genspark-warning);
+  border-color: var(--genspark-warning);
+}
+
+/* Progress Section */
+.progressSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--genspark-space-2);
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--genspark-text-sm);
+}
+
+.progressBar {
+  height: 8px;
+  background: var(--genspark-gray-800);
+  border-radius: var(--genspark-radius-sm);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--genspark-accent) 0%, var(--genspark-accent-hover) 100%);
+  border-radius: var(--genspark-radius-sm);
+  transition: width var(--genspark-duration-normal) var(--genspark-ease-out);
+}
+
+/* === CURRENT PHASE SECTION === */
+
+.currentPhaseSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--genspark-space-3);
+  padding: var(--genspark-space-4);
+  background: var(--genspark-gray-700);
+  border: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  border-radius: var(--genspark-radius-md);
+}
+
+.currentPhaseHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-2);
+}
+
+.currentPhaseHeader span {
+  font-size: var(--genspark-text-sm);
+  font-weight: var(--genspark-font-medium);
+  text-transform: uppercase;
+}
+
+.currentPhaseContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--genspark-space-3);
+}
+
+.phaseInfo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--genspark-space-2);
+}
+
+.phaseTitle {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-3);
+}
+
+.phaseNumber {
+  background: var(--genspark-accent);
+  color: var(--genspark-white);
+  padding: var(--genspark-space-1) var(--genspark-space-2);
+  border-radius: var(--genspark-radius-sm);
+  font-size: var(--genspark-text-xs);
+  font-weight: var(--genspark-font-medium);
+  min-width: 60px;
+  text-align: center;
+}
+
+.phaseProgress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--genspark-space-2);
+}
+
+.phaseProgressInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--genspark-text-sm);
+}
+
+.phaseProgressBar {
+  height: 6px;
+  background: var(--genspark-gray-800);
+  border-radius: var(--genspark-radius-sm);
+  overflow: hidden;
+}
+
+.phaseProgressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--genspark-accent) 0%, var(--genspark-accent-hover) 100%);
+  border-radius: var(--genspark-radius-sm);
+  transition: width var(--genspark-duration-normal) var(--genspark-ease-out);
+}
+
+/* === STATISTICS SECTION === */
+
+.statsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--genspark-space-3);
+}
+
+.statCards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  gap: var(--genspark-space-2);
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--genspark-space-3);
+  background: var(--genspark-gray-800);
+  border: var(--genspark-border-thin) solid var(--genspark-gray-600);
+  border-radius: var(--genspark-radius-md);
+  transition: all var(--genspark-duration-fast) var(--genspark-ease);
+  min-width: 70px;
+}
+
+.statCard:hover {
+  background: var(--genspark-gray-700);
+  border-color: var(--genspark-gray-500);
+}
+
+.statValue {
+  font-family: var(--genspark-font-mono);
+  font-size: var(--genspark-text-lg);
+  font-weight: var(--genspark-font-semibold);
+  color: var(--genspark-gray-100);
+  line-height: 1;
+  margin-bottom: var(--genspark-space-1);
+}
+
+.statValue.processing {
+  color: var(--genspark-accent);
+}
+
+.statValue.error {
+  color: var(--genspark-error);
+}
+
+.statValue.waiting {
+  color: var(--genspark-warning);
+}
+
+.statValue.efficient {
+  color: var(--genspark-success);
+}
+
+.statValue.delayed {
+  color: var(--genspark-warning);
+}
+
+.statLabel {
+  font-size: var(--genspark-text-xs);
+  color: var(--genspark-gray-400);
+  text-align: center;
+  line-height: 1;
+  font-weight: var(--genspark-font-medium);
+}
+
+/* === RESPONSIVE DESIGN === */
+
+@media (max-width: 768px) {
+  .progressHeader {
+    padding: var(--genspark-space-4);
+    gap: var(--genspark-space-3);
+  }
+  
+  .titleRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--genspark-space-3);
+  }
+  
+  .titleContent {
+    align-items: center;
+  }
+  
+  .statusBadge {
+    align-self: flex-start;
+  }
+  
+  .currentPhaseSection {
+    padding: var(--genspark-space-3);
+  }
+  
+  .phaseTitle {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--genspark-space-2);
+  }
+  
+  .statCards {
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--genspark-space-1);
+  }
+  
+  .statCard {
+    padding: var(--genspark-space-2);
+    min-width: 60px;
+  }
+  
+  .statValue {
+    font-size: var(--genspark-text-md);
+  }
+  
+  .statLabel {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .titleContent {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--genspark-space-2);
+  }
+  
+  .titleContent .material-symbols-outlined {
+    margin-top: 0;
+  }
+  
+  .progressInfo,
+  .phaseProgressInfo {
+    font-size: var(--genspark-text-xs);
+  }
+  
+  .phaseNumber {
+    font-size: 10px;
+    min-width: 50px;
+  }
+  
+  .statCards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* === HIGH CONTRAST MODE === */
+
+@media (prefers-contrast: high) {
+  .progressHeader {
+    background: #000000;
+    border-color: #ffffff;
+  }
+  
+  .currentPhaseSection {
+    background: #111111;
+    border-color: #ffffff;
+  }
+  
+  .statCard {
+    background: #222222;
+    border-color: #ffffff;
+  }
+  
+  .progressBar,
+  .phaseProgressBar {
+    background: #333333;
+  }
+  
+  .statusBadge {
+    border-width: 2px;
+  }
+}
+
+/* === REDUCED MOTION === */
+
+@media (prefers-reduced-motion: reduce) {
+  .statusProcessing {
+    animation: none;
+  }
+  
+  .progressFill,
+  .phaseProgressFill {
+    transition: none;
+  }
+  
+  .statCard {
+    transition: none;
+  }
+}

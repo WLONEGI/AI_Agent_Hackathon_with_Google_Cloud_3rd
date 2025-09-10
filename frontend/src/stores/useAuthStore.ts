@@ -32,11 +32,16 @@ interface AuthStore {
   clearError: () => void;
 }
 
-// Firebase Auth integration (if needed)
-const initializeFirebaseAuth = async () => {
-  // Firebase Auth initialization would go here
-  // For now, we rely on backend Firebase verification
-  return null;
+// Firebase Auth integration
+const initializeFirebaseAuth = () => {
+  if (typeof window !== 'undefined') {
+    import('@/lib/firebase').then(({ onAuthStateChange }) => {
+      onAuthStateChange((user) => {
+        // Firebase認証状態の変化を監視
+        console.log('Firebase auth state changed:', user?.email);
+      });
+    });
+  }
 };
 
 export const useAuthStore = create<AuthStore>()(
@@ -69,38 +74,86 @@ export const useAuthStore = create<AuthStore>()(
         set({ isLoading: true, error: null });
         
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/auth/google/login`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ id_token: idToken }),
-          });
+          // Check environment to determine authentication method
+          const isProduction = process.env.NEXT_PUBLIC_APP_ENV === 'production';
+          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+          
+          let response;
+          
+          if (isProduction) {
+            // Production: Use real Firebase authentication
+            response = await fetch(`${apiUrl}/api/v1/auth/google/login`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                id_token: idToken
+              }),
+            });
+          } else {
+            // Development: Use mock authentication
+            response = await fetch(`${apiUrl}/api/v1/auth/google`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ 
+                email: 'test@example.com',
+                password: 'testpassword'
+              }),
+            });
+          }
           
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.detail || 'Authentication failed');
           }
           
-          const authData: AuthResponse = await response.json();
+          const authData = await response.json();
           
-          // Calculate token expiry
-          const expiresAt = Date.now() + (authData.expires_in * 1000);
-          const tokens: AuthTokens = {
-            access_token: authData.access_token,
-            refresh_token: authData.refresh_token,
-            expires_at: expiresAt
-          };
+          let tokens: AuthTokens;
+          let userInfo: any;
+          
+          if (isProduction) {
+            // Production: Handle real Firebase authentication response
+            tokens = {
+              access_token: authData.access_token,
+              refresh_token: authData.refresh_token,
+              expires_at: Date.now() + (authData.expires_in * 1000)
+            };
+            userInfo = authData.user;
+          } else {
+            // Development: Handle mock authentication response
+            tokens = {
+              access_token: authData.token,
+              refresh_token: `refresh_${authData.token}`,
+              expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+            };
+            userInfo = {
+              id: authData.user.uid,
+              email: authData.user.email,
+              username: authData.user.name,
+              display_name: authData.user.name,
+              photo_url: authData.user.picture,
+              is_active: authData.user.email_verified,
+              provider: authData.user.provider,
+              created_at: new Date().toISOString(),
+              last_login: new Date().toISOString(),
+              account_type: 'free'
+            };
+          }
           
           // Set tokens and user
           get().setTokens(tokens);
           set({ 
-            user: authData.user,
+            user: userInfo,
             isAuthenticated: true,
             isLoading: false,
             error: null
           });
           
+          console.log(`${isProduction ? 'Firebase' : 'Mock'} authentication successful:`, userInfo.email);
           return true;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Login failed';
@@ -263,6 +316,11 @@ export const useAuthStore = create<AuthStore>()(
       }),
       // Version for cache invalidation on schema changes
       version: 2,
+      onRehydrateStorage: () => {
+        // Initialize Firebase auth monitoring when store is rehydrated
+        initializeFirebaseAuth();
+        return () => {};
+      },
     }
   )
 );

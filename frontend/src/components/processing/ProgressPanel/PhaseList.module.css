@@ -1,0 +1,474 @@
+/* PhaseList - Genspark Design System */
+
+.phaseList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--genspark-space-3);
+  padding: 0;
+}
+
+/* === PHASE CARDS === */
+
+.phaseCard {
+  display: flex;
+  flex-direction: column;
+  background: var(--genspark-gray-700);
+  border: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  border-radius: var(--genspark-radius-md);
+  padding: var(--genspark-space-4);
+  gap: var(--genspark-space-3);
+  cursor: pointer;
+  transition: all var(--genspark-duration-normal) var(--genspark-ease);
+  position: relative;
+  overflow: hidden;
+}
+
+.phaseCard::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--genspark-gray-500);
+  transition: all var(--genspark-duration-fast) var(--genspark-ease);
+}
+
+.phaseCard:hover {
+  background: var(--genspark-gray-600);
+  border-color: var(--genspark-gray-400);
+  transform: translateY(-1px);
+}
+
+/* Active Phase (selected) */
+.phaseCard.active {
+  border-color: var(--genspark-accent);
+  box-shadow: 0 0 0 1px var(--genspark-accent-muted);
+}
+
+.phaseCard.active::before {
+  background: var(--genspark-accent);
+}
+
+/* Current Phase (processing) */
+.phaseCard.current {
+  background: var(--genspark-gray-600);
+  border-color: var(--genspark-accent);
+  box-shadow: var(--genspark-shadow-md);
+}
+
+.phaseCard.current::before {
+  background: var(--genspark-accent);
+  animation: genspark-pulse 2s var(--genspark-ease) infinite;
+}
+
+/* Phase Status Colors */
+.phaseCard.completed {
+  border-left-color: var(--genspark-success);
+}
+
+.phaseCard.completed::before {
+  background: var(--genspark-success);
+}
+
+.phaseCard.error {
+  border-left-color: var(--genspark-error);
+}
+
+.phaseCard.error::before {
+  background: var(--genspark-error);
+}
+
+.phaseCard.waiting_feedback {
+  border-left-color: var(--genspark-warning);
+}
+
+.phaseCard.waiting_feedback::before {
+  background: var(--genspark-warning);
+}
+
+/* === PHASE HEADER === */
+
+.phaseHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--genspark-space-3);
+}
+
+.phaseTitle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--genspark-space-3);
+  flex: 1;
+}
+
+.phaseNumber {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: var(--genspark-gray-600);
+  border: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  border-radius: var(--genspark-radius-md);
+  font-size: var(--genspark-text-sm);
+  font-weight: var(--genspark-font-semibold);
+  color: var(--genspark-gray-200);
+  flex-shrink: 0;
+}
+
+.phaseCard.current .phaseNumber {
+  background: var(--genspark-accent);
+  border-color: var(--genspark-accent);
+  color: var(--genspark-white);
+}
+
+.phaseCard.completed .phaseNumber {
+  background: var(--genspark-success);
+  border-color: var(--genspark-success);
+  color: var(--genspark-white);
+}
+
+.phaseCard.error .phaseNumber {
+  background: var(--genspark-error);
+  border-color: var(--genspark-error);
+  color: var(--genspark-white);
+}
+
+.phaseName {
+  flex: 1;
+  min-width: 0;
+}
+
+.phaseName h3 {
+  margin: 0 0 var(--genspark-space-1) 0;
+  color: var(--genspark-gray-100);
+}
+
+.phaseName p {
+  margin: 0;
+  font-size: var(--genspark-text-xs);
+  line-height: var(--genspark-leading-relaxed);
+}
+
+/* Phase Status */
+.phaseStatus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--genspark-radius-sm);
+  flex-shrink: 0;
+}
+
+.phaseStatus .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.statusPending {
+  color: var(--genspark-gray-400);
+}
+
+.statusProcessing {
+  color: var(--genspark-accent);
+  background: var(--genspark-accent-muted);
+  animation: genspark-pulse 2s var(--genspark-ease) infinite;
+}
+
+.statusCompleted {
+  color: var(--genspark-success);
+  background: var(--genspark-success-muted);
+}
+
+.statusError {
+  color: var(--genspark-error);
+  background: var(--genspark-error-muted);
+}
+
+.statusWaiting {
+  color: var(--genspark-warning);
+  background: var(--genspark-warning-muted);
+  animation: genspark-pulse 2s var(--genspark-ease) infinite;
+}
+
+/* === PHASE PROGRESS === */
+
+.phaseProgress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--genspark-space-2);
+}
+
+.progressInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--genspark-space-3);
+}
+
+.durationInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-2);
+  font-size: var(--genspark-text-xs);
+}
+
+.progressBar {
+  height: 4px;
+  background: var(--genspark-gray-800);
+  border-radius: var(--genspark-radius-sm);
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--genspark-accent) 0%, var(--genspark-accent-hover) 100%);
+  border-radius: var(--genspark-radius-sm);
+  transition: width var(--genspark-duration-normal) var(--genspark-ease-out);
+}
+
+.phaseCard.completed .progressFill {
+  background: linear-gradient(90deg, var(--genspark-success) 0%, var(--genspark-success) 100%);
+}
+
+.phaseCard.error .progressFill {
+  background: linear-gradient(90deg, var(--genspark-error) 0%, var(--genspark-error) 100%);
+}
+
+/* === ERROR MESSAGE === */
+
+.errorMessage {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-2);
+  padding: var(--genspark-space-2) var(--genspark-space-3);
+  background: var(--genspark-error-muted);
+  border: var(--genspark-border-thin) solid var(--genspark-error);
+  border-radius: var(--genspark-radius-sm);
+  color: var(--genspark-error);
+  font-size: var(--genspark-text-xs);
+  line-height: var(--genspark-leading-relaxed);
+}
+
+.errorMessage .material-symbols-outlined {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* === FEEDBACK INDICATOR === */
+
+.feedbackIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-2);
+  padding: var(--genspark-space-2) 0;
+  border-top: var(--genspark-border-thin) solid var(--genspark-gray-600);
+  color: var(--genspark-gray-300);
+  font-size: var(--genspark-text-xs);
+}
+
+.feedbackIndicator .material-symbols-outlined {
+  font-size: 14px;
+  color: var(--genspark-accent);
+}
+
+/* === TIMESTAMPS === */
+
+.timestamps {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--genspark-space-2) 0;
+  border-top: var(--genspark-border-thin) solid var(--genspark-gray-600);
+  gap: var(--genspark-space-3);
+}
+
+.timestamp {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-1);
+  font-size: var(--genspark-text-xs);
+}
+
+.timestamp .material-symbols-outlined {
+  font-size: 12px;
+  color: var(--genspark-gray-400);
+}
+
+/* === PREVIEW INDICATOR === */
+
+.previewIndicator {
+  display: flex;
+  align-items: center;
+  gap: var(--genspark-space-2);
+  padding: var(--genspark-space-2);
+  background: var(--genspark-accent-muted);
+  border: var(--genspark-border-thin) solid var(--genspark-accent);
+  border-radius: var(--genspark-radius-sm);
+  color: var(--genspark-accent);
+  font-size: var(--genspark-text-xs);
+  font-weight: var(--genspark-font-medium);
+}
+
+.previewIndicator .material-symbols-outlined {
+  font-size: 14px;
+}
+
+/* === EMPTY STATE === */
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  padding: var(--genspark-space-8);
+  text-align: center;
+  color: var(--genspark-gray-300);
+}
+
+.emptyState .material-symbols-outlined {
+  font-size: 48px;
+  color: var(--genspark-gray-400);
+  margin-bottom: var(--genspark-space-4);
+}
+
+.emptyStateText {
+  color: var(--genspark-gray-300);
+  font-size: var(--genspark-text-base);
+  font-weight: var(--genspark-font-medium);
+  margin-bottom: var(--genspark-space-2);
+}
+
+.emptyStateSubtext {
+  color: var(--genspark-gray-400);
+  font-size: var(--genspark-text-sm);
+  line-height: var(--genspark-leading-relaxed);
+  max-width: 280px;
+}
+
+/* === RESPONSIVE DESIGN === */
+
+@media (max-width: 768px) {
+  .phaseCard {
+    padding: var(--genspark-space-3);
+    gap: var(--genspark-space-2);
+  }
+  
+  .phaseTitle {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--genspark-space-2);
+  }
+  
+  .phaseNumber {
+    width: 28px;
+    height: 28px;
+    font-size: var(--genspark-text-xs);
+  }
+  
+  .progressInfo {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--genspark-space-1);
+  }
+  
+  .durationInfo {
+    justify-content: space-between;
+  }
+  
+  .timestamps {
+    flex-direction: column;
+    gap: var(--genspark-space-1);
+  }
+}
+
+@media (max-width: 480px) {
+  .phaseHeader {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--genspark-space-2);
+  }
+  
+  .phaseStatus {
+    align-self: flex-start;
+    width: 24px;
+    height: 24px;
+  }
+  
+  .phaseStatus .material-symbols-outlined {
+    font-size: 16px;
+  }
+  
+  .errorMessage,
+  .feedbackIndicator,
+  .previewIndicator {
+    font-size: 10px;
+    padding: var(--genspark-space-1) var(--genspark-space-2);
+  }
+  
+  .emptyState {
+    padding: var(--genspark-space-6);
+    min-height: 150px;
+  }
+  
+  .emptyState .material-symbols-outlined {
+    font-size: 32px;
+  }
+}
+
+/* === HIGH CONTRAST MODE === */
+
+@media (prefers-contrast: high) {
+  .phaseCard {
+    background: #111111;
+    border-color: #ffffff;
+  }
+  
+  .phaseCard:hover {
+    background: #222222;
+  }
+  
+  .phaseCard.active {
+    border-color: var(--genspark-accent);
+    box-shadow: 0 0 0 2px var(--genspark-accent);
+  }
+  
+  .phaseNumber {
+    background: #333333;
+    border-color: #ffffff;
+    color: #ffffff;
+  }
+  
+  .progressBar {
+    background: #333333;
+  }
+}
+
+/* === REDUCED MOTION === */
+
+@media (prefers-reduced-motion: reduce) {
+  .phaseCard {
+    transition: none;
+    transform: none;
+  }
+  
+  .phaseCard:hover {
+    transform: none;
+  }
+  
+  .phaseCard::before {
+    transition: none;
+  }
+  
+  .statusProcessing,
+  .statusWaiting,
+  .phaseCard.current::before {
+    animation: none;
+  }
+  
+  .progressFill {
+    transition: none;
+  }
+}

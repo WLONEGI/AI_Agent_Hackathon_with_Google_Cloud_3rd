@@ -69,6 +69,15 @@ async def firebase_google_login(
         )
     
     try:
+        # Ensure Firebase is initialized
+        if not firebase_manager.is_initialized():
+            import os
+            project_id = os.getenv('FIREBASE_PROJECT_ID', 'comic-ai-agent-470309')
+            credentials_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
+            
+            success = firebase_manager.initialize(project_id, credentials_path)
+            logger.info("Firebase initialization during login", success=success)
+        
         # Step 1: Verify Firebase ID token
         decoded_token = await firebase_manager.verify_id_token(request.id_token)
         
@@ -351,5 +360,53 @@ def _get_user_permissions(account_type: str) -> Dict[str, Any]:
     }
     
     return permissions.get(account_type, permissions['free'])
+
+
+@router.post("/auth/test/mock")
+async def test_mock_authentication(
+    request: FirebaseLoginRequest,
+    firebase_manager: FirebaseManager = Depends(get_firebase_manager)
+):
+    """
+    Test mock authentication for development.
+    Simplified version that doesn't touch database.
+    """
+    try:
+        # Force Firebase initialization if not already done
+        if not firebase_manager.is_initialized():
+            import os
+            project_id = os.getenv('FIREBASE_PROJECT_ID', 'comic-ai-agent-470309')
+            credentials_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
+            
+            success = firebase_manager.initialize(project_id, credentials_path)
+            logger.info("Firebase initialization forced", success=success, project_id=project_id)
+        
+        # Step 1: Verify Firebase ID token
+        decoded_token = await firebase_manager.verify_id_token(request.id_token)
+        
+        firebase_uid = decoded_token['uid']
+        email = decoded_token.get('email')
+        
+        logger.info("Mock token test successful", uid=firebase_uid, email=email)
+        
+        # Step 2: Get detailed user info from Firebase
+        firebase_user = await firebase_manager.get_user(firebase_uid)
+        
+        # Return simple response without database operations
+        return {
+            "status": "success",
+            "message": "Mock authentication working",
+            "firebase_token": decoded_token,
+            "firebase_user": firebase_user,
+            "firebase_initialized": firebase_manager.is_initialized(),
+            "firebase_mock_mode": firebase_manager.is_mock_mode()
+        }
+        
+    except Exception as e:
+        logger.error("Mock test failed", error=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Mock test failed: {str(e)}"
+        )
 
 

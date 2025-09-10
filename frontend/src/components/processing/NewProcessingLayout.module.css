@@ -1,0 +1,369 @@
+/* New Processing Layout - Genspark Design System */
+
+.processingContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: var(--genspark-gray-800);
+  color: var(--genspark-gray-100);
+  font-family: var(--genspark-font-sans);
+  overflow: hidden;
+}
+
+/* === STATUS BAR === */
+
+.statusBar {
+  flex-shrink: 0;
+  height: 36px;
+  background: var(--genspark-gray-900);
+  border-bottom: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--genspark-space-4);
+  z-index: 100;
+  box-shadow: var(--genspark-shadow-sm);
+}
+
+/* === MAIN CONTENT AREA === */
+
+.mainContent {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+  background: var(--genspark-gray-800);
+}
+
+/* === LEFT PANEL (Chat) === */
+
+.leftPanel {
+  display: flex;
+  flex-direction: column;
+  background: var(--genspark-gray-800);
+  border-right: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  overflow: hidden;
+  min-width: 300px;
+}
+
+/* === RIGHT PANEL (Progress) === */
+
+.rightPanel {
+  display: flex;
+  flex-direction: column;
+  background: var(--genspark-gray-700);
+  overflow: hidden;
+  min-width: 320px;
+}
+
+/* === RESIZE HANDLE === */
+
+.resizeHandle {
+  width: 8px;
+  background: var(--genspark-gray-600);
+  cursor: ew-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-left: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  border-right: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  transition: all var(--genspark-duration-fast) var(--genspark-ease);
+}
+
+.resizeHandle:hover {
+  background: var(--genspark-gray-500);
+  width: 12px;
+}
+
+.resizeHandle.dragging {
+  background: var(--genspark-accent-muted);
+  width: 12px;
+}
+
+.resizeIndicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--genspark-duration-fast) var(--genspark-ease);
+}
+
+.resizeHandle:hover .resizeIndicator,
+.resizeHandle.dragging .resizeIndicator {
+  opacity: 1;
+}
+
+.resizeIndicator .material-symbols-outlined {
+  font-size: 16px;
+  color: var(--genspark-gray-200);
+  transform: rotate(90deg);
+}
+
+/* === SESSION FOOTER === */
+
+.sessionFooter {
+  flex-shrink: 0;
+  height: 28px;
+  background: var(--genspark-gray-900);
+  border-top: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--genspark-space-4);
+  font-size: var(--genspark-text-xs);
+  box-shadow: var(--genspark-shadow-sm);
+}
+
+.sessionInfo {
+  display: flex;
+  gap: var(--genspark-space-4);
+  align-items: center;
+}
+
+.shortcuts {
+  display: flex;
+  align-items: center;
+}
+
+/* === LOADING STATES === */
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--genspark-gray-800);
+  color: var(--genspark-gray-100);
+}
+
+.loadingSpinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--genspark-space-5);
+}
+
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--genspark-gray-600);
+  border-top: 2px solid var(--genspark-accent);
+  border-radius: 50%;
+  animation: genspark-spin 1s linear infinite;
+}
+
+@keyframes genspark-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* === ERROR STATES === */
+
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: var(--genspark-gray-800);
+  color: var(--genspark-gray-100);
+  text-align: center;
+  padding: var(--genspark-space-8);
+  gap: var(--genspark-space-4);
+}
+
+.errorIcon .material-symbols-outlined {
+  font-size: 48px;
+  color: var(--genspark-error);
+  margin-bottom: var(--genspark-space-4);
+}
+
+/* === RESPONSIVE DESIGN === */
+
+@media (max-width: 1024px) {
+  .leftPanel {
+    min-width: 280px;
+  }
+  
+  .rightPanel {
+    min-width: 300px;
+  }
+  
+  .sessionFooter {
+    flex-direction: column;
+    height: auto;
+    gap: var(--genspark-space-1);
+    padding: var(--genspark-space-2) var(--genspark-space-4);
+  }
+  
+  .shortcuts {
+    display: none; /* Hide keyboard shortcuts on tablets */
+  }
+}
+
+@media (max-width: 768px) {
+  .processingContainer {
+    flex-direction: column;
+  }
+  
+  .mainContent {
+    flex-direction: column;
+  }
+  
+  .leftPanel, .rightPanel {
+    width: 100% !important;
+    min-width: unset;
+    max-height: 50vh;
+  }
+  
+  .resizeHandle {
+    display: none; /* Hide resize handle on mobile */
+  }
+  
+  .statusBar {
+    padding: 0 var(--genspark-space-3);
+    height: 32px;
+  }
+  
+  .sessionFooter {
+    padding: var(--genspark-space-2);
+    text-align: center;
+  }
+  
+  .sessionInfo {
+    flex-direction: column;
+    gap: var(--genspark-space-1);
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .statusBar {
+    height: 28px;
+    padding: 0 var(--genspark-space-2);
+  }
+  
+  .sessionFooter {
+    padding: var(--genspark-space-1);
+    font-size: 10px;
+  }
+  
+  .leftPanel, .rightPanel {
+    max-height: 45vh;
+  }
+}
+
+/* === HIGH CONTRAST MODE === */
+
+@media (prefers-contrast: high) {
+  .processingContainer {
+    background: #000000;
+  }
+  
+  .statusBar, .sessionFooter {
+    background: #000000;
+    border-color: #ffffff;
+  }
+  
+  .leftPanel, .rightPanel {
+    background: #111111;
+    border-color: #ffffff;
+  }
+  
+  .spinner {
+    border-color: #ffffff;
+    border-top-color: var(--genspark-accent);
+  }
+  
+  .resizeHandle {
+    background: #333333;
+    border-color: #ffffff;
+  }
+}
+
+/* === REDUCED MOTION === */
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+  
+  .processingContainer,
+  .resizeHandle,
+  .resizeIndicator {
+    transition: none !important;
+  }
+}
+
+/* === FOCUS MANAGEMENT === */
+
+.processingContainer:focus-within {
+  outline: none;
+}
+
+.resizeHandle:focus {
+  outline: 2px solid var(--genspark-accent);
+  outline-offset: 2px;
+}
+
+/* === PRINT STYLES === */
+
+@media print {
+  .processingContainer {
+    height: auto;
+    background: white;
+    color: black;
+  }
+  
+  .statusBar, 
+  .sessionFooter, 
+  .resizeHandle {
+    display: none;
+  }
+  
+  .mainContent {
+    flex-direction: column;
+  }
+  
+  .leftPanel, 
+  .rightPanel {
+    width: 100% !important;
+    background: white;
+    border: 1px solid black;
+    margin-bottom: 1rem;
+  }
+}
+
+/* === ANIMATION VARIANTS === */
+
+.processingContainer {
+  animation: genspark-fade-in var(--genspark-duration-normal) var(--genspark-ease-out);
+}
+
+/* === UTILITIES === */
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* === DARK MODE ENHANCEMENT === */
+
+@media (prefers-color-scheme: dark) {
+  .processingContainer {
+    color-scheme: dark;
+  }
+}

@@ -1,0 +1,65 @@
+# Cloud Build configuration for Frontend deployment to Cloud Run
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/${PROJECT_ID}/manga-service/frontend:$BUILD_ID'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/${PROJECT_ID}/manga-service/frontend:latest'
+      - '.'
+    dir: 'frontend'
+
+  # Push the container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'asia-northeast1-docker.pkg.dev/${PROJECT_ID}/manga-service/frontend'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'manga-frontend-${_ENV}'
+      - '--image'
+      - 'asia-northeast1-docker.pkg.dev/${PROJECT_ID}/manga-service/frontend:$BUILD_ID'
+      - '--region'
+      - 'asia-northeast1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '3000'
+      - '--cpu'
+      - '1'
+      - '--memory'
+      - '512Mi'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--concurrency'
+      - '80'
+      - '--timeout'
+      - '300'
+      - '--service-account'
+      - 'manga-service-account@${PROJECT_ID}.iam.gserviceaccount.com'
+      - '--set-env-vars'
+      - 'NODE_ENV=production,NEXT_PUBLIC_API_URL=${_BACKEND_URL}'
+
+# Build timeout
+timeout: '1200s'
+
+# Substitutions
+substitutions:
+  _ENV: 'prod'
+  _BACKEND_URL: 'https://manga-service-prod-xxxxxxxxx-an.a.run.app'
+
+# Options
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: 'E2_HIGHCPU_8'

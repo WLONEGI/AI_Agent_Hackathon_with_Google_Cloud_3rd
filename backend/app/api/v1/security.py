@@ -47,8 +47,8 @@ async def get_current_user(
         # Decode JWT token
         payload = jwt.decode(
             credentials.credentials,
-            settings.secret_key,
-            algorithms=[settings.jwt_algorithm]
+            settings.security.secret_key,
+            algorithms=[settings.security.jwt_algorithm]
         )
         
         user_id: str = payload.get("sub")
@@ -219,14 +219,14 @@ def create_access_token(data: dict, expires_delta_minutes: int = None) -> str:
     if expires_delta_minutes:
         expire = datetime.utcnow() + timedelta(minutes=expires_delta_minutes)
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.utcnow() + timedelta(minutes=settings.security.access_token_expire_minutes)
     
     to_encode.update({"exp": expire})
     
     encoded_jwt = jwt.encode(
         to_encode, 
-        settings.secret_key, 
-        algorithm=settings.jwt_algorithm
+        settings.security.secret_key, 
+        algorithm=settings.security.jwt_algorithm
     )
     
     return encoded_jwt
@@ -237,8 +237,8 @@ def verify_token(token: str) -> dict:
     try:
         payload = jwt.decode(
             token,
-            settings.secret_key,
-            algorithms=[settings.jwt_algorithm]
+            settings.security.secret_key,
+            algorithms=[settings.security.jwt_algorithm]
         )
         return payload
     except jwt.InvalidTokenError:

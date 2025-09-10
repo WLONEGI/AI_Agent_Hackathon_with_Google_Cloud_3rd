@@ -1,0 +1,275 @@
+/* Processing Layout - Genspark-inspired Dark Theme */
+/* Main container taking full viewport */
+
+.processingContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+  background: #1a1a1a;
+  color: #ffffff;
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow: hidden;
+}
+
+/* Status Bar */
+.statusBar {
+  flex-shrink: 0;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid #27272a;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  z-index: 10;
+}
+
+/* Main Content Area */
+.mainContent {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Session Footer */
+.sessionFooter {
+  flex-shrink: 0;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.2);
+  border-top: 1px solid #27272a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.sessionInfo {
+  display: flex;
+  gap: 1rem;
+}
+
+.sessionId, .sessionStatus {
+  font-family: ui-monospace, 'SF Mono', monospace;
+}
+
+.shortcuts {
+  display: flex;
+  align-items: center;
+}
+
+.shortcutHint {
+  font-size: 0.625rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Loading States */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #1a1a1a;
+  color: #ffffff;
+}
+
+.loadingSpinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #27272a;
+  border-top: 3px solid #2563eb;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loadingText {
+  font-size: 1rem;
+  color: #a1a1aa;
+  margin: 0;
+}
+
+/* Error States */
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #1a1a1a;
+  color: #ffffff;
+  text-align: center;
+  padding: 2rem;
+}
+
+.errorIcon {
+  margin-bottom: 1rem;
+}
+
+.errorIcon .material-symbols-outlined {
+  font-size: 3rem;
+  color: #ef4444;
+}
+
+.errorTitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: #ef4444;
+}
+
+.errorMessage {
+  font-size: 1rem;
+  color: #a1a1aa;
+  margin: 0 0 2rem 0;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.retryButton {
+  background: #2563eb;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  color: #ffffff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.retryButton:hover {
+  background: #3b82f6;
+}
+
+.retryButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #2563eb;
+}
+
+/* Animations */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.processingContainer {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .sessionFooter {
+    flex-direction: column;
+    height: auto;
+    gap: 0.25rem;
+    padding: 0.5rem 1rem;
+  }
+  
+  .shortcuts {
+    display: none; /* Hide keyboard shortcuts on mobile */
+  }
+  
+  .shortcutHint {
+    display: none;
+  }
+  
+  .statusBar {
+    padding: 0 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .statusBar {
+    height: 36px;
+    padding: 0 0.5rem;
+  }
+  
+  .sessionFooter {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.625rem;
+  }
+  
+  .processingContainer {
+    font-size: 0.875rem;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .processingContainer {
+    background: #000000;
+  }
+  
+  .statusBar, .sessionFooter {
+    background: #000000;
+    border-color: #ffffff;
+  }
+  
+  .spinner {
+    border-color: #ffffff;
+    border-top-color: #00ffff;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+  
+  .processingContainer {
+    animation: none;
+  }
+  
+  .processingContainer,
+  .sessionInfo,
+  .statusBar,
+  .sessionFooter,
+  .loadingMessage {
+    transition: none !important;
+  }
+}
+
+/* Focus management for accessibility */
+.processingContainer:focus-within {
+  outline: none;
+}
+
+/* Print styles */
+@media print {
+  .processingContainer {
+    height: auto;
+    background: white;
+    color: black;
+  }
+  
+  .statusBar, .sessionFooter {
+    display: none;
+  }
+}
