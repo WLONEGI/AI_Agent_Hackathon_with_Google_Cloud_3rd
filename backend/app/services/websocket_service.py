@@ -433,10 +433,11 @@ class WebSocketService(LoggerMixin):
         """フェーズ開始通知の送信"""
         
         message = {
-            "type": "phase_started",
-            "phase": phase_num,
-            "phase_name": phase_name,
-            "estimated_time": estimated_time,
+            "type": "phase_start",
+            "data": {
+                "phaseId": phase_num,
+                "phaseName": phase_name
+            },
             "timestamp": datetime.utcnow().isoformat()
         }
         
@@ -456,10 +457,27 @@ class WebSocketService(LoggerMixin):
         """フェーズ完了通知の送信"""
         
         message = {
-            "type": "phase_completed",
-            "phase": phase_num,
-            "quality_score": quality_score,
-            "preview_data": preview_data,
+            "type": "phase_complete",
+            "data": {
+                "phaseId": phase_num,
+                "result": preview_data
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        await self.connection_manager.send_message(session_id, message)
+    
+    async def send_session_start(
+        self,
+        session_id: str
+    ) -> None:
+        """セッション開始通知の送信"""
+        
+        message = {
+            "type": "session_start",
+            "data": {
+                "sessionId": session_id
+            },
             "timestamp": datetime.utcnow().isoformat()
         }
         

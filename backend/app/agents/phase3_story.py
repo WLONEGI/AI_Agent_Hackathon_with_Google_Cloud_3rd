@@ -20,6 +20,10 @@ class Phase3StoryAgent(BaseAgent):
             timeout_seconds=settings.phase_timeouts[3]
         )
         
+        # Initialize structured prompts
+        from app.agents.phases.phase3_story.prompts import StoryStructurePrompts
+        self.prompts = StoryStructurePrompts()
+        
         self.story_structures = {
             "three_act": {
                 "act1_percentage": 0.25,
@@ -109,76 +113,10 @@ class Phase3StoryAgent(BaseAgent):
     ) -> str:
         """Generate Gemini Pro prompt for story structure creation."""
         
-        phase1_result = previous_results[1] if previous_results else {}
-        phase2_result = previous_results.get(2, {}) if previous_results else {}
-        
-        genre = phase1_result.get("genre", "general")
-        themes = phase1_result.get("themes", [])
-        estimated_pages = phase1_result.get("estimated_pages", 8)
-        characters = phase2_result.get("characters", [])
-        
-        character_summary = ""
-        if characters:
-            character_summary = "\n".join([
-                f"- {char.get('name', '不明')}: {char.get('role', '不明')}（{char.get('goals', '目標不明')}）"
-                for char in characters[:3]
-            ])
-        
-        prompt = f"""あなたは漫画制作における脚本・構成の専門家です。
-以下の設定に基づいて、{estimated_pages}ページの漫画のストーリー構成を作成してください。
-
-【基本設定】
-ジャンル: {genre}
-テーマ: {', '.join(themes)}
-推定ページ数: {estimated_pages}
-
-【キャラクター】
-{character_summary or "キャラクター情報なし"}
-
-【構成要件】
-1. 起承転結またはthree-act構造での構成
-2. 各シーンの目的と機能を明確化
-3. キャラクターの成長弧を組み込み
-4. テーマの効果的な表現
-5. 適切なクライマックスとしめくくり
-
-【出力形式】JSON
-{{
-    "story_structure": {{
-        "type": "three_act/kishōtenketsu",
-        "acts": [
-            {{
-                "act_name": "導入/起",
-                "pages": [1,3],
-                "purpose": "世界観とキャラクター紹介",
-                "key_events": ["event1", "event2"]
-            }}
-        ]
-    }},
-    "scene_breakdown": [
-        {{
-            "scene_number": 1,
-            "pages": [1,2],
-            "title": "シーン名",
-            "purpose": "シーンの目的",
-            "characters": ["character1"],
-            "location": "場所",
-            "mood": "雰囲気",
-            "key_dialogue": "重要なセリフ",
-            "visual_focus": "視覚的注目点",
-            "pacing": "fast/medium/slow"
-        }}
-    ],
-    "plot_points": [
-        {{
-            "name": "inciting_incident",
-            "scene": 2,
-            "description": "物語の転換点"
-        }}
-    ]
-}}"""
-        
-        return prompt
+        return self.prompts.get_main_prompt(
+            input_data=input_data,
+            previous_results=previous_results
+        )
     
     async def validate_output(self, output_data: Dict[str, Any]) -> bool:
         """Validate Phase 3 output."""

@@ -90,10 +90,11 @@ class VertexAIService(LoggerMixin):
     
     @property
     def gemini_model(self) -> GenerativeModel:
-        """Gemini Proモデルのインスタンス取得"""
+        """Gemini 2.5 Proモデルのインスタンス取得"""
         if self._gemini_model is None:
             try:
                 model_name = self.gemini_config["model"]
+                # Gemini 2.5 Proの使用
                 self._gemini_model = GenerativeModel(
                     model_name=model_name,
                     generation_config={
@@ -103,22 +104,23 @@ class VertexAIService(LoggerMixin):
                         "max_output_tokens": self.gemini_config["max_tokens"]
                     }
                 )
-                self.logger.info(f"Gemini model loaded: {model_name}")
+                self.logger.info(f"Gemini 2.5 Pro model loaded: {model_name}")
             except Exception as e:
-                self.logger.error(f"Failed to load Gemini model: {str(e)}")
+                self.logger.error(f"Failed to load Gemini 2.5 Pro model: {str(e)}")
                 raise
         return self._gemini_model
     
     @property
     def imagen_model(self) -> ImageGenerationModel:
-        """Imagen 4モデルのインスタンス取得"""
+        """Imagen 4 Ultraモデルのインスタンス取得"""
         if self._imagen_model is None:
             try:
                 model_name = self.imagen_config["model"]
+                # Imagen 4 Ultraの使用
                 self._imagen_model = ImageGenerationModel.from_pretrained(model_name)
-                self.logger.info(f"Imagen model loaded: {model_name}")
+                self.logger.info(f"Imagen 4 Ultra model loaded: {model_name}")
             except Exception as e:
-                self.logger.error(f"Failed to load Imagen model: {str(e)}")
+                self.logger.error(f"Failed to load Imagen 4 Ultra model: {str(e)}")
                 raise
         return self._imagen_model
     
@@ -318,10 +320,16 @@ class VertexAIService(LoggerMixin):
     ) -> Any:
         """Gemini API の実際の呼び出し"""
         try:
+            # モデル名を抽出してgeneration_configから無効なフィールドを除去
+            model_name = generation_config["model"]
+            # GenerationConfigに含めてはいけないフィールドを除去
+            invalid_fields = {"model", "max_tokens", "safety_threshold"}
+            clean_generation_config = {k: v for k, v in generation_config.items() if k not in invalid_fields}
+            
             # GenerativeModelの設定更新
             model = GenerativeModel(
-                model_name=generation_config["model"],
-                generation_config=generation_config
+                model_name=model_name,
+                generation_config=clean_generation_config
             )
             
             # 非同期でのテキスト生成

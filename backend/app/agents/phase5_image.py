@@ -48,6 +48,10 @@ class Phase5ImageAgent(BaseAgent):
             timeout_seconds=settings.phase_timeouts[5]
         )
         
+        # Initialize structured prompts
+        from app.agents.phases.phase5_image.prompts import ImageGenerationPrompts
+        self.prompts = ImageGenerationPrompts()
+        
         # Parallel processing control
         self.max_concurrent_generations = settings.ai_models.max_parallel_image_generation
         self.semaphore = asyncio.Semaphore(self.max_concurrent_generations)
@@ -175,67 +179,10 @@ class Phase5ImageAgent(BaseAgent):
     ) -> str:
         """Generate comprehensive prompt for image generation phase."""
         
-        phase1_result = previous_results[1] if previous_results else {}
-        phase2_result = previous_results[2] if previous_results else {}
-        phase4_result = previous_results[4] if previous_results else {}
-        
-        genre = phase1_result.get("genre", "general")
-        characters = phase2_result.get("characters", [])
-        page_layouts = phase4_result.get("page_layouts", [])
-        
-        total_panels = sum(len(page.get("panels", [])) for page in page_layouts)
-        
-        character_summary = "\n".join([
-            f"- {char.get('name')}: {char.get('appearance', '外見不明')}"
-            for char in characters[:3]
-        ]) if characters else "キャラクター情報なし"
-        
-        prompt = f"""あなたは高品質な漫画画像生成の専門家です。
-以下の設定に基づいて、{total_panels}枚のコマ画像を生成するための詳細プロンプトを作成してください。
-
-【基本設定】
-ジャンル: {genre}
-総パネル数: {total_panels}
-並列生成数: 最大{self.max_concurrent_generations}並列
-
-【キャラクター設定】
-{character_summary}
-
-【生成要件】
-1. 各パネルの視覚的一貫性
-2. キャラクターデザインの統一
-3. ジャンルに適した画風
-4. 高品質なマンガスタイル
-5. 適切な構図とカメラワーク
-
-【品質基準】
-- キャラクターの正確性: 25%
-- スタイルの一貫性: 20% 
-- 構図の品質: 20%
-- 技術的品質: 15%
-- 物語の明確性: 10%
-- 芸術的魅力: 10%
-
-各パネルに対して以下の情報を含むプロンプトを生成：
-{{
-    "panel_prompts": [
-        {{
-            "panel_id": "p1_panel1",
-            "main_prompt": "詳細なメインプロンプト",
-            "negative_prompt": "除外する要素",
-            "style_parameters": {{
-                "art_style": "manga",
-                "quality_level": "high",
-                "emphasis": "character_focus"
-            }},
-            "character_specifications": ["character_name: specific_appearance"],
-            "composition_notes": "構図の注意点",
-            "mood_direction": "雰囲気の方向性"
-        }}
-    ]
-}}"""
-        
-        return prompt
+        return self.prompts.get_main_prompt(
+            input_data=input_data,
+            previous_results=previous_results
+        )
     
     async def validate_output(self, output_data: Dict[str, Any]) -> bool:
         """Validate Phase 5 output."""

@@ -8,6 +8,7 @@ import json
 from app.agents.base_agent import BaseAgent
 from app.core.config import settings
 from app.services.vertex_ai_service import VertexAIService
+from app.agents.phases.phase2_character.prompts import CharacterDesignPrompts
 
 
 class Phase2CharacterAgent(BaseAgent):
@@ -22,6 +23,9 @@ class Phase2CharacterAgent(BaseAgent):
         
         # Vertex AI サービス初期化
         self.vertex_ai = VertexAIService()
+        
+        # 構造化プロンプトシステム初期化
+        self.prompts = CharacterDesignPrompts()
         
         self.character_archetypes = {
             "protagonist": ["主人公", "ヒーロー", "リーダー"],
@@ -135,49 +139,12 @@ class Phase2CharacterAgent(BaseAgent):
         input_data: Dict[str, Any],
         previous_results: Optional[Dict[int, Any]] = None
     ) -> str:
-        """Generate Gemini Pro prompt for character design."""
+        """Generate Gemini Pro prompt for character design using structured prompts."""
         
-        text = input_data.get("text", "")[:2000]
-        genre = input_data.get("genre", "general")
-        themes = input_data.get("themes", [])
-        world_setting = input_data.get("world_setting", {})
-        
-        prompt = f"""あなたは漫画のキャラクターデザインの専門家です。
-以下のストーリーから、主要キャラクターを設計してください。
-
-ストーリー概要:
-{text}
-
-ジャンル: {genre}
-テーマ: {', '.join(themes)}
-世界観: {json.dumps(world_setting, ensure_ascii=False)}
-
-以下の要素を含むキャラクター設計をJSON形式で出力してください：
-
-1. characters (配列): 主要キャラクター3-5名
-   - name: キャラクター名
-   - role: 役割（protagonist, sidekick, mentor, antagonist, love_interest）
-   - age: 年齢
-   - gender: 性別
-   - personality: 性格特性（3-5個）
-   - background: 簡単な背景設定
-   - motivation: 動機・目的
-
-2. visual_traits (各キャラクター):
-   - hair_color: 髪色
-   - hair_style: 髪型
-   - eye_color: 目の色
-   - height: 身長（tall, medium, short）
-   - build: 体型（slim, normal, muscular, etc）
-   - distinctive_features: 特徴的な要素
-   - clothing_style: 服装スタイル
-
-3. relationships:
-   - キャラクター間の関係性マップ
-
-JSONフォーマットで回答してください。"""
-        
-        return prompt
+        return self.prompts.get_main_prompt(
+            input_data=input_data,
+            previous_results=previous_results
+        )
     
     async def validate_output(self, output_data: Dict[str, Any]) -> bool:
         """Validate phase 2 output."""

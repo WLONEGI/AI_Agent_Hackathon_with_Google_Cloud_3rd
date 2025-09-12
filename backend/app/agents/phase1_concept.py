@@ -49,7 +49,8 @@ class Phase1ConceptAgent(BaseAgent):
         Returns:
             Analysis results with themes, genre, world settings
         """
-        text = input_data.get("text", "")
+        # Get text from accumulated_context (where it's stored in PhaseInput)
+        text = input_data.get("accumulated_context", {}).get("text", "") or input_data.get("text", "")
         
         if not text:
             raise ValueError("Input text is required for concept analysis")

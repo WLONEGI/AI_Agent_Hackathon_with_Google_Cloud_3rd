@@ -150,14 +150,13 @@ class AIModelSettings(BaseSettings):
     def get_gemini_config(self, phase_number: Optional[int] = None) -> dict:
         """Get Gemini model configuration for specific phase."""
         
-        # Get base configuration
+        # Get base configuration (safety_threshold removed for Gemini 2.5 Pro compatibility)
         config = {
             "model": self.gemini_model,
             "temperature": self.gemini_temperature,
             "top_p": self.gemini_top_p,
             "top_k": self.gemini_top_k,
-            "max_tokens": self.gemini_max_tokens,
-            "safety_threshold": self.gemini_safety_threshold
+            "max_tokens": self.gemini_max_tokens
         }
         
         # Override with phase-specific configuration

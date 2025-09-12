@@ -1,6 +1,6 @@
 """Schemas for Phase 1: Concept Analysis."""
 
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 from pydantic import BaseModel, Field
 from enum import Enum
 

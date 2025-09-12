@@ -20,6 +20,10 @@ class Phase4NameAgent(BaseAgent):
             timeout_seconds=settings.phase_timeouts[4]
         )
         
+        # Initialize structured prompts
+        from app.agents.phases.phase4_name.prompts import PanelLayoutPrompts
+        self.prompts = PanelLayoutPrompts()
+        
         # Panel layout patterns
         self.layout_patterns = {
             "standard": {
@@ -106,6 +110,9 @@ class Phase4NameAgent(BaseAgent):
         
         # Call Gemini Pro for AI analysis
         try:
+            # Generate prompt for Gemini Pro analysis
+            prompt = await self.generate_prompt(input_data, previous_results)
+            
             ai_response = await self.vertex_ai.generate_text(
                 prompt=prompt,
                 phase_number=self.phase_number
@@ -174,46 +181,10 @@ class Phase4NameAgent(BaseAgent):
     ) -> str:
         """Generate Gemini Pro prompt for name generation."""
         
-        scenes = input_data.get("scenes", [])
-        genre = input_data.get("genre", "general")
-        characters = input_data.get("characters", [])
-        
-        prompt = f"""あなたは漫画のネーム（コマ割り）の専門家です。
-以下のシーンを魅力的な漫画のコマ割りに変換してください。
-
-シーン情報:
-{json.dumps(scenes[:3], ensure_ascii=False, indent=2)}
-
-ジャンル: {genre}
-キャラクター: {json.dumps([c.get("name") for c in characters], ensure_ascii=False)}
-
-以下の要素を含むネーム設計をJSON形式で出力してください：
-
-1. pages (各ページのレイアウト):
-   - page_number: ページ番号
-   - panels: コマのリスト
-     - panel_id: コマID
-     - size: large/medium/small
-     - position: {x, y, width, height} (0-1の相対座標)
-     - camera_angle: extreme_long/long/medium/close/extreme_close
-     - camera_position: normal/bird_eye/worm_eye
-     - composition: rule_of_thirds/golden_ratio/symmetrical/diagonal/centered
-     - content: コマの内容説明
-     - characters_in_panel: 登場キャラクター
-     - dialog_preview: セリフのプレビュー
-
-2. visual_flow:
-   - 視線誘導のパターン
-   - 読みやすさのスコア
-
-3. dramatic_effects:
-   - 見開きページの使用
-   - スピード線や効果線の配置
-   - インパクトのあるコマの配置
-
-JSONフォーマットで回答してください。"""
-        
-        return prompt
+        return self.prompts.get_main_prompt(
+            input_data=input_data,
+            previous_results=previous_results
+        )
     
     async def validate_output(self, output_data: Dict[str, Any]) -> bool:
         """Validate phase 4 output."""

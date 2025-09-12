@@ -16,11 +16,11 @@ class Settings(BaseSettings):
     debug: bool = Field(True, env="DEBUG")
     
     # Mock Settings (for local development)
-    mock_enabled: bool = Field(True, env="MOCK_ENABLED")
+    mock_enabled: bool = Field(False, env="MOCK_ENABLED")
     mock_database: bool = Field(True, env="MOCK_DATABASE")
     mock_redis: bool = Field(True, env="MOCK_REDIS")
     mock_google_auth: bool = Field(True, env="MOCK_GOOGLE_AUTH")
-    mock_ai_services: bool = Field(True, env="MOCK_AI_SERVICES")
+    mock_ai_services: bool = Field(False, env="MOCK_AI_SERVICES")
     
     # Application
     app_name: str = "AI Manga Generation Service"
@@ -48,8 +48,8 @@ class Settings(BaseSettings):
     firebase_credentials_json: Optional[str] = Field(None, env="FIREBASE_CREDENTIALS_JSON")
     
     # AI Models
-    gemini_model: str = Field("gemini-1.5-pro", env="GEMINI_MODEL")
-    imagen_model: str = Field("imagen-4", env="IMAGEN_MODEL")
+    gemini_model: str = Field("gemini-2.5-pro", env="GEMINI_MODEL")
+    imagen_model: str = Field("imagen-4.0-ultra-generate-001", env="IMAGEN_MODEL")
     max_parallel_image_generation: int = Field(5, env="MAX_PARALLEL_IMAGE_GENERATION")
     ai_api_timeout: int = Field(120, env="AI_API_TIMEOUT")
     

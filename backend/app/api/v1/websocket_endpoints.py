@@ -20,6 +20,28 @@ security = HTTPBearer(auto_error=False)
 async def authenticate_websocket_user(token: str, db: AsyncSession) -> Optional[User]:
     """Authenticate user via WebSocket token using shared JWT logic."""
     
+    # Development environment: bypass JWT verification for mock tokens
+    if settings.debug and token == "mock-dev-token":
+        # Create or get development user
+        from sqlalchemy import select
+        stmt = select(User).where(User.email == "dev@example.com")
+        result = await db.execute(stmt)
+        user = result.scalar_one_or_none()
+        
+        if not user:
+            user = User(
+                id="00000000-0000-0000-0000-000000000123",
+                email="dev@example.com",
+                username="dev-user",
+                display_name="Development User",
+                is_active=True
+            )
+            db.add(user)
+            await db.commit()
+            await db.refresh(user)
+        
+        return user
+    
     try:
         # Use shared JWT verification from security module
         from app.api.v1.security import verify_token

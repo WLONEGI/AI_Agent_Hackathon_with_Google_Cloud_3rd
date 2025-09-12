@@ -49,7 +49,8 @@ class Phase1ConceptAgent(BaseAgent):
     ) -> str:
         """Generate AI prompt for concept analysis."""
         
-        text = input_data.get("text", "")
+        # Get text from accumulated_context (where it's stored in PhaseInput)
+        text = input_data.get("accumulated_context", {}).get("text", "") or input_data.get("text", "")
         user_preferences = input_data.get("user_preferences")
         
         if not text:

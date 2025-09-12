@@ -4,11 +4,44 @@ from datetime import datetime
 from typing import Optional, Dict, List, Any
 from uuid import uuid4
 from enum import Enum
-from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, Float, ForeignKey, JSON
-from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, Float, ForeignKey, JSON, TypeDecorator
+from sqlalchemy.dialects.postgresql import UUID, JSON, ARRAY
+from sqlalchemy.dialects.sqlite import VARCHAR
+import uuid as uuid_module
 from sqlalchemy.orm import relationship
 
 from app.core.database import Base
+
+
+class GUID(TypeDecorator):
+    """Platform-independent UUID type."""
+    
+    impl = String
+    cache_ok = True
+    
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(UUID())
+        else:
+            return dialect.type_descriptor(String(36))
+    
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == 'postgresql':
+            return str(value)
+        else:
+            if not isinstance(value, uuid_module.UUID):
+                return str(value)
+            return str(value)
+    
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        else:
+            if not isinstance(value, uuid_module.UUID):
+                return uuid_module.UUID(value)
+            return value
 
 
 class GenerationStatus(str, Enum):
@@ -36,10 +69,10 @@ class MangaSession(Base):
     __tablename__ = "manga_sessions"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # User reference
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(GUID(), ForeignKey("users.id"), nullable=False, index=True)
     
     # Session metadata
     title = Column(String(255), nullable=True)
@@ -59,7 +92,7 @@ class MangaSession(Base):
     feedback_timeout_seconds = Column(Integer, default=300)  # 5 minutes
     
     # Results storage
-    final_result = Column(JSONB, nullable=True)
+    final_result = Column(JSON, nullable=True)
     preview_url = Column(Text, nullable=True)
     download_url = Column(Text, nullable=True)
     
@@ -108,22 +141,22 @@ class PhaseResult(Base):
     __tablename__ = "phase_results"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # Session reference
-    session_id = Column(UUID(as_uuid=True), ForeignKey("manga_sessions.id"), nullable=False, index=True)
+    session_id = Column(GUID(), ForeignKey("manga_sessions.id"), nullable=False, index=True)
     
     # Phase information
     phase_number = Column(Integer, nullable=False)
     phase_name = Column(String(100), nullable=False)
     
     # Input/Output data
-    input_data = Column(JSONB, nullable=False, default={})
-    output_data = Column(JSONB, nullable=False, default={})
+    input_data = Column(JSON, nullable=False, default={})
+    output_data = Column(JSON, nullable=False, default={})
     
     # Preview data
-    preview_data = Column(JSONB, nullable=True)
-    preview_image_urls = Column(ARRAY(Text), nullable=True)
+    preview_data = Column(JSON, nullable=True)
+    preview_image_urls = Column(JSON, nullable=True)
     
     # Processing metadata
     processing_time_ms = Column(Integer, nullable=False)
@@ -137,7 +170,7 @@ class PhaseResult(Base):
     
     # Feedback tracking
     feedback_count = Column(Integer, default=0)
-    feedback_applied = Column(JSONB, nullable=True)
+    feedback_applied = Column(JSON, nullable=True)
     
     # Status
     status = Column(String(50), default="pending")
@@ -161,10 +194,10 @@ class PreviewVersion(Base):
     __tablename__ = "preview_versions"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # Session and phase reference
-    session_id = Column(UUID(as_uuid=True), ForeignKey("manga_sessions.id"), nullable=False, index=True)
+    session_id = Column(GUID(), ForeignKey("manga_sessions.id"), nullable=False, index=True)
     phase_number = Column(Integer, nullable=False)
     
     # Version management
@@ -173,7 +206,7 @@ class PreviewVersion(Base):
     is_main_branch = Column(Boolean, default=True)
     
     # Preview data
-    preview_data = Column(JSONB, nullable=False)
+    preview_data = Column(JSON, nullable=False)
     thumbnail_url = Column(Text, nullable=True)
     
     # Quality settings
@@ -199,21 +232,21 @@ class UserFeedback(Base):
     __tablename__ = "user_feedbacks"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # References
-    session_id = Column(UUID(as_uuid=True), ForeignKey("manga_sessions.id"), nullable=False, index=True)
+    session_id = Column(GUID(), ForeignKey("manga_sessions.id"), nullable=False, index=True)
     phase_number = Column(Integer, nullable=False)
     
     # Feedback content
     feedback_type = Column(String(50), nullable=False)  # text, selection, adjustment
     feedback_text = Column(Text, nullable=True)
-    feedback_data = Column(JSONB, nullable=True)
+    feedback_data = Column(JSON, nullable=True)
     
     # Application status
     applied = Column(Boolean, default=False)
     applied_at = Column(DateTime(timezone=True), nullable=True)
-    result_after_application = Column(JSONB, nullable=True)
+    result_after_application = Column(JSON, nullable=True)
     
     # User rating
     satisfaction_score = Column(Integer, nullable=True)  # 1-5
@@ -234,10 +267,10 @@ class GeneratedImage(Base):
     __tablename__ = "generated_images"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # References
-    session_id = Column(UUID(as_uuid=True), ForeignKey("manga_sessions.id"), nullable=False, index=True)
+    session_id = Column(GUID(), ForeignKey("manga_sessions.id"), nullable=False, index=True)
     phase_number = Column(Integer, nullable=False)
     scene_number = Column(Integer, nullable=False)
     

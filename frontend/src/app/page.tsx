@@ -16,7 +16,8 @@ export default function Home() {
   const [showAuthModal, setShowAuthModal] = useState(false);
 
   const handleSubmit = useCallback(async (text: string) => {
-    if (!isAuthenticated) {
+    // Skip auth check in development mode
+    if (!isAuthenticated && process.env.NODE_ENV !== 'development') {
       setShowAuthModal(true);
       return;
     }
@@ -36,8 +37,16 @@ export default function Home() {
       );
 
       if (response && response.request_id) {
-        // Store request ID and navigate to processing page
+        // Store session information for processing page
         sessionStorage.setItem('requestId', response.request_id);
+        sessionStorage.setItem('sessionTitle', 'AI Generated Manga');
+        sessionStorage.setItem('sessionText', text.trim());
+        
+        // Store auth token for development environment
+        if (process.env.NODE_ENV === 'development') {
+          sessionStorage.setItem('authToken', 'mock-dev-token');
+        }
+        
         router.push('/processing');
       } else {
         throw new Error('Failed to start generation');

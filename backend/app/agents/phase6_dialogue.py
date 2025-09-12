@@ -21,6 +21,10 @@ class Phase6DialogueAgent(BaseAgent):
             timeout_seconds=settings.phase_timeouts[6]
         )
         
+        # Initialize structured prompts
+        from app.agents.phases.phase6_dialogue.prompts import DialoguePlacementPrompts
+        self.prompts = DialoguePlacementPrompts()
+        
         # Dialogue types and their characteristics
         self.dialogue_types = {
             "speech": {
@@ -97,91 +101,69 @@ class Phase6DialogueAgent(BaseAgent):
         session_id: UUID,
         previous_results: Optional[Dict[int, Any]] = None
     ) -> Dict[str, Any]:
-        """Generate dialogue and place text in manga panels."""
+        """Process dialogue placement for manga panels.
         
-        if not previous_results or not all(i in previous_results for i in [1, 2, 3, 4, 5]):
-            raise ValueError("Phases 1-5 results required for dialogue placement")
-        
-        # Extract previous phase results
-        phase1_result = previous_results[1]
-        phase2_result = previous_results[2]
-        phase3_result = previous_results[3]
-        phase4_result = previous_results[4]
-        phase5_result = previous_results[5]
-        
-        # Call Gemini Pro for AI analysis
-        try:
-            ai_response = await self.vertex_ai.generate_text(
-                prompt=prompt,
-                phase_number=self.phase_number
-            )
+        Args:
+            input_data: Contains original text and context
+            session_id: Current session ID  
+            previous_results: Results from phases 1-5
             
-            if ai_response.get("success", False):
-                # Parse JSON response from Gemini Pro  
-                ai_result = self._parse_ai_response(ai_response.get("content", ""))
-                
-                self.log_info(f"Gemini Pro analysis successful", 
-                            tokens=ai_response.get("usage", {}).get("total_tokens", 0))
-                
-                # Use AI result or fallback
-                dialogue_content = ai_result if ai_result else await self._generate_dialogue_content(phase1_result, phase2_result, phase3_result, phase4_result)
-                
-            else:
-                # Fallback to rule-based analysis
-                self.log_warning(f"Gemini Pro failed, using fallback: {ai_response.get('error', 'Unknown error')}")
-                dialogue_content = await self._generate_dialogue_content(phase1_result, phase2_result, phase3_result, phase4_result)
-                
-        except Exception as e:
-            # Fallback to rule-based analysis on error
-            self.log_error(f"AI analysis failed, using fallback: {str(e)}")
-            dialogue_content = await self._generate_dialogue_content(phase1_result, phase2_result, phase3_result, phase4_result)
+        Returns:
+            Detailed dialogue placement and timing information
+        """
         
-        # Create text placement specifications
-        text_placements = await self._create_text_placements(
-            dialogue_content, phase4_result, phase5_result
+        # Extract from previous phases
+        phase3_result = previous_results.get(3, {}) if previous_results else {}
+        phase4_result = previous_results.get(4, {}) if previous_results else {}
+        phase5_result = previous_results.get(5, {}) if previous_results else {}
+        
+        # Get story structure and scenes from phase 3 - FIXED: use "scenes" instead of "scene_breakdown"
+        scenes = phase3_result.get("scenes", [])
+        
+        # Get panel layouts from phase 4
+        pages = phase4_result.get("pages", [])
+        
+        # Get generated images from phase 5
+        generated_images = phase5_result.get("generated_images", [])
+        
+        if not scenes:
+            raise ValueError("No scenes found from Phase 3 for dialogue processing")
+        
+        if not pages:
+            raise ValueError("No pages found from Phase 4 for dialogue processing")
+        
+        self.log_info(f"Processing dialogue for {len(pages)} pages and {len(scenes)}シーンの物語構成")
+        
+        # Generate dialogue content through analysis
+        dialogue_content = await self._generate_dialogue_content(
+            scenes, 
+            pages,
+            input_data.get("text", ""),
+            generated_images
         )
         
-        # Generate typography specifications
-        typography_specs = await self._generate_typography_specifications(
-            text_placements, phase1_result.get("genre", "general")
+        # Place dialogue on panels
+        dialogue_placement = await self._place_dialogue_on_panels(
+            dialogue_content, 
+            pages, 
+            generated_images
         )
         
-        # Optimize readability
-        readability_optimization = await self._optimize_readability(
-            text_placements, typography_specs, phase4_result
-        )
+        # Add speech bubble specifications
+        speech_bubbles = self._generate_speech_bubble_specs(dialogue_placement)
         
-        # Generate bubble and balloon designs
-        bubble_designs = await self._generate_bubble_designs(
-            text_placements, dialogue_content
-        )
-        
-        # Create dialogue flow analysis
-        dialogue_flow = await self._analyze_dialogue_flow(
-            dialogue_content, text_placements, phase3_result
-        )
+        # Analyze dialogue timing and pacing
+        timing_analysis = self._analyze_dialogue_timing(dialogue_content)
         
         result = {
             "dialogue_content": dialogue_content,
-            "text_placements": text_placements,
-            "typography_specifications": typography_specs,
-            "bubble_designs": bubble_designs,
-            "dialogue_flow": dialogue_flow,
-            "readability_analysis": readability_optimization,
-            "total_dialogue_elements": len(text_placements),
-            "characters_speaking": len(set(
-                placement.get("speaker") for placement in text_placements 
-                if placement.get("speaker")
-            )),
-            "dialogue_density_score": self._calculate_dialogue_density(
-                text_placements, phase4_result
-            ),
-            "readability_score": self._calculate_readability_score(
-                text_placements, readability_optimization
-            ),
-            "text_image_integration_score": self._calculate_integration_score(
-                text_placements, phase5_result
-            )
+            "dialogue_placement": dialogue_placement,
+            "speech_bubbles": speech_bubbles,
+            "timing_analysis": timing_analysis,
+            "total_dialogue_count": len(dialogue_content),
+            "average_words_per_panel": self._calculate_average_words_per_panel(dialogue_placement),
+            "dialogue_distribution": self._analyze_dialogue_distribution(dialogue_placement),
+            "reading_flow": self._analyze_reading_flow(dialogue_placement, pages)
         }
         
         return result
@@ -193,81 +175,10 @@ class Phase6DialogueAgent(BaseAgent):
     ) -> str:
         """Generate Gemini Pro prompt for dialogue generation."""
         
-        phase1_result = previous_results[1] if previous_results else {}
-        phase2_result = previous_results[2] if previous_results else {}
-        phase3_result = previous_results[3] if previous_results else {}
-        phase4_result = previous_results[4] if previous_results else {}
-        
-        genre = phase1_result.get("genre", "general")
-        themes = phase1_result.get("themes", [])
-        characters = phase2_result.get("characters", [])
-        scene_breakdown = phase3_result.get("scene_breakdown", [])
-        panel_specifications = phase4_result.get("panel_specifications", [])
-        
-        character_summary = "\n".join([
-            f"- {char.get('name')}: {char.get('personality', [])} / {char.get('goals', '目標不明')}"
-            for char in characters[:4]
-        ]) if characters else "キャラクター情報なし"
-        
-        total_panels = len(panel_specifications)
-        
-        prompt = f"""あなたは漫画制作におけるセリフ・テキスト配置の専門家です。
-以下の設定に基づいて、{total_panels}のパネルにセリフとテキストを配置してください。
-
-【基本設定】
-ジャンル: {genre}
-テーマ: {', '.join(themes)}
-総パネル数: {total_panels}
-
-【キャラクター】
-{character_summary}
-
-【シーン情報】
-{len(scene_breakdown)}シーンの物語構成
-
-【セリフ生成要件】
-1. キャラクターの個性を反映した自然な会話
-2. 物語進行に必要な情報の効果的な配置
-3. 感情表現とトーンの適切な使い分け
-4. 読みやすさを重視したテキスト量の調整
-5. パネル構図との調和
-
-【テキスト配置要件】
-1. 画像の重要部分を遮らない配置
-2. 読み順を明確にするレイアウト
-3. セリフの種類に応じた吹き出しスタイル
-4. 日本語の縦書き・右から左への読み順対応
-
-【出力形式】JSON
-{{
-    "dialogue_content": [
-        {{
-            "panel_id": "p1_panel1",
-            "dialogue_elements": [
-                {{
-                    "speaker": "character_name",
-                    "text": "セリフ内容",
-                    "dialogue_type": "speech/thought/shout/whisper/narration",
-                    "emotion": "emotion_type",
-                    "importance": "high/medium/low",
-                    "text_length": 15
-                }}
-            ],
-            "narration": {{
-                "text": "ナレーション内容",
-                "position": "top/bottom",
-                "style": "descriptive/informative"
-            }}
-        }}
-    ],
-    "text_placement_guidelines": {{
-        "reading_flow": "right_to_left_top_to_bottom",
-        "bubble_priority": "speech > thought > narration",
-        "space_utilization": "balanced"
-    }}
-}}"""
-        
-        return prompt
+        return self.prompts.get_main_prompt(
+            input_data=input_data,
+            previous_results=previous_results
+        )
     
     async def validate_output(self, output_data: Dict[str, Any]) -> bool:
         """Validate Phase 6 output."""

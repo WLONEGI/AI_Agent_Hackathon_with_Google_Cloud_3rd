@@ -32,6 +32,10 @@ class Phase7IntegrationAgent(BaseAgent):
             timeout_seconds=settings.phase_timeouts[7]
         )
         
+        # Initialize structured prompts
+        from app.agents.phases.phase7_integration.prompts import FinalIntegrationPrompts
+        self.prompts = FinalIntegrationPrompts()
+        
         # Quality assessment categories and their weights
         self.quality_categories = {
             "visual_consistency": {
@@ -108,6 +112,9 @@ class Phase7IntegrationAgent(BaseAgent):
         
         # Call Gemini Pro for AI analysis
         try:
+            # Generate prompt for Gemini Pro analysis
+            prompt = await self.generate_prompt(input_data, previous_results)
+            
             ai_response = await self.vertex_ai.generate_text(
                 prompt=prompt,
                 phase_number=self.phase_number
@@ -186,59 +193,10 @@ class Phase7IntegrationAgent(BaseAgent):
     ) -> str:
         """Generate comprehensive prompt for final integration assessment."""
         
-        # Count total elements from all phases
-        total_characters = len(previous_results[2].get("characters", [])) if previous_results and 2 in previous_results else 0
-        total_scenes = len(previous_results[3].get("scene_breakdown", [])) if previous_results and 3 in previous_results else 0
-        total_panels = previous_results[4].get("total_panels", 0) if previous_results and 4 in previous_results else 0
-        total_images = previous_results[5].get("total_images_generated", 0) if previous_results and 5 in previous_results else 0
-        total_text_elements = previous_results[6].get("total_dialogue_elements", 0) if previous_results and 6 in previous_results else 0
-        
-        prompt = f"""あなたは漫画制作における最終品質管理・統合の専門家です。
-6つのフェーズを経て作成された漫画作品の最終統合と品質調整を行ってください。
-
-【作品構成】
-- キャラクター数: {total_characters}
-- シーン数: {total_scenes} 
-- パネル数: {total_panels}
-- 生成画像数: {total_images}
-- テキスト要素数: {total_text_elements}
-
-【各フェーズの成果物】
-Phase 1: コンセプト・世界観分析完了
-Phase 2: キャラクター設定・ビジュアル生成完了
-Phase 3: プロット・ストーリー構成完了
-Phase 4: ネーム生成完了
-Phase 5: シーン画像生成完了
-Phase 6: セリフ配置完了
-
-【最終統合要件】
-1. 全体品質の総合評価
-2. 視覚的一貫性の確保
-3. 物語の整合性チェック
-4. 読みやすさの最適化
-5. 技術的品質の検証
-6. 出力フォーマットの準備
-
-【品質評価基準】
-- 視覚的一貫性: 25%
-- 物語の整合性: 20%
-- 技術的品質: 15%
-- 読みやすさ: 15%
-- ペーシング: 10%
-- キャラクター描写: 10%
-- 芸術的魅力: 5%
-
-【出力要件】
-1. 総合品質スコア（0-1）
-2. カテゴリ別詳細評価
-3. 改善推奨事項
-4. 完成作品の統合データ
-5. 出版準備状況の評価
-
-作品が商業出版レベルに達しているかを厳格に評価し、
-必要に応じて具体的な改善提案を行ってください。"""
-        
-        return prompt
+        return self.prompts.get_main_prompt(
+            input_data=input_data,
+            previous_results=previous_results
+        )
     
     async def validate_output(self, output_data: Dict[str, Any]) -> bool:
         """Validate Phase 7 output."""

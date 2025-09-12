@@ -591,7 +591,7 @@ class PipelineState(BaseModel):
     user_id: str
     current_phase: int
     total_phases: int = 7
-    phase_results: List[Dict[str, Any]] = []
+    phase_results: Dict[int, Dict[str, Any]] = {}
     accumulated_context: Dict[str, Any] = {}
     status: PhaseStatus = PhaseStatus.PENDING
     started_at: Optional[datetime] = None

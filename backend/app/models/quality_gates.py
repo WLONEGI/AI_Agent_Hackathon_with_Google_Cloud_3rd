@@ -4,11 +4,43 @@ from datetime import datetime
 from typing import Optional
 from uuid import uuid4
 from enum import Enum
-from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, Float, ForeignKey, JSON
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, Float, ForeignKey, JSON, TypeDecorator
+from sqlalchemy.dialects.postgresql import UUID, JSON
 from sqlalchemy.orm import relationship
+import uuid as uuid_module
 
 from app.core.database import Base
+
+
+class GUID(TypeDecorator):
+    """Platform-independent UUID type."""
+    
+    impl = String
+    cache_ok = True
+    
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(UUID())
+        else:
+            return dialect.type_descriptor(String(36))
+    
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == 'postgresql':
+            return str(value)
+        else:
+            if not isinstance(value, uuid_module.UUID):
+                return str(value)
+            return str(value)
+    
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        else:
+            if not isinstance(value, uuid_module.UUID):
+                return uuid_module.UUID(value)
+            return value
 
 
 class QualityGateStatus(str, Enum):
@@ -36,10 +68,10 @@ class PhaseQualityGate(Base):
     __tablename__ = "phase_quality_gates"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # Session and phase reference
-    session_id = Column(UUID(as_uuid=True), ForeignKey("manga_sessions.id"), nullable=False, index=True)
+    session_id = Column(GUID(), ForeignKey("manga_sessions.id"), nullable=False, index=True)
     phase_number = Column(Integer, nullable=False)
     phase_name = Column(String(100), nullable=False)
     
@@ -55,13 +87,13 @@ class PhaseQualityGate(Base):
     
     # Processing metadata
     processing_time_ms = Column(Integer, nullable=True)
-    assessment_details = Column(JSONB, nullable=True)
+    assessment_details = Column(JSON, nullable=True)
     error_message = Column(Text, nullable=True)
     
     # Override information
     override_applied = Column(Boolean, default=False)
     override_reason = Column(Text, nullable=True)
-    override_by_user_id = Column(UUID(as_uuid=True), nullable=True)
+    override_by_user_id = Column(GUID(), nullable=True)
     override_at = Column(DateTime(timezone=True), nullable=True)
     
     # Timestamps
@@ -96,19 +128,19 @@ class QualityOverrideRequest(Base):
     __tablename__ = "quality_override_requests"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # Quality gate reference
-    quality_gate_id = Column(UUID(as_uuid=True), ForeignKey("phase_quality_gates.id"), nullable=False, index=True)
+    quality_gate_id = Column(GUID(), ForeignKey("phase_quality_gates.id"), nullable=False, index=True)
     
     # Request details
-    requested_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    requested_by_user_id = Column(GUID(), ForeignKey("users.id"), nullable=False)
     override_reason = Column(Text, nullable=False)
     force_proceed = Column(Boolean, default=True)
     
     # Approval workflow
     status = Column(String(50), default=QualityOverrideStatus.PENDING.value, index=True)
-    reviewed_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    reviewed_by_user_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
     review_notes = Column(Text, nullable=True)
     
     # Processing results
@@ -140,7 +172,7 @@ class SystemQualityMetrics(Base):
     __tablename__ = "system_quality_metrics"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # Time period
     period_start = Column(DateTime(timezone=True), nullable=False)
@@ -163,9 +195,9 @@ class SystemQualityMetrics(Base):
     total_processing_time_ms = Column(Integer, nullable=True)
     
     # Detailed statistics
-    quality_distribution = Column(JSONB, nullable=True)  # score buckets
-    failure_reasons = Column(JSONB, nullable=True)       # error categorization
-    retry_statistics = Column(JSONB, nullable=True)      # retry patterns
+    quality_distribution = Column(JSON, nullable=True)  # score buckets
+    failure_reasons = Column(JSON, nullable=True)       # error categorization
+    retry_statistics = Column(JSON, nullable=True)      # retry patterns
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
@@ -181,7 +213,7 @@ class QualityThreshold(Base):
     __tablename__ = "quality_thresholds"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # Configuration
     phase_number = Column(Integer, nullable=False)
@@ -203,7 +235,7 @@ class QualityThreshold(Base):
     
     # Metadata
     description = Column(Text, nullable=True)
-    configuration_notes = Column(JSONB, nullable=True)
+    configuration_notes = Column(JSON, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)

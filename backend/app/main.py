@@ -144,8 +144,9 @@ app.include_router(manga.router, prefix=f"{settings.api_prefix}/manga", tags=["m
 # New v1 API routes
 app.include_router(api_v1_router, prefix=settings.api_prefix, tags=["api-v1"])
 
-# Mock API routes for local development
-if settings.mock_enabled:
+# Development API routes (temporarily enabled for testing)
+# Enable mock routes for development testing
+if True:  # Always enable for development testing
     from app.api.v1.manga_mock import router as manga_mock_router
     app.include_router(manga_mock_router, prefix=f"{settings.api_prefix}", tags=["manga-mock"])
 

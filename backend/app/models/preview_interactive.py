@@ -4,11 +4,43 @@ from datetime import datetime
 from typing import Optional, Dict, Any
 from uuid import uuid4
 from enum import Enum
-from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, Float, ForeignKey, JSON
-from sqlalchemy.dialects.postgresql import UUID, JSONB, ARRAY
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, Float, ForeignKey, JSON, TypeDecorator
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+import uuid as uuid_module
 
 from app.core.database import Base
+
+
+class GUID(TypeDecorator):
+    """Platform-independent UUID type."""
+    
+    impl = String
+    cache_ok = True
+    
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(UUID())
+        else:
+            return dialect.type_descriptor(String(36))
+    
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == 'postgresql':
+            return str(value)
+        else:
+            if not isinstance(value, uuid_module.UUID):
+                return str(value)
+            return str(value)
+    
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        else:
+            if not isinstance(value, uuid_module.UUID):
+                return uuid_module.UUID(value)
+            return value
 
 
 class ChangeType(str, Enum):
@@ -36,10 +68,10 @@ class PreviewBranch(Base):
     __tablename__ = "preview_branches"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # Session reference
-    session_id = Column(UUID(as_uuid=True), ForeignKey("manga_sessions.id"), nullable=False, index=True)
+    session_id = Column(GUID(), ForeignKey("manga_sessions.id"), nullable=False, index=True)
     phase_number = Column(Integer, nullable=False)
     
     # Branch metadata
@@ -49,12 +81,12 @@ class PreviewBranch(Base):
     status = Column(String(20), default=BranchStatus.ACTIVE.value)
     
     # Branch hierarchy
-    parent_branch_id = Column(UUID(as_uuid=True), ForeignKey("preview_branches.id"), nullable=True)
+    parent_branch_id = Column(GUID(), ForeignKey("preview_branches.id"), nullable=True)
     branch_depth = Column(Integer, default=0)
     child_count = Column(Integer, default=0)
     
     # Version tracking
-    latest_version_id = Column(UUID(as_uuid=True), nullable=True)
+    latest_version_id = Column(GUID(), nullable=True)
     version_count = Column(Integer, default=0)
     
     # Quality metrics
@@ -62,8 +94,8 @@ class PreviewBranch(Base):
     user_satisfaction = Column(Float, nullable=True)
     
     # User tracking
-    created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    last_modified_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_by_user_id = Column(GUID(), ForeignKey("users.id"), nullable=False)
+    last_modified_by = Column(GUID(), ForeignKey("users.id"), nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
@@ -93,47 +125,47 @@ class PreviewVersionExtended(Base):
     __tablename__ = "preview_versions_extended"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # Session and phase reference
-    session_id = Column(UUID(as_uuid=True), ForeignKey("manga_sessions.id"), nullable=False, index=True)
+    session_id = Column(GUID(), ForeignKey("manga_sessions.id"), nullable=False, index=True)
     phase_number = Column(Integer, nullable=False)
     
     # Branch reference
-    branch_id = Column(UUID(as_uuid=True), ForeignKey("preview_branches.id"), nullable=False, index=True)
+    branch_id = Column(GUID(), ForeignKey("preview_branches.id"), nullable=False, index=True)
     
     # Version hierarchy
     version_number = Column(Integer, nullable=False)
-    parent_version_id = Column(UUID(as_uuid=True), ForeignKey("preview_versions_extended.id"), nullable=True)
+    parent_version_id = Column(GUID(), ForeignKey("preview_versions_extended.id"), nullable=True)
     is_checkpoint = Column(Boolean, default=False)  # Major milestone versions
     
     # Preview data
-    version_data = Column(JSONB, nullable=False)
+    version_data = Column(JSON, nullable=False)
     change_description = Column(Text, nullable=False)
-    change_summary = Column(JSONB, nullable=True)  # Structured summary of changes
+    change_summary = Column(JSON, nullable=True)  # Structured summary of changes
     
     # Interactive elements configuration
-    interactive_elements = Column(JSONB, nullable=True, default={})
-    enabled_features = Column(ARRAY(String), nullable=True)
+    interactive_elements = Column(JSON, nullable=True, default={})
+    enabled_features = Column(JSON, nullable=True)
     
     # Quality and preview settings
     quality_level = Column(Integer, default=3)  # 1-5
     quality_score = Column(Float, nullable=True)
-    preview_urls = Column(JSONB, nullable=True, default={})
+    preview_urls = Column(JSON, nullable=True, default={})
     thumbnail_url = Column(Text, nullable=True)
     
     # Generation metadata
     is_automatic = Column(Boolean, default=False)
     generation_method = Column(String(50), default="user_edit")  # user_edit, ai_suggestion, revert, merge
-    generation_params = Column(JSONB, nullable=True)
+    generation_params = Column(JSON, nullable=True)
     
     # Performance tracking
     generation_time_ms = Column(Integer, nullable=True)
     cache_status = Column(String(20), default="fresh")  # fresh, cached, expired
     
     # User tracking
-    created_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    approved_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    created_by_user_id = Column(GUID(), ForeignKey("users.id"), nullable=False)
+    approved_by_user_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
@@ -162,26 +194,26 @@ class InteractiveChange(Base):
     __tablename__ = "interactive_changes"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # References
-    session_id = Column(UUID(as_uuid=True), ForeignKey("manga_sessions.id"), nullable=False, index=True)
-    version_id = Column(UUID(as_uuid=True), ForeignKey("preview_versions_extended.id"), nullable=False, index=True)
-    branch_id = Column(UUID(as_uuid=True), ForeignKey("preview_branches.id"), nullable=False, index=True)
+    session_id = Column(GUID(), ForeignKey("manga_sessions.id"), nullable=False, index=True)
+    version_id = Column(GUID(), ForeignKey("preview_versions_extended.id"), nullable=False, index=True)
+    branch_id = Column(GUID(), ForeignKey("preview_branches.id"), nullable=False, index=True)
     
     # Change details
     element_id = Column(String(200), nullable=False, index=True)  # Element identifier (e.g., "concept.title")
     change_type = Column(String(50), nullable=False)
     
     # Change data
-    previous_value = Column(JSONB, nullable=True)
-    new_value = Column(JSONB, nullable=False)
-    change_metadata = Column(JSONB, nullable=True, default={})
+    previous_value = Column(JSON, nullable=True)
+    new_value = Column(JSON, nullable=False)
+    change_metadata = Column(JSON, nullable=True, default={})
     
     # Change impact
     quality_impact = Column(Float, nullable=True)  # -1.0 to 1.0
     estimated_regeneration_time = Column(Float, nullable=True)  # seconds
-    affected_elements = Column(ARRAY(String), nullable=True)
+    affected_elements = Column(JSON, nullable=True)
     
     # Application status
     applied_immediately = Column(Boolean, default=True)
@@ -189,8 +221,8 @@ class InteractiveChange(Base):
     approved = Column(Boolean, default=True)
     
     # User tracking
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
-    approved_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    user_id = Column(GUID(), ForeignKey("users.id"), nullable=False)
+    approved_by_user_id = Column(GUID(), ForeignKey("users.id"), nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
@@ -220,21 +252,21 @@ class PreviewCache(Base):
     __tablename__ = "preview_cache"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # Cache key and identification
     cache_key = Column(String(255), unique=True, nullable=False, index=True)
-    session_id = Column(UUID(as_uuid=True), ForeignKey("manga_sessions.id"), nullable=False, index=True)
+    session_id = Column(GUID(), ForeignKey("manga_sessions.id"), nullable=False, index=True)
     phase_number = Column(Integer, nullable=False)
     quality_level = Column(Integer, nullable=False)
     
     # Version reference
-    version_id = Column(UUID(as_uuid=True), ForeignKey("preview_versions_extended.id"), nullable=True)
+    version_id = Column(GUID(), ForeignKey("preview_versions_extended.id"), nullable=True)
     
     # Cached data
-    preview_data = Column(JSONB, nullable=False)
-    preview_urls = Column(JSONB, nullable=True, default={})
-    thumbnail_data = Column(JSONB, nullable=True)
+    preview_data = Column(JSON, nullable=False)
+    preview_urls = Column(JSON, nullable=True, default={})
+    thumbnail_data = Column(JSON, nullable=True)
     
     # Cache metadata
     content_hash = Column(String(64), nullable=False)  # SHA-256 hash for integrity
@@ -280,19 +312,19 @@ class PreviewAnalytics(Base):
     __tablename__ = "preview_analytics"
     
     # Primary key
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # Session reference
-    session_id = Column(UUID(as_uuid=True), ForeignKey("manga_sessions.id"), nullable=False, index=True)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    session_id = Column(GUID(), ForeignKey("manga_sessions.id"), nullable=False, index=True)
+    user_id = Column(GUID(), ForeignKey("users.id"), nullable=False, index=True)
     
     # Analytics event
     event_type = Column(String(50), nullable=False, index=True)  # view, edit, branch, revert, etc.
-    event_data = Column(JSONB, nullable=True, default={})
+    event_data = Column(JSON, nullable=True, default={})
     
     # Context
     phase_number = Column(Integer, nullable=True)
-    version_id = Column(UUID(as_uuid=True), nullable=True)
+    version_id = Column(GUID(), nullable=True)
     element_id = Column(String(200), nullable=True)
     
     # User behavior metrics
@@ -302,7 +334,7 @@ class PreviewAnalytics(Base):
     scroll_events = Column(Integer, default=0)
     
     # Device and performance
-    device_info = Column(JSONB, nullable=True)
+    device_info = Column(JSON, nullable=True)
     network_latency_ms = Column(Integer, nullable=True)
     render_time_ms = Column(Integer, nullable=True)
     

@@ -8,7 +8,7 @@ import time
 from typing import Dict, Any, List, Optional, AsyncIterator
 from datetime import datetime
 import json
-from uuid import uuid4
+from uuid import uuid4, UUID, uuid5, NAMESPACE_DNS
 import hashlib
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -37,13 +37,7 @@ from app.schemas.pipeline_schemas import (
     PipelineState,
     HITLFeedback
 )
-from app.agents.phase1_concept import Phase1ConceptAgent
-from app.agents.phase2_character import Phase2CharacterAgent
-from app.agents.phase3_plot import Phase3PlotAgent
-from app.agents.phase4_name import Phase4NameAgent
-from app.agents.phase5_image import Phase5ImageAgent
-from app.agents.phase6_dialogue import Phase6DialogueAgent
-from app.agents.phase7_integration import Phase7IntegrationAgent
+# エージェントインポートは遅延読み込みで実装
 
 
 class IntegratedAIService(LoggerMixin):
@@ -53,15 +47,16 @@ class IntegratedAIService(LoggerMixin):
         super().__init__()
         self.redis_client = redis_manager
         
-        # フェーズエージェントの初期化
-        self.agents = {
-            1: Phase1ConceptAgent(),
-            2: Phase2CharacterAgent(),
-            3: Phase3PlotAgent(),
-            4: Phase4NameAgent(),
-            5: Phase5ImageAgent(),
-            6: Phase6DialogueAgent(),
-            7: Phase7IntegrationAgent()
+        # フェーズエージェントの遅延読み込み用辞書
+        self.agents = {}
+        self._agent_classes = {
+            1: 'app.agents.phase1_concept.Phase1ConceptAgent',
+            2: 'app.agents.phase2_character.Phase2CharacterAgent', 
+            3: 'app.agents.phase3_story.Phase3StoryAgent',
+            4: 'app.agents.phase4_name.Phase4NameAgent',
+            5: 'app.agents.phase5_image.Phase5ImageAgent',
+            6: 'app.agents.phase6_dialogue.Phase6DialogueAgent',
+            7: 'app.agents.phase7_integration.Phase7IntegrationAgent'
         }
         
         # フェーズ設定
@@ -91,13 +86,34 @@ class IntegratedAIService(LoggerMixin):
         self.active_sessions: Dict[str, Dict] = {}
         
         self.logger.info("IntegratedAIService initialized")
+
+    def _get_agent(self, phase_num: int):
+        """フェーズエージェントの遅延読み込み"""
+        if phase_num not in self.agents:
+            if phase_num not in self._agent_classes:
+                raise ValueError(f"Invalid phase number: {phase_num}")
+            
+            # 動的インポートでエージェントクラスを読み込み
+            module_path, class_name = self._agent_classes[phase_num].rsplit('.', 1)
+            
+            try:
+                import importlib
+                module = importlib.import_module(module_path)
+                agent_class = getattr(module, class_name)
+                self.agents[phase_num] = agent_class()
+                self.logger.info(f"Loaded agent for phase {phase_num}: {class_name}")
+            except Exception as e:
+                self.logger.error(f"Failed to load agent for phase {phase_num}: {e}")
+                raise
+        
+        return self.agents[phase_num]
     
     async def generate_manga(
         self,
         user_input: str,
         user_id: str,
         db: AsyncSession,
-        session_id: Optional[str] = None,
+        session_id: Optional[UUID] = None,
         enable_hitl: bool = True
     ) -> AsyncIterator[Dict[str, Any]]:
         """
@@ -113,8 +129,9 @@ class IntegratedAIService(LoggerMixin):
         Yields:
             各フェーズの進捗と結果
         """
-        session_id = session_id or str(uuid4())
+        session_id = session_id or uuid4()
         start_time = time.time()
+        manga_session = None
         
         try:
             # セッション作成
@@ -126,7 +143,7 @@ class IntegratedAIService(LoggerMixin):
             # 初期状態の送信
             yield {
                 "type": "session_started",
-                "session_id": session_id,
+                "session_id": str(session_id),
                 "timestamp": datetime.utcnow().isoformat(),
                 "total_phases": 7,
                 "estimated_time": 97  # 合計97秒
@@ -134,11 +151,11 @@ class IntegratedAIService(LoggerMixin):
             
             # パイプライン状態の初期化
             pipeline_state = PipelineState(
-                session_id=session_id,
+                session_id=str(session_id),
+                user_id=user_id,
                 current_phase=0,
                 phase_results={},
-                quality_scores={},
-                timestamp=datetime.utcnow()
+                accumulated_context={}
             )
             
             # 各フェーズの実行
@@ -205,8 +222,11 @@ class IntegratedAIService(LoggerMixin):
                                 quality_gate_result = retry_result["quality_gate"]
                     
                     # パイプライン状態の更新
-                    pipeline_state.phase_results[phase_num] = phase_result
-                    pipeline_state.quality_scores[phase_num] = quality_gate_result["quality_score"]
+                    pipeline_state.phase_results.append({
+                        "phase_num": phase_num,
+                        "result": phase_result
+                    })
+                    pipeline_state.accumulated_context[f"quality_score_phase_{phase_num}"] = quality_gate_result["quality_score"]
                     
                     # フェーズ完了通知
                     phase_time = time.time() - phase_start
@@ -279,7 +299,7 @@ class IntegratedAIService(LoggerMixin):
             # 完了通知
             yield {
                 "type": "generation_completed",
-                "session_id": session_id,
+                "session_id": str(session_id),
                 "total_time": time.time() - start_time,
                 "final_quality": final_quality,
                 "output": final_output,
@@ -301,7 +321,7 @@ class IntegratedAIService(LoggerMixin):
             
             yield {
                 "type": "generation_failed",
-                "session_id": session_id,
+                "session_id": str(session_id),
                 "error": str(e),
                 "timestamp": datetime.utcnow().isoformat()
             }
@@ -318,11 +338,11 @@ class IntegratedAIService(LoggerMixin):
     ) -> Dict[str, Any]:
         """単一フェーズの実行"""
         
-        agent = self.agents[phase_num]
+        agent = self._get_agent(phase_num)
         phase_config = self.phase_config[phase_num]
         
         # 入力データの準備
-        phase_input = self._prepare_phase_input(phase_num, pipeline_state)
+        phase_input = self._prepare_phase_input(phase_num, pipeline_state, str(manga_session.user_id), manga_session)
         
         # キャッシュチェック
         cache_key = self._generate_cache_key(phase_num, phase_input)
@@ -339,18 +359,18 @@ class IntegratedAIService(LoggerMixin):
             )
         else:
             result = await agent.process_phase(
-                phase_input,
+                phase_input.model_dump(),
                 manga_session.id
             )
         
         # 結果の保存
         phase_result = PhaseResult(
-            manga_session_id=manga_session.id,
+            session_id=manga_session.id,
             phase_number=phase_num,
             phase_name=phase_config["name"],
-            input_data=phase_input.dict(),
+            input_data=phase_input.model_dump(),
             output_data=result,
-            processing_time=phase_config["timeout"],
+            processing_time_ms=int(phase_config["timeout"] * 1000),
             quality_score=result.get("quality_score", 0.0)
         )
         db.add(phase_result)
@@ -377,13 +397,13 @@ class IntegratedAIService(LoggerMixin):
         if isinstance(agent, Phase5ImageAgent):
             # 並列画像生成の実行
             return await agent.process_phase_parallel(
-                phase_input,
+                phase_input.model_dump(),
                 session_id,
                 max_workers=5
             )
         
         # デフォルト処理
-        return await agent.process_phase(phase_input, session_id)
+        return await agent.process_phase(phase_input.model_dump(), session_id)
     
     async def _retry_phase(
         self,
@@ -453,7 +473,7 @@ class IntegratedAIService(LoggerMixin):
     ) -> Dict[str, Any]:
         """HITLフィードバックの適用"""
         
-        agent = self.agents[phase_num]
+        agent = self._get_agent(phase_num)
         
         # エージェントのフィードバック適用メソッドを呼び出し
         updated_result = await agent.apply_feedback(
@@ -475,7 +495,7 @@ class IntegratedAIService(LoggerMixin):
     ) -> float:
         """フェーズの品質評価"""
         
-        agent = self.agents[phase_num]
+        agent = self._get_agent(phase_num)
         
         # エージェント固有の品質評価
         if hasattr(agent, "assess_quality"):
@@ -523,7 +543,7 @@ class IntegratedAIService(LoggerMixin):
         
         total_score = 0
         for phase_num, weight in weights.items():
-            phase_score = pipeline_state.quality_scores.get(phase_num, 0.0)
+            phase_score = pipeline_state.accumulated_context.get(f"quality_score_phase_{phase_num}", 0.0)
             total_score += phase_score * weight
         
         return total_score
@@ -535,7 +555,7 @@ class IntegratedAIService(LoggerMixin):
     ) -> Dict[str, Any]:
         """フェーズ結果のプレビュー生成"""
         
-        agent = self.agents[phase_num]
+        agent = self._get_agent(phase_num)
         
         # エージェント固有のプレビュー生成
         if hasattr(agent, "generate_preview"):
@@ -565,8 +585,8 @@ class IntegratedAIService(LoggerMixin):
         
         # メタデータの生成
         metadata = {
-            "session_id": manga_session.id,
-            "user_id": manga_session.user_id,
+            "session_id": str(manga_session.id),
+            "user_id": str(manga_session.user_id),
             "created_at": manga_session.created_at.isoformat(),
             "processing_time": manga_session.total_processing_time,
             "quality_score": manga_session.final_quality_score,
@@ -595,21 +615,25 @@ class IntegratedAIService(LoggerMixin):
     def _prepare_phase_input(
         self,
         phase_num: int,
-        pipeline_state: PipelineState
+        pipeline_state: PipelineState,
+        user_id: str,
+        manga_session: MangaSession
     ) -> PhaseInput:
         """フェーズ入力データの準備"""
         
-        # 前フェーズの結果を入力として準備
-        previous_results = {}
-        for i in range(1, phase_num):
-            if i in pipeline_state.phase_results:
-                previous_results[f"phase_{i}"] = pipeline_state.phase_results[i]
+        # 前フェーズの結果をリスト形式で準備
+        previous_results = pipeline_state.phase_results.copy()
+        
+        # accumulated_contextに元のテキストを含める（Phase 1で必要）
+        accumulated_context = pipeline_state.accumulated_context.copy()
+        accumulated_context["text"] = manga_session.input_text
         
         return PhaseInput(
             phase_number=phase_num,
             session_id=pipeline_state.session_id,
+            user_id=user_id,
             previous_results=previous_results,
-            timestamp=datetime.utcnow()
+            accumulated_context=accumulated_context
         )
     
     def _generate_cache_key(
@@ -629,14 +653,17 @@ class IntegratedAIService(LoggerMixin):
         self,
         user_input: str,
         user_id: str,
-        session_id: str,
+        session_id: UUID,
         db: AsyncSession
     ) -> MangaSession:
         """マンガセッションの作成"""
         
+        # Convert string user_id to UUID for database compatibility
+        user_uuid = uuid5(NAMESPACE_DNS, str(user_id))
+        
         manga_session = MangaSession(
             id=session_id,
-            user_id=user_id,
+            user_id=user_uuid,
             input_text=user_input,
             status=GenerationStatus.PROCESSING,
             created_at=datetime.utcnow()
@@ -666,7 +693,7 @@ class IntegratedAIService(LoggerMixin):
         
         # DBにも保存
         user_feedback = UserFeedback(
-            manga_session_id=session_id,
+            session_id=session_id,
             phase_number=phase_num,
             feedback_type=feedback.feedback_type,
             feedback_content=feedback.content,
@@ -696,7 +723,7 @@ class IntegratedAIService(LoggerMixin):
         # フェーズ結果の取得
         phase_results = await db.execute(
             select(PhaseResult)
-            .where(PhaseResult.manga_session_id == session_id)
+            .where(PhaseResult.session_id == session_id)
             .order_by(PhaseResult.phase_number)
         )
         phases = phase_results.scalars().all()

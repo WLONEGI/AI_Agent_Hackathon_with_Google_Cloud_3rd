@@ -269,14 +269,22 @@ async def sqlalchemy_exception_handler(request: Request, exc: SQLAlchemyError) -
         status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
         details = {}
     
+    # Handle WebSocket connections (they don't have method attribute)
+    extra_info = {
+        "request_id": request_id,
+        "exception": str(exc),
+    }
+    
+    if hasattr(request, 'url'):
+        extra_info["path"] = str(request.url.path)
+    if hasattr(request, 'method'):
+        extra_info["method"] = request.method
+    else:
+        extra_info["connection_type"] = "websocket"
+    
     logger.error(
         f"Database Error: {error_code} - {message}",
-        extra={
-            "request_id": request_id,
-            "exception": str(exc),
-            "path": str(request.url.path),
-            "method": request.method
-        },
+        extra=extra_info,
         exc_info=True
     )
     

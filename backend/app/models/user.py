@@ -3,11 +3,43 @@
 from datetime import datetime
 from typing import Optional
 from uuid import uuid4
-from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, JSON, ForeignKey
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, Text, JSON, ForeignKey, TypeDecorator
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
+import uuid as uuid_module
 
 from app.core.database import Base
+
+
+class GUID(TypeDecorator):
+    """Platform-independent UUID type."""
+    
+    impl = String
+    cache_ok = True
+    
+    def load_dialect_impl(self, dialect):
+        if dialect.name == 'postgresql':
+            return dialect.type_descriptor(UUID())
+        else:
+            return dialect.type_descriptor(String(36))
+    
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        elif dialect.name == 'postgresql':
+            return str(value)
+        else:
+            if not isinstance(value, uuid_module.UUID):
+                return str(value)
+            return str(value)
+    
+    def process_result_value(self, value, dialect):
+        if value is None:
+            return value
+        else:
+            if not isinstance(value, uuid_module.UUID):
+                return uuid_module.UUID(value)
+            return value
 
 
 class User(Base):
