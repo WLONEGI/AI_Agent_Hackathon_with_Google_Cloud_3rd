@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 import structlog
 
 from app.models.user import User
-from app.core.database import get_async_session
+from app.core.database import get_database_session
 
 # Import settings for environment detection
 def _is_development_environment() -> bool:
