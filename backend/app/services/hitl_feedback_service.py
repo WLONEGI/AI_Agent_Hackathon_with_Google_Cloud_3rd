@@ -4,7 +4,7 @@ HITLFeedbackService - Human-in-the-Loop フィードバック管理
 """
 
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 

@@ -469,7 +469,7 @@ class IntegrationAssessmentPrompts(BasePromptTemplate):
         
         # Phase 3 - Scenes
         if 3 in previous_results:
-            counts["scenes"] = len(previous_results[3].get("scene_breakdown", []))
+            counts["scenes"] = len(previous_results[3].get("scenes", []))
         
         # Phase 4 - Panels
         if 4 in previous_results:

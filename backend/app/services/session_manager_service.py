@@ -32,11 +32,18 @@ class SessionManagerService(LoggerMixin):
         session_id = str(uuid4())
         
         try:
+            # Extract user preferences to individual fields
+            genre = user_preferences.get('genre', None)
+            style = user_preferences.get('style', 'standard')
+            quality_level = user_preferences.get('quality_level', 'high')
+
             manga_session = MangaSession(
                 id=session_id,
                 user_id=user_id,
-                initial_prompt=initial_prompt,
-                user_preferences=user_preferences,
+                input_text=initial_prompt,
+                genre=genre,
+                style=style,
+                quality_level=quality_level,
                 status=GenerationStatus.PENDING.value,
                 created_at=datetime.utcnow(),
                 updated_at=datetime.utcnow()

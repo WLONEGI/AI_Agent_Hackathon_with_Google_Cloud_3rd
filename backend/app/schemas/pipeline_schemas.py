@@ -569,7 +569,7 @@ class PhaseInput(BaseModel):
     session_id: str
     user_id: str
     phase_number: int
-    previous_results: List[Dict[str, Any]] = []
+    previous_results: Optional[Dict[int, Any]] = None
     accumulated_context: Dict[str, Any] = {}
     user_preferences: Dict[str, Any] = {}
 

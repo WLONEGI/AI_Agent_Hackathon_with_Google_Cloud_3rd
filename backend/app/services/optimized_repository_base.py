@@ -73,6 +73,7 @@ class OptimizedRepositoryBase(Generic[ModelType, EntityType], LoggerMixin, ABC):
             self.query_stats["total_query_time"] += duration
             self.query_stats["avg_query_time"] = (
                 self.query_stats["total_query_time"] / self.query_stats["total_queries"]
+                if self.query_stats["total_queries"] > 0 else 0
             )
             
             if duration > 0.5:  # Slow query threshold

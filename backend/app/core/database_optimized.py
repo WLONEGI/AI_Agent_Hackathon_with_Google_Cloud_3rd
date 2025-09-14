@@ -49,7 +49,7 @@ class QueryPerformanceMonitor:
         stats = self.query_stats[query_hash]
         stats["count"] += 1
         stats["total_time"] += duration
-        stats["avg_time"] = stats["total_time"] / stats["count"]
+        stats["avg_time"] = stats["total_time"] / stats["count"] if stats["count"] > 0 else 0.0
     
     def get_performance_report(self) -> Dict[str, Any]:
         """Get performance analysis report."""

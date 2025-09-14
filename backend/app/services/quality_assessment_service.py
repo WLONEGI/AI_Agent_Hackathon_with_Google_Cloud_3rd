@@ -11,7 +11,7 @@ from app.models.quality_gates import (
     QualityThreshold,
     QualityGateStatus
 )
-from app.agents.base_agent import BaseAgent
+from app.agents.base.agent import BaseAgent
 
 
 class QualityAssessmentService(LoggerMixin):

@@ -12,7 +12,7 @@ from app.core.logging import LoggerMixin
 from app.core.config import settings
 from app.core.redis_client import redis_manager
 from app.schemas.pipeline_schemas import PhaseInput, PipelineState
-from app.agents.base_agent import BaseAgent
+from app.agents.base.agent import BaseAgent
 from .quality_assessment_service import QualityAssessmentService
 
 
@@ -287,10 +287,14 @@ class PipelineExecutionService(LoggerMixin):
     ) -> PhaseInput:
         """フェーズ入力データの準備"""
         
+        # 前フェーズの結果を辞書形式で準備（フェーズ番号をキーとして）
         previous_results = {}
         for i in range(1, phase_num):
             if i in pipeline_state.phase_results:
-                previous_results[f"phase_{i}"] = pipeline_state.phase_results[i]
+                previous_results[i] = pipeline_state.phase_results[i]
+
+        # 結果が空の場合はNoneを設定
+        previous_results = previous_results if previous_results else None
         
         return PhaseInput(
             phase_number=phase_num,

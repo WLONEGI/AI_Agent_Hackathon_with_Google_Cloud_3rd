@@ -158,8 +158,8 @@ class Settings(BaseSettings):
     
     @field_validator("database_url")
     def validate_database_url(cls, v):
-        if not (v.startswith("postgresql") or v.startswith("sqlite")):
-            raise ValueError("Database URL must be a PostgreSQL or SQLite URL")
+        if not v.startswith("postgresql"):
+            raise ValueError("Database URL must be a PostgreSQL URL")
         return v
     
     @field_validator("log_level")

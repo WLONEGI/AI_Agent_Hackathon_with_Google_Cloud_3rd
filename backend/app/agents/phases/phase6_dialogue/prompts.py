@@ -32,11 +32,11 @@ class DialoguePlacementPrompts(BasePromptTemplate):
         target_audience = phase1_result.get("target_audience_analysis", {}).get("primary_audience", "general")
         
         characters = phase2_result.get("characters", [])
-        scene_breakdown = phase3_result.get("scene_breakdown", [])
+        scenes = phase3_result.get("scenes", [])
         pages = phase4_result.get("pages", [])
-        
+
         total_panels = sum(len(page.get("panels", [])) for page in pages)
-        total_scenes = len(scene_breakdown)
+        total_scenes = len(scenes)
         
         character_summary = ""
         if characters:
@@ -46,11 +46,11 @@ class DialoguePlacementPrompts(BasePromptTemplate):
             ])
         
         scene_summary = ""
-        if scene_breakdown:
+        if scenes:
             scene_summary = "\n".join([
                 f"Scene {scene.get('scene_number', i+1)}: {scene.get('purpose', '未定義')} "
                 f"({scene.get('emotional_beat', 'neutral')})"
-                for i, scene in enumerate(scene_breakdown[:5])  # First 5 scenes
+                for i, scene in enumerate(scenes[:5])  # First 5 scenes
             ])
         
         previous_context = self.format_previous_results(previous_results, include_phases=[3, 4])

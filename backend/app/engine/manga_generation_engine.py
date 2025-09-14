@@ -19,14 +19,14 @@ from app.core.logging import LoggerMixin
 from app.core.config.settings import get_settings
 from app.domain.manga.entities import MangaProject, GenerationSession
 from app.domain.manga.value_objects import PhaseResult, QualityMetrics
-from app.agents.base_agent import BaseAgent
-from app.agents.phase1_concept import ConceptAnalysisAgent
-from app.agents.phase2_character import CharacterDesignAgent
-from app.agents.phase3_plot import PlotStructureAgent
-from app.agents.phase4_name import NameGenerationAgent
-from app.agents.phase5_image import ImageGenerationAgent
-from app.agents.phase6_dialogue import DialoguePlacementAgent
-from app.agents.phase7_integration import FinalIntegrationAgent
+from app.agents.base.agent import BaseAgent
+from app.agents.phases.phase1_concept.agent import Phase1ConceptAgent
+from app.agents.phases.phase2_character.agent import Phase2CharacterAgent
+from app.agents.phases.phase3_story.agent import Phase3StoryAgent
+from app.agents.phases.phase4_name.agent import Phase4NameAgent
+from app.agents.phases.phase5_image.agent import Phase5ImageAgent
+from app.agents.phases.phase6_dialogue.agent import Phase6DialogueAgent
+from app.agents.phases.phase7_integration import Phase7IntegrationAgent as FinalIntegrationAgent
 from .hitl_manager import HITLManager
 from .quality_gate import QualityGateSystem
 from .version_manager import VersionManager
@@ -112,12 +112,12 @@ class MangaGenerationEngine(LoggerMixin):
     def _initialize_phase_agents(self):
         """Initialize all phase processing agents."""
         phase_configs = {
-            1: (ConceptAnalysisAgent, "concept_analysis"),
-            2: (CharacterDesignAgent, "character_design"),
-            3: (PlotStructureAgent, "plot_structure"),
-            4: (NameGenerationAgent, "name_generation"),
-            5: (ImageGenerationAgent, "image_generation"),
-            6: (DialoguePlacementAgent, "dialogue_placement"),
+            1: (Phase1ConceptAgent, "concept_analysis"),
+            2: (Phase2CharacterAgent, "character_design"),
+            3: (Phase3StoryAgent, "plot_structure"),
+            4: (Phase4NameAgent, "name_generation"),
+            5: (Phase5ImageAgent, "image_generation"),
+            6: (Phase6DialogueAgent, "dialogue_placement"),
             7: (FinalIntegrationAgent, "final_integration")
         }
         

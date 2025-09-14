@@ -1,7 +1,7 @@
 """Phase processing agents."""
 
-from app.agents.base_agent import BaseAgent
-from app.agents.phase1_concept import Phase1ConceptAgent
+from app.agents.base.agent import BaseAgent
+from app.agents.phases.phase1_concept.agent import Phase1ConceptAgent
 
 __all__ = [
     "BaseAgent",

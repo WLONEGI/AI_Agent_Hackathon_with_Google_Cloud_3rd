@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict, Any, Optional
 import json
 import jwt
+import uuid
 from datetime import datetime
 
 from app.core.database import get_db
@@ -30,7 +31,7 @@ async def authenticate_websocket_user(token: str, db: AsyncSession) -> Optional[
         
         if not user:
             user = User(
-                id="00000000-0000-0000-0000-000000000123",
+                id=str(uuid.uuid4()),
                 email="dev@example.com",
                 username="dev-user",
                 display_name="Development User",
@@ -84,14 +85,21 @@ async def websocket_generation_endpoint(
     - 'ping': Heartbeat ping
     """
     
+    import logging
+    logger = logging.getLogger(__name__)
+    
     websocket_service = WebSocketService()
     user: Optional[User] = None
     
+    logger.info(f"WebSocket connection attempt for session {session_id} with token: {token[:20] if token else 'None'}...")
+    
     await websocket.accept()
+    logger.info(f"WebSocket accepted for session {session_id}")
     
     try:
         # Authentication via query parameter (Design Document Compliant)
         if not token:
+            logger.warning(f"No token provided for session {session_id}")
             await websocket.send_json({
                 "type": "auth_required",
                 "data": {
@@ -102,9 +110,11 @@ async def websocket_generation_endpoint(
             await websocket.close(code=1008)
             return
         
+        logger.info(f"Authenticating user for session {session_id}")
         # Authenticate user via JWT token
         user = await authenticate_websocket_user(token, db)
         if not user:
+            logger.warning(f"Authentication failed for session {session_id}")
             await websocket.send_json({
                 "type": "auth_required",
                 "data": {
@@ -115,7 +125,7 @@ async def websocket_generation_endpoint(
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
         
-        # Already authenticated via token parameter above
+        logger.info(f"User authenticated: {user.id} for session {session_id}")
         
         # Send authentication confirmation
         await websocket.send_json({
@@ -124,11 +134,14 @@ async def websocket_generation_endpoint(
             "session_id": session_id,
             "timestamp": datetime.utcnow().isoformat()
         })
+        logger.info(f"Authentication confirmation sent for session {session_id}")
         
         # Verify user has access to this session
         from app.models.manga import MangaSession
+        logger.info(f"Checking session access for {session_id}")
         session = await db.get(MangaSession, session_id)
         if not session:
+            logger.warning(f"Session not found: {session_id}")
             await websocket.send_json({
                 "type": "error",
                 "code": "SESSION_NOT_FOUND",
@@ -137,7 +150,9 @@ async def websocket_generation_endpoint(
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
             
-        if session.user_id != user.id:
+        logger.info(f"Session found: {session_id}, user_id: {session.user_id}, connected_user: {user.id}")
+        if str(session.user_id) != str(user.id):
+            logger.warning(f"Access denied for session {session_id}: session.user_id={session.user_id}, user.id={user.id}")
             await websocket.send_json({
                 "type": "error", 
                 "code": "ACCESS_DENIED",
@@ -146,6 +161,7 @@ async def websocket_generation_endpoint(
             await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
             return
         
+        logger.info(f"Starting WebSocket connection handling for session {session_id}")
         # Handle the connection
         await websocket_service.handle_connection(
             websocket=websocket,
@@ -155,9 +171,11 @@ async def websocket_generation_endpoint(
         
     except WebSocketDisconnect:
         # Clean disconnection
+        logger.info(f"WebSocket disconnected cleanly for session {session_id}")
         pass
     except Exception as e:
         # Unexpected error
+        logger.error(f"WebSocket error for session {session_id}: {e}", exc_info=True)
         try:
             await websocket.send_json({
                 "type": "error",
@@ -165,10 +183,9 @@ async def websocket_generation_endpoint(
                 "message": "Internal server error",
                 "timestamp": datetime.utcnow().isoformat()
             })
-        except Exception as e:
+        except Exception as cleanup_error:
             # Log the specific error for debugging
-            import logging
-            logging.error(f"WebSocket error during cleanup: {e}")
+            logger.error(f"WebSocket error during cleanup for session {session_id}: {cleanup_error}")
         finally:
             await websocket.close(code=status.WS_1011_INTERNAL_ERROR)
 

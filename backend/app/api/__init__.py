@@ -1,8 +1,7 @@
 """API endpoints."""
 
-from app.api import health, manga
+from app.api import health
 
 __all__ = [
-    "health",
-    "manga"
+    "health"
 ]

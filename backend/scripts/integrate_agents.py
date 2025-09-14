@@ -142,7 +142,7 @@ def main():
     
     # Phase configurations
     phases_to_update = [
-        {"number": 3, "file": "phase3_plot.py"},
+        {"number": 3, "file": "phase3_story.py"},
         {"number": 4, "file": "phase4_name.py"},
         {"number": 6, "file": "phase6_dialogue.py"},
         {"number": 7, "file": "phase7_integration.py"}

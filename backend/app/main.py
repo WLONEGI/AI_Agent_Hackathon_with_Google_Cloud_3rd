@@ -12,7 +12,7 @@ from app.core.database import init_db, close_db
 from app.core.redis_client import redis_manager
 from app.core.logging import setup_logging
 from app.core.firebase import initialize_firebase
-from app.api import manga, health
+from app.api import health
 from app.api.v1 import api_router as api_v1_router, websocket_router_v1
 from app.api.v1.error_handlers import (
     api_error_handler,
@@ -138,17 +138,10 @@ app.add_exception_handler(Exception, generic_exception_handler)
 # Include routers
 app.include_router(health.router, tags=["health"])
 
-# Legacy v0 routes (for backward compatibility)
-app.include_router(manga.router, prefix=f"{settings.api_prefix}/manga", tags=["manga-legacy"])
 
 # New v1 API routes
 app.include_router(api_v1_router, prefix=settings.api_prefix, tags=["api-v1"])
 
-# Development API routes (temporarily enabled for testing)
-# Enable mock routes for development testing
-if True:  # Always enable for development testing
-    from app.api.v1.manga_mock import router as manga_mock_router
-    app.include_router(manga_mock_router, prefix=f"{settings.api_prefix}", tags=["manga-mock"])
 
 # WebSocket routes
 app.include_router(websocket_router_v1, tags=["websocket-v1"])

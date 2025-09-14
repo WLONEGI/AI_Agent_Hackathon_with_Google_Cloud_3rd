@@ -9,14 +9,14 @@ from enum import Enum
 from dataclasses import dataclass, field
 from concurrent.futures import ThreadPoolExecutor
 
-from app.agents.base_agent import BaseAgent
-from app.agents.phase1_concept import Phase1ConceptAgent
-from app.agents.phase2_character import Phase2CharacterAgent
-from app.agents.phase3_story import Phase3StoryAgent
-from app.agents.phase4_name import Phase4NameAgent
-from app.agents.phase5_image import Phase5ImageAgent
-from app.agents.phase6_dialogue import Phase6DialogueAgent
-from app.agents.phase7_integration import Phase7IntegrationAgent
+from app.agents.base.agent import BaseAgent
+from app.agents.phases.phase1_concept.agent import Phase1ConceptAgent
+from app.agents.phases.phase2_character.agent import Phase2CharacterAgent
+from app.agents.phases.phase3_story.agent import Phase3StoryAgent
+from app.agents.phases.phase4_name.agent import Phase4NameAgent
+from app.agents.phases.phase5_image.agent import Phase5ImageAgent
+from app.agents.phases.phase6_dialogue.agent import Phase6DialogueAgent
+from app.agents.phases.phase7_integration import Phase7IntegrationAgent
 from app.core.config import settings
 from app.core.logging import LoggerMixin
 from app.models.manga import MangaSession, PhaseResult

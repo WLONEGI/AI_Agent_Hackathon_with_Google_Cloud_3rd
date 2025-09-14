@@ -24,7 +24,7 @@ class PanelLayoutPrompts(BasePromptTemplate):
         
         # Extract Phase 3 results (story structure)
         phase3_result = previous_results.get(3, {}) if previous_results else {}
-        scenes = phase3_result.get("scene_breakdown", [])
+        scenes = phase3_result.get("scenes", [])
         story_structure = phase3_result.get("story_structure", {})
         pacing_analysis = phase3_result.get("pacing_analysis", {})
         

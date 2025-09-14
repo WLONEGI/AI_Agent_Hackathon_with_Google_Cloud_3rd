@@ -39,7 +39,7 @@ class ConnectionManager:
         user_id: str
     ) -> None:
         """新規接続の確立"""
-        await websocket.accept()
+        # WebSocketは既にエンドポイントでaccept済みのため、ここではacceptしない
         
         # 既存接続がある場合は切断
         if session_id in self.active_connections:
@@ -123,6 +123,7 @@ class WebSocketService(LoggerMixin):
         
         # メッセージタイプの定義
         self.message_types = {
+            "start_generation": self._handle_start_generation,
             "phase_update": self._handle_phase_update,
             "hitl_feedback": self._handle_hitl_feedback,
             "progress_update": self._handle_progress_update,
@@ -160,22 +161,195 @@ class WebSocketService(LoggerMixin):
         
         try:
             while True:
-                # メッセージ受信
-                data = await websocket.receive_json()
-                self.connection_manager.stats["messages_received"] += 1
-                
-                # メッセージ処理
-                await self._process_message(session_id, data)
+                # メッセージ受信（タイムアウト付き）
+                try:
+                    data = await websocket.receive_json()
+                    self.connection_manager.stats["messages_received"] += 1
+                    
+                    # メッセージ処理
+                    await self._process_message(session_id, data)
+                    
+                except Exception as msg_error:
+                    self.logger.warning(f"Message processing error: {msg_error}", session_id=session_id)
+                    # メッセージ処理エラーの場合は接続を維持
+                    continue
                 
         except WebSocketDisconnect:
             self.logger.info(f"WebSocket disconnected: {session_id}")
         except Exception as e:
-            self.logger.error(f"WebSocket error: {e}", session_id=session_id)
+            self.logger.error(f"WebSocket connection error: {e}", session_id=session_id)
         finally:
             # クリーンアップ
             self.connection_manager.disconnect(session_id, user_id)
             if session_id in self.active_sessions:
                 del self.active_sessions[session_id]
+
+    async def handle_phase_connection(
+        self,
+        websocket: WebSocket,
+        session_id: str,
+        phase_number: int,
+        user_id: str
+    ) -> None:
+        """Phase固有のWebSocket接続のハンドリング"""
+        
+        await self.connection_manager.connect(websocket, f"{session_id}_phase_{phase_number}", user_id)
+        
+        # Phase固有のセッション情報の初期化
+        phase_session_id = f"{session_id}_phase_{phase_number}"
+        self.active_sessions[phase_session_id] = {
+            "user_id": user_id,
+            "session_id": session_id,
+            "phase_number": phase_number,
+            "connected_at": datetime.utcnow(),
+            "current_phase": phase_number,
+            "feedback_pending": False
+        }
+        
+        try:
+            while True:
+                # メッセージ受信（タイムアウト付き）
+                try:
+                    data = await websocket.receive_json()
+                    self.connection_manager.stats["messages_received"] += 1
+                    
+                    # Phase固有のメッセージ処理
+                    await self._process_phase_message(phase_session_id, phase_number, data)
+                    
+                except Exception as msg_error:
+                    self.logger.warning(f"Phase message processing error: {msg_error}", session_id=phase_session_id)
+                    continue
+                
+        except WebSocketDisconnect:
+            self.logger.info(f"Phase WebSocket disconnected: {phase_session_id}")
+        except Exception as e:
+            self.logger.error(f"Phase WebSocket connection error: {e}", session_id=phase_session_id)
+        finally:
+            # クリーンアップ
+            self.connection_manager.disconnect(phase_session_id, user_id)
+            if phase_session_id in self.active_sessions:
+                del self.active_sessions[phase_session_id]
+
+    async def handle_global_user_connection(
+        self,
+        websocket: WebSocket,
+        user_id: str
+    ) -> None:
+        """Global user用のWebSocket接続のハンドリング"""
+        
+        global_session_id = f"global_{user_id}"
+        await self.connection_manager.connect(websocket, global_session_id, user_id)
+        
+        # Global user情報の初期化
+        self.active_sessions[global_session_id] = {
+            "user_id": user_id,
+            "connected_at": datetime.utcnow(),
+            "session_type": "global",
+            "current_phase": 0,
+            "feedback_pending": False
+        }
+        
+        try:
+            while True:
+                # メッセージ受信（タイムアウト付き）
+                try:
+                    data = await websocket.receive_json()
+                    self.connection_manager.stats["messages_received"] += 1
+                    
+                    # Global user用のメッセージ処理
+                    await self._process_global_message(global_session_id, data)
+                    
+                except Exception as msg_error:
+                    self.logger.warning(f"Global message processing error: {msg_error}", session_id=global_session_id)
+                    continue
+                
+        except WebSocketDisconnect:
+            self.logger.info(f"Global WebSocket disconnected: {global_session_id}")
+        except Exception as e:
+            self.logger.error(f"Global WebSocket connection error: {e}", session_id=global_session_id)
+        finally:
+            # クリーンアップ
+            self.connection_manager.disconnect(global_session_id, user_id)
+            if global_session_id in self.active_sessions:
+                del self.active_sessions[global_session_id]
+
+    async def _process_phase_message(self, session_id: str, phase_number: int, data: Dict[str, Any]) -> None:
+        """Phase固有のメッセージ処理"""
+        message_type = data.get("type", "")
+        
+        if message_type == "phase_feedback":
+            await self._handle_phase_feedback(session_id, phase_number, data.get("data", {}))
+        elif message_type == "phase_progress_request":
+            await self._handle_phase_progress_request(session_id, phase_number)
+        elif message_type == "ping":
+            await self._handle_ping(session_id)
+        else:
+            self.logger.warning(f"Unknown phase message type: {message_type}", session_id=session_id)
+
+    async def _process_global_message(self, session_id: str, data: Dict[str, Any]) -> None:
+        """Global user用のメッセージ処理"""
+        message_type = data.get("type", "")
+        
+        if message_type == "subscribe_notifications":
+            await self._handle_subscribe_notifications(session_id, data.get("data", {}))
+        elif message_type == "ping":
+            await self._handle_ping(session_id)
+        else:
+            self.logger.warning(f"Unknown global message type: {message_type}", session_id=session_id)
+
+    async def _handle_phase_feedback(self, session_id: str, phase_number: int, feedback_data: Dict[str, Any]) -> None:
+        """Phase固有のフィードバック処理"""
+        self.logger.info(f"Phase {phase_number} feedback received", session_id=session_id)
+        
+        # フィードバックデータをRedisに保存
+        if self.redis_client:
+            await self.redis_client.hset(
+                f"phase_feedback:{session_id}",
+                f"phase_{phase_number}",
+                json.dumps(feedback_data)
+            )
+        
+        # フィードバック受信確認を送信
+        await self.connection_manager.send_message(session_id, {
+            "type": "feedback_received",
+            "phase_number": phase_number,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
+    async def _handle_phase_progress_request(self, session_id: str, phase_number: int) -> None:
+        """Phase固有の進捗リクエスト処理"""
+        # 進捗情報をRedisから取得
+        progress_data = {"phase_number": phase_number, "status": "in_progress"}
+        
+        if self.redis_client:
+            cached_progress = await self.redis_client.hget(f"phase_progress:{session_id}", f"phase_{phase_number}")
+            if cached_progress:
+                progress_data.update(json.loads(cached_progress))
+        
+        await self.connection_manager.send_message(session_id, {
+            "type": "phase_progress_update",
+            "data": progress_data,
+            "timestamp": datetime.utcnow().isoformat()
+        })
+
+    async def _handle_subscribe_notifications(self, session_id: str, subscription_data: Dict[str, Any]) -> None:
+        """通知購読処理"""
+        self.logger.info(f"Notification subscription: {subscription_data}", session_id=session_id)
+        
+        # 購読情報をRedisに保存
+        if self.redis_client:
+            await self.redis_client.hset(
+                f"notifications:{session_id}",
+                "subscriptions",
+                json.dumps(subscription_data)
+            )
+        
+        # 購読確認を送信
+        await self.connection_manager.send_message(session_id, {
+            "type": "subscription_confirmed",
+            "subscriptions": subscription_data,
+            "timestamp": datetime.utcnow().isoformat()
+        })
     
     async def _process_message(
         self,
@@ -190,10 +364,9 @@ class WebSocketService(LoggerMixin):
             handler = self.message_types[msg_type]
             await handler(session_id, message)
         else:
-            await self._send_error(
-                session_id,
-                f"Unknown message type: {msg_type}"
-            )
+            # 未対応のメッセージタイプはログ出力のみで、接続は維持
+            self.logger.info(f"Unhandled message type: {msg_type}", session_id=session_id, message=message)
+            # エラー応答は送信しないことで接続維持
     
     async def _handle_phase_update(
         self,
@@ -390,6 +563,43 @@ class WebSocketService(LoggerMixin):
                 "type": "pong",
                 "timestamp": datetime.utcnow().isoformat()
             }
+        )
+    
+    async def _handle_start_generation(
+        self,
+        session_id: str,
+        message: Dict[str, Any]
+    ) -> None:
+        """生成開始メッセージの処理"""
+        
+        text = message.get("data", {}).get("text", "")
+        
+        self.logger.info(
+            f"Generation start request received",
+            session_id=session_id,
+            text_length=len(text)
+        )
+        
+        # セッション開始確認メッセージを送信
+        await self.connection_manager.send_message(
+            session_id,
+            {
+                "type": "session_start",
+                "data": {"sessionId": session_id},
+                "timestamp": datetime.utcnow().isoformat()
+            }
+        )
+        
+        # IntegratedAIServiceに処理を委譲するため、Redisにリクエストをキュー
+        request_key = f"generation:request:{session_id}"
+        await self.redis_client.set(
+            request_key,
+            json.dumps({
+                "text": text,
+                "session_id": session_id,
+                "requested_at": datetime.utcnow().isoformat()
+            }),
+            ttl=300  # 5分のTTL
         )
     
     async def _send_connection_established(self, session_id: str) -> None:

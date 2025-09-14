@@ -38,6 +38,11 @@ from app.schemas.pipeline_schemas import (
     HITLFeedback
 )
 # エージェントインポートは遅延読み込みで実装
+# 型チェック用インポート
+try:
+    from app.agents.phases.phase5_image.agent import Phase5ImageAgent
+except ImportError:
+    Phase5ImageAgent = None
 
 
 class IntegratedAIService(LoggerMixin):
@@ -50,13 +55,13 @@ class IntegratedAIService(LoggerMixin):
         # フェーズエージェントの遅延読み込み用辞書
         self.agents = {}
         self._agent_classes = {
-            1: 'app.agents.phase1_concept.Phase1ConceptAgent',
-            2: 'app.agents.phase2_character.Phase2CharacterAgent', 
-            3: 'app.agents.phase3_story.Phase3StoryAgent',
+            1: 'app.agents.phases.phase1_concept.agent.Phase1ConceptAgent',
+            2: 'app.agents.phases.phase2_character.agent.Phase2CharacterAgent',
+            3: 'app.agents.phases.phase3_story.agent.Phase3StoryAgent',
             4: 'app.agents.phase4_name.Phase4NameAgent',
-            5: 'app.agents.phase5_image.Phase5ImageAgent',
+            5: 'app.agents.phases.phase5_image.agent.Phase5ImageAgent',
             6: 'app.agents.phase6_dialogue.Phase6DialogueAgent',
-            7: 'app.agents.phase7_integration.Phase7IntegrationAgent'
+            7: 'app.agents.phases.phase7_integration.agent.Phase7IntegrationAgent'
         }
         
         # フェーズ設定
@@ -222,10 +227,7 @@ class IntegratedAIService(LoggerMixin):
                                 quality_gate_result = retry_result["quality_gate"]
                     
                     # パイプライン状態の更新
-                    pipeline_state.phase_results.append({
-                        "phase_num": phase_num,
-                        "result": phase_result
-                    })
+                    pipeline_state.phase_results[phase_num] = phase_result
                     pipeline_state.accumulated_context[f"quality_score_phase_{phase_num}"] = quality_gate_result["quality_score"]
                     
                     # フェーズ完了通知
@@ -394,7 +396,7 @@ class IntegratedAIService(LoggerMixin):
         """並列処理対応フェーズの実行（Phase 5用）"""
         
         # Phase 5の特殊処理
-        if isinstance(agent, Phase5ImageAgent):
+        if Phase5ImageAgent and isinstance(agent, Phase5ImageAgent):
             # 並列画像生成の実行
             return await agent.process_phase_parallel(
                 phase_input.model_dump(),
@@ -621,8 +623,8 @@ class IntegratedAIService(LoggerMixin):
     ) -> PhaseInput:
         """フェーズ入力データの準備"""
         
-        # 前フェーズの結果をリスト形式で準備
-        previous_results = pipeline_state.phase_results.copy()
+        # 前フェーズの結果を辞書形式で準備（フェーズ番号をキーとして）
+        previous_results = pipeline_state.phase_results if pipeline_state.phase_results else None
         
         # accumulated_contextに元のテキストを含める（Phase 1で必要）
         accumulated_context = pipeline_state.accumulated_context.copy()
@@ -661,8 +663,8 @@ class IntegratedAIService(LoggerMixin):
         # Convert string user_id to UUID for database compatibility
         user_uuid = uuid5(NAMESPACE_DNS, str(user_id))
         
+        # Let MangaSession model auto-generate ID to avoid UNIQUE constraint failures
         manga_session = MangaSession(
-            id=session_id,
             user_id=user_uuid,
             input_text=user_input,
             status=GenerationStatus.PROCESSING,

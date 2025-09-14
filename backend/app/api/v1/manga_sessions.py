@@ -204,10 +204,8 @@ async def generate_manga(
     from uuid import UUID
     from datetime import datetime, timedelta
     
-    # Create MangaSession in database
-    session_uuid = str(uuid.uuid4())
+    # Create MangaSession in database with auto-generated ID
     session = MangaSession(
-        id=session_uuid,
         user_id=current_user.id if current_user else UUID("00000000-0000-0000-0000-000000000123"),
         title=request.title,
         input_text=request.text,
@@ -454,10 +452,8 @@ async def dev_generate_manga(
         await db.commit()
         await db.refresh(dev_user)
     
-    # Create MangaSession in database
-    session_uuid = str(uuid.uuid4())
+    # Create MangaSession in database with auto-generated ID
     session = MangaSession(
-        id=session_uuid,
         user_id=dev_user.id,
         title=request.title,
         input_text=request.text,
@@ -550,9 +546,9 @@ async def _process_manga_generation_simple(
             try:
                 async for update in integrated_service.generate_manga(
                     user_input=input_text,
-                    user_id=uuid.UUID(user_id),
+                    user_id=user_id,  # Pass as string, not UUID object
                     db=db,
-                    session_id=uuid.UUID(session_id),  # Convert string UUID to UUID object
+                    session_id=session_id,  # Pass session_id as string
                     enable_hitl=enable_hitl
                 ):
                     phase_num = update.get('phase')
@@ -578,7 +574,7 @@ async def _process_manga_generation_simple(
                             preview_data=preview_data
                         )
                 
-                # Send completion notification
+                # Send completion notification after async for loop completes
                 await websocket_service.send_generation_completed(
                     session_id=session_id,
                     output_data={"status": "completed", "session_id": session_id},

@@ -15,13 +15,13 @@ from app.models.manga import PhaseResult, GenerationStatus
 from app.schemas.pipeline_schemas import PhaseInput, PhaseOutput, PipelineState
 
 # Phase agents
-from app.agents.phase1_concept import Phase1ConceptAgent
-from app.agents.phase2_character import Phase2CharacterAgent
-from app.agents.phase3_plot import Phase3PlotAgent
-from app.agents.phase4_name import Phase4NameAgent
-from app.agents.phase5_image import Phase5ImageAgent
-from app.agents.phase6_dialogue import Phase6DialogueAgent
-from app.agents.phase7_integration import Phase7IntegrationAgent
+from app.agents.phases.phase1_concept.agent import Phase1ConceptAgent
+from app.agents.phases.phase2_character.agent import Phase2CharacterAgent
+from app.agents.phases.phase3_story.agent import Phase3StoryAgent
+from app.agents.phases.phase4_name.agent import Phase4NameAgent
+from app.agents.phases.phase5_image.agent import Phase5ImageAgent
+from app.agents.phases.phase6_dialogue.agent import Phase6DialogueAgent
+from app.agents.phases.phase7_integration.agent import Phase7IntegrationAgent
 
 # Services
 from app.services.session_manager_service import SessionManagerService
@@ -40,7 +40,7 @@ class MangaGenerationOrchestrator(LoggerMixin):
         self.phase_agents = {
             1: Phase1ConceptAgent(),
             2: Phase2CharacterAgent(),
-            3: Phase3PlotAgent(),
+            3: Phase3StoryAgent(),
             4: Phase4NameAgent(),
             5: Phase5ImageAgent(),
             6: Phase6DialogueAgent(),
@@ -54,7 +54,7 @@ class MangaGenerationOrchestrator(LoggerMixin):
         self.preview_service = PreviewGenerationService()
         
         # パイプライン設定
-        self.parallel_phases = {2, 3, 5}  # 並列実行可能フェーズ
+        self.parallel_phases = set()  # 並列実行可能フェーズ（一時的に無効化）
         self.hitl_required_phases = {2, 4, 5}  # HITL必須フェーズ
     
     async def generate_manga(
@@ -81,8 +81,8 @@ class MangaGenerationOrchestrator(LoggerMixin):
                 session_id=session_id,
                 user_id=user_id,
                 current_phase=1,
-                phase_results=[],
-                accumulated_context={"initial_prompt": initial_prompt}
+                phase_results={},
+                accumulated_context={"text": initial_prompt, "initial_prompt": initial_prompt, "user_preferences": user_preferences}
             )
             
             # 全7フェーズを順次実行
@@ -107,7 +107,7 @@ class MangaGenerationOrchestrator(LoggerMixin):
                     phase_result = retry_result
                 
                 # 結果をパイプライン状態に追加
-                pipeline_state.phase_results.append(phase_result)
+                pipeline_state.phase_results[phase_num] = phase_result
                 pipeline_state.current_phase = phase_num + 1
                 
                 # セッション状態更新
@@ -170,7 +170,11 @@ class MangaGenerationOrchestrator(LoggerMixin):
             if phase_num in self.parallel_phases:
                 phase_output = await self._execute_parallel_phase(agent, phase_input)
             else:
-                phase_output = await agent.execute(phase_input)
+                phase_output = await agent.process_phase(
+                    input_data=phase_input.accumulated_context,
+                    session_id=phase_input.session_id,
+                    previous_results=phase_input.previous_results
+                )
             
             # 処理時間計算
             processing_time = time.time() - start_time
@@ -190,17 +194,13 @@ class MangaGenerationOrchestrator(LoggerMixin):
             quality_score = await self.quality_service.assess_phase_quality(
                 phase_output, phase_num
             )
-            
-            # 結果の構築
-            result = {
-                "phase_number": phase_num,
-                "content": phase_output.dict() if hasattr(phase_output, 'dict') else phase_output,
-                "quality_score": quality_score,
-                "processing_time_seconds": processing_time,
-                "timestamp": datetime.utcnow().isoformat(),
-                "agent_type": agent.__class__.__name__
-            }
-            
+
+            # BaseAgentのprocess_phaseからの完全な結果を使用
+            result = phase_output
+            # 品質評価スコアを追加
+            result["quality_score"] = quality_score
+            result["agent_type"] = agent.__class__.__name__
+
             # フェーズ結果の保存
             await self._save_phase_result(pipeline_state.session_id, result, db)
             
@@ -272,7 +272,7 @@ class MangaGenerationOrchestrator(LoggerMixin):
             session_id=pipeline_state.session_id,
             user_id=pipeline_state.user_id,
             phase_number=phase_num,
-            previous_results=pipeline_state.phase_results,
+            previous_results=pipeline_state.phase_results if pipeline_state.phase_results else None,
             accumulated_context=pipeline_state.accumulated_context,
             user_preferences=pipeline_state.accumulated_context.get("user_preferences", {})
         )
@@ -287,11 +287,13 @@ class MangaGenerationOrchestrator(LoggerMixin):
         phase_result = PhaseResult(
             session_id=session_id,
             phase_number=result["phase_number"],
-            result=result["content"],
-            quality_score=result["quality_score"],
-            processing_time_seconds=result["processing_time_seconds"],
-            status="completed",
-            completed_at=datetime.utcnow()
+            phase_name=result["phase_name"],
+            input_data=result.get("input_data", {}),
+            output_data=result["output"],
+            preview_data=result.get("preview", {}),
+            processing_time_ms=int(result["processing_time"] * 1000),
+            quality_score=result.get("quality_score", 0.0),
+            status=result["status"]
         )
         
         db.add(phase_result)

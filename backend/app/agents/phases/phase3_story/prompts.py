@@ -130,11 +130,11 @@ class StoryStructurePrompts(BasePromptTemplate):
         """Get validation prompt to check story structure quality."""
         
         story_structure = result.get("story_structure", {})
-        scene_breakdown = result.get("scene_breakdown", [])
+        scenes = result.get("scenes", [])
         plot_progression = result.get("plot_progression", {})
         
         structure_type = story_structure.get("type", "不明")
-        scene_count = len(scene_breakdown)
+        scene_count = len(scenes)
         estimated_pages = input_data.get("estimated_pages", 8)
         
         return f"""以下のストーリー構成結果を評価してください：
@@ -145,7 +145,7 @@ class StoryStructurePrompts(BasePromptTemplate):
 対象ページ数: {estimated_pages}ページ
 
 ## シーン構成:
-{chr(10).join([f"Scene {s.get('scene_number', i+1)}: {s.get('title', '未定義')} ({s.get('purpose', '目的不明')})" for i, s in enumerate(scene_breakdown[:5])])}
+{chr(10).join([f"Scene {s.get('scene_number', i+1)}: {s.get('title', '未定義')} ({s.get('purpose', '目的不明')})" for i, s in enumerate(scenes[:5])])}
 
 ## 評価基準:
 
@@ -198,7 +198,7 @@ class StoryStructurePrompts(BasePromptTemplate):
         
         return {
             "type": "object",
-            "required": ["story_structure", "plot_progression", "scene_breakdown", "narrative_flow", "pacing_analysis"],
+            "required": ["story_structure", "plot_progression", "scenes", "narrative_flow", "pacing_analysis"],
             "properties": {
                 "story_structure": {
                     "type": "object",
@@ -262,7 +262,7 @@ class StoryStructurePrompts(BasePromptTemplate):
                         }
                     }
                 },
-                "scene_breakdown": {
+                "scenes": {
                     "type": "array",
                     "minItems": 3,
                     "maxItems": 20,

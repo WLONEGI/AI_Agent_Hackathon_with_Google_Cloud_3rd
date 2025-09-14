@@ -44,6 +44,20 @@ class ValidationResult:
         """Add validation warning."""
         self.warnings.append(ValidationError(field, message, "warning", code))
 
+    def add_info(self, field: str, message: str, code: Optional[str] = None):
+        """Add validation info message."""
+        self.warnings.append(ValidationError(field, message, "info", code))
+
+    def merge(self, other: 'ValidationResult'):
+        """Merge another ValidationResult into this one."""
+        self.errors.extend(other.errors)
+        self.warnings.extend(other.warnings)
+        if not other.is_valid:
+            self.is_valid = False
+        # Update score if the other result has a lower score
+        if other.score < self.score:
+            self.score = other.score
+
 
 class BaseValidator(ABC, LoggerMixin):
     """Abstract base class for phase output validation."""
@@ -57,13 +71,8 @@ class BaseValidator(ABC, LoggerMixin):
         super().__init__()
         self.phase_name = phase_name
         
-        # Define required fields for all phases
-        self.required_fields = [
-            "phase_number",
-            "phase_name", 
-            "status",
-            "output"
-        ]
+        # Define required fields for all phases (phase-specific content only)
+        self.required_fields = []
         
         # Define quality metrics weights
         self.quality_weights = {

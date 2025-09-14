@@ -47,8 +47,8 @@ class User(Base):
     
     __tablename__ = "users"
     
-    # Primary key - Firebase UID (string format) not UUID
-    id = Column(String(128), primary_key=True)
+    # Primary key - UUID format compatible with PostgreSQL UUID type
+    id = Column(UUID(as_uuid=False), primary_key=True)
     
     # Authentication fields
     email = Column(String(255), unique=True, nullable=False, index=True)

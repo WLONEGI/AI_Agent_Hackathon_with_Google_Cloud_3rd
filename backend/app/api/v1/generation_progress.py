@@ -95,12 +95,12 @@ async def get_generation_progress(
     current_phase = session.current_phase or 5  # Default to image generation phase
     phase_names = {
         1: "phase1_concept",
-        2: "phase2_character", 
-        3: "phase3_plot",
-        4: "phase4_scene",
+        2: "phase2_character",
+        3: "phase3_story",
+        4: "phase4_name",
         5: "phase5_image",
         6: "phase6_dialogue",
-        7: "phase7_final"
+        7: "phase7_integration"
     }
     
     # Calculate progress based on session status
