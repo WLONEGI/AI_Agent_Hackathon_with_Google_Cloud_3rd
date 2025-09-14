@@ -43,14 +43,13 @@ export class AuthService {
 
   async signInWithBackendMock(): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/google`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/google/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
-          email: 'test@example.com', 
-          password: 'testpassword' 
+        body: JSON.stringify({
+          id_token: 'mock-dev-token'
         }),
       });
 

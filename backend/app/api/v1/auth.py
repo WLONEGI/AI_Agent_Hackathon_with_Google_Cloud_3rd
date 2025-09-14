@@ -10,7 +10,7 @@ import structlog
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.core.firebase import get_firebase_manager, FirebaseManager
+from app.core.firebase_postgresql import get_postgresql_firebase_manager, PostgreSQLFirebaseManager as FirebaseManager
 from app.models.user import User
 from app.api.v1.security import create_access_token, RateLimiter, get_current_active_user as get_current_user, verify_token
 
@@ -47,7 +47,7 @@ async def firebase_google_login(
     request: FirebaseLoginRequest,
     http_request: Request,
     db: AsyncSession = Depends(get_db),
-    firebase_manager: FirebaseManager = Depends(get_firebase_manager)
+    firebase_manager: FirebaseManager = Depends(get_postgresql_firebase_manager)
 ) -> AuthResponse:
     """
     Authenticate user with Firebase ID token (Google OAuth).
@@ -69,21 +69,40 @@ async def firebase_google_login(
         )
     
     try:
-        # Ensure Firebase is initialized
-        if not firebase_manager.is_initialized():
-            import os
-            project_id = os.getenv('FIREBASE_PROJECT_ID', 'comic-ai-agent-470309')
-            credentials_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
-            
-            success = firebase_manager.initialize(project_id, credentials_path)
-            logger.info("Firebase initialization during login", success=success)
-        
-        # Step 1: Verify Firebase ID token
-        decoded_token = await firebase_manager.verify_id_token(request.id_token)
-        
-        firebase_uid = decoded_token['uid']
-        email = decoded_token.get('email')
-        email_verified = decoded_token.get('email_verified', False)
+        # Development Mock Authentication
+        import os
+        if os.getenv('MOCK_GOOGLE_AUTH', 'false').lower() == 'true' and request.id_token == 'mock-dev-token':
+            logger.info("Using mock authentication for development")
+            decoded_token = {
+                'uid': 'a0000000-b000-c000-d000-e00000000001',
+                'email': 'dev@example.com',
+                'email_verified': True
+            }
+            firebase_uid = decoded_token['uid']
+            email = decoded_token.get('email')
+            email_verified = decoded_token.get('email_verified', False)
+            firebase_user = {
+                'display_name': 'Development User',
+                'photo_url': None
+            }
+        else:
+            # Ensure Firebase is initialized
+            if not firebase_manager.is_initialized():
+                project_id = os.getenv('FIREBASE_PROJECT_ID', 'comic-ai-agent-470309')
+                credentials_path = os.getenv('FIREBASE_CREDENTIALS_PATH')
+
+                success = firebase_manager.initialize(project_id, credentials_path)
+                logger.info("Firebase initialization during login", success=success)
+
+            # Step 1: Verify Firebase ID token
+            decoded_token = await firebase_manager.verify_id_token(request.id_token)
+
+            firebase_uid = decoded_token['uid']
+            email = decoded_token.get('email')
+            email_verified = decoded_token.get('email_verified', False)
+
+            # Step 2: Get detailed user info from Firebase
+            firebase_user = await firebase_manager.get_user(firebase_uid)
         
         if not email_verified:
             raise HTTPException(
@@ -98,6 +117,11 @@ async def firebase_google_login(
         
         # Step 3: Find or create user in local database
         user = await db.get(User, firebase_uid)
+
+        # If user not found by ID, also check by email (for existing users with different UIDs)
+        if not user and email:
+            result = await db.execute(select(User).where(User.email == email))
+            user = result.scalar_one_or_none()
         
         if not user:
             # Create username from email
@@ -216,7 +240,7 @@ async def refresh_access_token(
     request: RefreshTokenRequest,
     http_request: Request,
     db: AsyncSession = Depends(get_db),
-    firebase_manager: FirebaseManager = Depends(get_firebase_manager)
+    firebase_manager: FirebaseManager = Depends(get_postgresql_firebase_manager)
 ) -> AuthResponse:
     """
     Refresh access token using refresh token.
@@ -289,7 +313,7 @@ async def refresh_access_token(
 @router.post("/auth/logout")
 async def logout(
     http_request: Request,
-    firebase_manager: FirebaseManager = Depends(get_firebase_manager)
+    firebase_manager: FirebaseManager = Depends(get_postgresql_firebase_manager)
 ):
     """
     Logout user (client should delete tokens).
@@ -312,7 +336,7 @@ async def logout(
 @router.get("/auth/me")
 async def get_current_user_info(
     current_user: User = Depends(get_current_user),
-    firebase_manager: FirebaseManager = Depends(get_firebase_manager)
+    firebase_manager: FirebaseManager = Depends(get_postgresql_firebase_manager)
 ) -> Dict[str, Any]:
     """
     Get current authenticated user information.
@@ -365,7 +389,7 @@ def _get_user_permissions(account_type: str) -> Dict[str, Any]:
 @router.post("/auth/test/mock")
 async def test_mock_authentication(
     request: FirebaseLoginRequest,
-    firebase_manager: FirebaseManager = Depends(get_firebase_manager)
+    firebase_manager: FirebaseManager = Depends(get_postgresql_firebase_manager)
 ):
     """
     Test mock authentication for development.

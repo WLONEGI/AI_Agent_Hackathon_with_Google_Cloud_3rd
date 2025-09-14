@@ -93,14 +93,13 @@ export const useAuthStore = create<AuthStore>()(
             });
           } else {
             // Development: Use mock authentication
-            response = await fetch(`${apiUrl}/api/v1/auth/google`, {
+            response = await fetch(`${apiUrl}/api/v1/auth/google/login`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: JSON.stringify({ 
-                email: 'test@example.com',
-                password: 'testpassword'
+              body: JSON.stringify({
+                id_token: 'mock-dev-token'
               }),
             });
           }

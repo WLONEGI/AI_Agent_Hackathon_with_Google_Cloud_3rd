@@ -53,8 +53,8 @@ async def lifespan(app: FastAPI):
         # Initialize Firebase (optional for basic service)
         # Fix: Use correct nested settings path
         firebase_initialized = initialize_firebase(
-            settings.firebase_project_id,
-            settings.firebase_credentials_path
+            settings.firebase.firebase_project_id,
+            settings.firebase.firebase_credentials_path
         )
         if firebase_initialized:
             logger.info("Firebase initialized successfully")

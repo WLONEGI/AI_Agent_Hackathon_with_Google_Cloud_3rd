@@ -660,8 +660,8 @@ class IntegratedAIService(LoggerMixin):
     ) -> MangaSession:
         """マンガセッションの作成"""
         
-        # Convert string user_id to UUID for database compatibility
-        user_uuid = uuid5(NAMESPACE_DNS, str(user_id))
+        # Use the provided user_id directly (should already be a valid UUID from dev-generate endpoint)
+        user_uuid = UUID(user_id) if isinstance(user_id, str) else user_id
         
         # Let MangaSession model auto-generate ID to avoid UNIQUE constraint failures
         manga_session = MangaSession(

@@ -274,7 +274,7 @@ class FirebaseManager:
         
         # Check if this is a mock user (development environment)
         is_dev_env = _is_development_environment()
-        if is_dev_env and uid.startswith('mock-'):
+        if is_dev_env and (uid.startswith('mock-') or uid == 'a0000000-b000-c000-d000-e00000000001'):
             logger.info("Getting mock user info for development environment", uid=uid)
             return self._mock_get_user(uid)
         
@@ -305,17 +305,18 @@ class FirebaseManager:
     
     def _mock_get_user(self, uid: str) -> Dict[str, Any]:
         """Mock user data for development."""
-        # Support both original mock-user-id and any mock-* ID
-        if uid == 'mock-user-id' or uid.startswith('mock-'):
+        # Support both original mock-user-id, any mock-* ID, and development UUID
+        if uid == 'mock-user-id' or uid.startswith('mock-') or uid == 'a0000000-b000-c000-d000-e00000000001':
             # Extract number from mock-user-123 format for variety
             user_num = uid.split('-')[-1] if '-' in uid else '1'
-            email = f'mock{user_num}@example.com' if user_num.isdigit() else 'mock@example.com'
-            
+            email = f'mock{user_num}@example.com' if user_num.isdigit() else 'dev@example.com'
+            display_name = f'Mock User {user_num}' if user_num.isdigit() else 'Development User'
+
             return {
                 'uid': uid,
                 'email': email,
                 'email_verified': True,
-                'display_name': f'Mock User {user_num}' if user_num.isdigit() else 'Mock User',
+                'display_name': display_name,
                 'photo_url': None,
                 'disabled': False,
                 'created_at': 1700000000,
