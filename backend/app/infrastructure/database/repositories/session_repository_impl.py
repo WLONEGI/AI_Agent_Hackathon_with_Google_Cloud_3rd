@@ -41,8 +41,8 @@ class SessionRepositoryImpl(SessionRepository):
             total_phases=model.total_phases,
             phase_results=model.phase_results or {},
             quality_scores=model.quality_scores or {},
-            final_quality_score=model.final_quality_score,
-            total_processing_time=model.total_processing_time,
+            quality_score=model.quality_score,
+            total_processing_time_ms=model.total_processing_time_ms,
             preview_url=model.preview_url,
             download_url=model.download_url,
             output_metadata=model.output_metadata or {},
@@ -67,10 +67,10 @@ class SessionRepositoryImpl(SessionRepository):
             "current_phase": entity.current_phase,
             "total_phases": entity.total_phases,
             "phase_results": entity.phase_results,
-            "quality_scores": {k: v.to_dict() if hasattr(v, 'to_dict') else v 
+            "quality_scores": {k: v.to_dict() if hasattr(v, 'to_dict') else v
                              for k, v in entity.quality_scores.items()},
-            "final_quality_score": entity.final_quality_score,
-            "total_processing_time": entity.total_processing_time,
+            "quality_score": entity.quality_score,
+            "total_processing_time_ms": entity.total_processing_time_ms,
             "preview_url": entity.preview_url,
             "download_url": entity.download_url,
             "output_metadata": entity.output_metadata,
@@ -325,7 +325,7 @@ class SessionRepositoryImpl(SessionRepository):
             status_stats[status.value] = result.scalar() or 0
         
         # Average processing time for completed sessions
-        avg_time_stmt = select(func.avg(MangaSessionModel.total_processing_time)).where(
+        avg_time_stmt = select(func.avg(MangaSessionModel.total_processing_time_ms)).where(
             MangaSessionModel.status == SessionStatus.COMPLETED.value
         )
         if user_id:
@@ -356,10 +356,10 @@ class SessionRepositoryImpl(SessionRepository):
         
         stmt = select(MangaSessionModel).where(
             and_(
-                MangaSessionModel.final_quality_score.is_not(None),
-                MangaSessionModel.final_quality_score < threshold
+                MangaSessionModel.quality_score.is_not(None),
+                MangaSessionModel.quality_score < threshold
             )
-        ).order_by(MangaSessionModel.final_quality_score.asc())
+        ).order_by(MangaSessionModel.quality_score.asc())
         
         if limit:
             stmt = stmt.limit(limit)

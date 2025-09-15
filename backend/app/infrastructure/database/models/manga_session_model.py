@@ -45,8 +45,8 @@ class MangaSessionModel(Base):
     output_metadata = Column(JSON, nullable=True)
     
     # Quality metrics
-    final_quality_score = Column(Float, nullable=True)
-    total_processing_time = Column(Float, nullable=True)
+    quality_score = Column(Float, nullable=True)
+    total_processing_time_ms = Column(Integer, nullable=True)
     
     # Output URLs
     preview_url = Column(String(512), nullable=True)
@@ -69,7 +69,7 @@ class MangaSessionModel(Base):
         Index('idx_manga_sessions_user_created', 'user_id', 'created_at'),
         Index('idx_manga_sessions_status_updated', 'status', 'updated_at'),
         Index('idx_manga_sessions_current_phase', 'current_phase'),
-        Index('idx_manga_sessions_quality_score', 'final_quality_score'),
+        Index('idx_manga_sessions_quality_score', 'quality_score'),
         Index('idx_manga_sessions_created_at', 'created_at'),
         Index('idx_manga_sessions_completed_at', 'completed_at'),
     )

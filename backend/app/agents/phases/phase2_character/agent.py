@@ -210,6 +210,8 @@ class Phase2CharacterAgent(BaseAgent):
         phase1_result: Dict[str, Any]
     ) -> Dict[str, Any]:
         """Build structured character output from AI data."""
+        # Force module reload 2025-09-16 - Cache clearing test - Reload trigger
+        # Process character data with validation
 
         # Extract data from Phase 1
         genre_analysis = phase1_result.get("genre_analysis", {})
@@ -221,6 +223,36 @@ class Phase2CharacterAgent(BaseAgent):
         processed_characters = []
 
         for char_data in characters_data:
+            # Validate and fix personality data
+            personality_data = char_data.get("personality", {})
+
+            # Check if personality has required fields
+            if not personality_data.get("main_traits") or not personality_data.get("motivation"):
+                self.logger.warning(f"Incomplete personality for {char_data.get('name', 'unknown')}, creating default personality")
+                # Create default personality with required fields
+                personality_data = {
+                    "main_traits": [
+                        {
+                            "trait": "勇敢",
+                            "strength": 0.8,
+                            "description": "勇敢という特徴を持つ"
+                        },
+                        {
+                            "trait": "親切",
+                            "strength": 0.7,
+                            "description": "親切という特徴を持つ"
+                        }
+                    ],
+                    "motivation": "仲間を守りたい",
+                    "fears": ["失敗への恐れ"],
+                    "strengths": ["勇敢", "親切"],
+                    "weaknesses": ["完璧主義"],
+                    "behavioral_patterns": ["困っている人を見捨てられない"],
+                    "speech_patterns": ["丁寧語を使う"],
+                    "core_values": ["友情", "正義"],
+                    "character_arc": "仲間との絆を深める"
+                }
+
             # Build character profile
             character = {
                 "name": char_data.get("name", "無名"),
@@ -229,7 +261,7 @@ class Phase2CharacterAgent(BaseAgent):
                 "age_group": char_data.get("age_group", AgeGroupType.YOUNG_ADULT.value),
                 "age_specific": char_data.get("age_specific", 18),
                 "appearance": char_data.get("appearance", {}),
-                "personality": char_data.get("personality", {}),
+                "personality": personality_data,
                 "role_importance": char_data.get("role_importance", 0.5),
                 "screen_time_estimate": char_data.get("screen_time_estimate", 0.3),
                 "visual_style_preference": char_data.get("visual_style_preference", VisualStyleType.SHOUNEN.value),
@@ -369,6 +401,36 @@ class Phase2CharacterAgent(BaseAgent):
             enhanced_char["appearance"] = appearance
             enhanced_char["visual_style_preference"] = visual_style.value
             enhanced_char["design_complexity"] = 0.6
+
+            # Validate and fix personality data if needed (same logic as AI-based method)
+            personality_data = enhanced_char.get("personality", {})
+            if not personality_data.get("main_traits") or not personality_data.get("motivation"):
+                self.logger.warning(f"Incomplete personality for {enhanced_char.get('name', 'unknown')} in processor method, creating default personality")
+                # Create default personality with required fields
+                personality_data = {
+                    "main_traits": [
+                        {
+                            "trait": "勇敢",
+                            "strength": 0.8,
+                            "description": "勇敢という特徴を持つ"
+                        },
+                        {
+                            "trait": "親切",
+                            "strength": 0.7,
+                            "description": "親切という特徴を持つ"
+                        }
+                    ],
+                    "motivation": "仲間を守りたい",
+                    "fears": ["失敗への恐れ"],
+                    "strengths": ["勇敢", "親切"],
+                    "weaknesses": ["完璧主義"],
+                    "behavioral_patterns": ["困っている人を見捨てられない"],
+                    "speech_patterns": ["丁寧語を使う"],
+                    "core_values": ["友情", "正義"],
+                    "character_arc": "仲間との絆を深める"
+                }
+                enhanced_char["personality"] = personality_data
+
             enhanced_characters.append(enhanced_char)
 
         # Character summaries for next phases

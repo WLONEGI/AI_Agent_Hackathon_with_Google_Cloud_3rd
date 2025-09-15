@@ -226,14 +226,7 @@ class PipelineExecutionService(LoggerMixin):
         """並列処理対応フェーズの実行"""
         
         # Phase 5の並列処理（画像生成）
-        if hasattr(agent, 'process_phase_parallel'):
-            return await agent.process_phase_parallel(
-                phase_input,
-                session_id,
-                max_workers=5
-            )
-        
-        # デフォルト処理
+        # Phase5ImageAgentは標準のprocess_phaseメソッドを使用
         return await agent.process_phase(phase_input, session_id)
     
     async def _wait_for_feedback(

@@ -71,8 +71,8 @@ class MangaSession:
     
     # Quality and metrics
     quality_scores: Dict[int, QualityScore] = field(default_factory=dict)
-    final_quality_score: Optional[float] = field(default=None)
-    total_processing_time: Optional[float] = field(default=None)
+    quality_score: Optional[float] = field(default=None)
+    total_processing_time_ms: Optional[int] = field(default=None)
     
     # Output and preview
     preview_url: Optional[str] = field(default=None)
@@ -235,17 +235,17 @@ class MangaSession:
         
         # Calculate final quality score
         if self.quality_scores:
-            self.final_quality_score = self._calculate_final_quality()
-        
-        # Calculate total processing time
+            self.quality_score = self._calculate_final_quality()
+
+        # Calculate total processing time in milliseconds
         if self.started_at:
-            self.total_processing_time = (self.completed_at - self.started_at).total_seconds()
+            self.total_processing_time_ms = int((self.completed_at - self.started_at).total_seconds() * 1000)
         
         # Add domain event
         self._add_event(SessionCompletedEvent(
             session_id=self.id,
-            final_quality_score=self.final_quality_score,
-            total_processing_time=self.total_processing_time,
+            quality_score=self.quality_score,
+            total_processing_time_ms=self.total_processing_time_ms,
             timestamp=self.completed_at
         ))
     
@@ -256,9 +256,9 @@ class MangaSession:
         self.completed_at = datetime.utcnow()
         self.updated_at = datetime.utcnow()
         
-        # Calculate processing time even for failed sessions
+        # Calculate processing time even for failed sessions in milliseconds
         if self.started_at:
-            self.total_processing_time = (self.completed_at - self.started_at).total_seconds()
+            self.total_processing_time_ms = int((self.completed_at - self.started_at).total_seconds() * 1000)
         
         # Add domain event
         self._add_event(SessionFailedEvent(
@@ -279,9 +279,9 @@ class MangaSession:
         if reason:
             self.error_message = reason
         
-        # Calculate processing time
+        # Calculate processing time in milliseconds
         if self.started_at:
-            self.total_processing_time = (self.completed_at - self.started_at).total_seconds()
+            self.total_processing_time_ms = int((self.completed_at - self.started_at).total_seconds() * 1000)
         
         # Add domain event
         self._add_event(SessionCancelledEvent(
@@ -447,8 +447,8 @@ class SessionResumedEvent(DomainEvent):
 @dataclass
 class SessionCompletedEvent(DomainEvent):
     session_id: SessionId = field(default=None)
-    final_quality_score: Optional[float] = field(default=None)
-    total_processing_time: Optional[float] = field(default=None)
+    quality_score: Optional[float] = field(default=None)
+    total_processing_time_ms: Optional[int] = field(default=None)
     timestamp: datetime = field(default_factory=datetime.utcnow)
 
 

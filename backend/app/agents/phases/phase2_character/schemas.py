@@ -9,6 +9,7 @@ class CharacterArchetypeType(str, Enum):
     """Character archetype types."""
     PROTAGONIST = "protagonist"
     SIDEKICK = "sidekick"
+    ALLY = "ally"
     MENTOR = "mentor"
     ANTAGONIST = "antagonist"
     LOVE_INTEREST = "love_interest"
@@ -204,6 +205,11 @@ CHARACTER_ARCHETYPES = {
         "keywords": ["相棒", "親友", "サポーター", "助手"],
         "typical_traits": ["忠実", "サポート力", "ユーモア", "専門知識"],
         "role": "主人公を支援し、時に異なる視点を提供する"
+    },
+    CharacterArchetypeType.ALLY: {
+        "keywords": ["仲間", "同盟者", "協力者", "味方"],
+        "typical_traits": ["協調性", "信頼性", "チームワーク", "共通目標"],
+        "role": "主人公と共に目標に向かって行動する協力者"
     },
     CharacterArchetypeType.MENTOR: {
         "keywords": ["師匠", "先生", "ガイド", "賢者"],

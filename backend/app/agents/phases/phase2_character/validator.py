@@ -95,7 +95,7 @@ class Phase2Validator(BaseValidator):
             result.add_error("characters", f"Too few characters: {len(characters)} (minimum: {self.min_characters})")
 
         if len(characters) > self.max_characters:
-            result.add_warning(f"Many characters: {len(characters)} (recommended max: {self.max_characters})")
+            result.add_warning("character_count", f"Many characters: {len(characters)} (recommended max: {self.max_characters})")
 
         # Validate each character
         character_names = set()
@@ -177,7 +177,7 @@ class Phase2Validator(BaseValidator):
         required_appearance_fields = ["hair_color", "eye_color", "height", "build"]
         missing_fields = [field for field in required_appearance_fields if field not in appearance]
         if missing_fields:
-            result.add_warning(f"Character '{char_name}' appearance missing: {missing_fields}")
+            result.add_warning("character_appearance", f"Character '{char_name}' appearance missing: {missing_fields}")
 
         # Validate appearance description completeness
         description_fields = ["hair_style", "clothing_style", "default_expression"]
@@ -202,12 +202,12 @@ class Phase2Validator(BaseValidator):
         # Validate traits structure
         main_traits = personality.get("main_traits", [])
         if isinstance(main_traits, list) and len(main_traits) < 2:
-            result.add_warning(f"Character '{char_name}' has few personality traits: {len(main_traits)}")
+            result.add_warning("character_personality", f"Character '{char_name}' has few personality traits: {len(main_traits)}")
 
         # Check motivation depth
         motivation = personality.get("motivation", "")
         if isinstance(motivation, str) and len(motivation) < 10:
-            result.add_warning(f"Character '{char_name}' has brief motivation description")
+            result.add_warning("character_motivation", f"Character '{char_name}' has brief motivation description")
 
         return result
 
@@ -272,7 +272,7 @@ class Phase2Validator(BaseValidator):
         # Check color palette completeness
         color_palette = style_guide.get("color_palette", {})
         if isinstance(color_palette, dict) and len(color_palette) < 3:
-            result.add_warning("Color palette seems limited (less than 3 colors)")
+            result.add_warning("color_palette", "Color palette seems limited (less than 3 colors)")
 
         return result
 
@@ -297,12 +297,12 @@ class Phase2Validator(BaseValidator):
         # Check recommended archetypes
         missing_recommended = [arch.value for arch in self.recommended_archetypes if arch.value not in archetype_counts]
         if missing_recommended and len(characters) > 2:
-            result.add_warning(f"Consider adding archetypes: {missing_recommended}")
+            result.add_warning("character_archetypes", f"Consider adding archetypes: {missing_recommended}")
 
         # Check for excessive protagonists
         protagonist_count = archetype_counts.get(CharacterArchetypeType.PROTAGONIST.value, 0)
         if protagonist_count > 2:
-            result.add_warning(f"Multiple protagonists detected: {protagonist_count}")
+            result.add_warning("character_balance", f"Multiple protagonists detected: {protagonist_count}")
         elif protagonist_count == 0:
             result.add_error("No protagonist character found")
 
@@ -320,12 +320,12 @@ class Phase2Validator(BaseValidator):
         # Check character count consistency
         actual_count = len(characters)
         if actual_count != total_characters:
-            result.add_warning(f"Character count mismatch: actual={actual_count}, reported={total_characters}")
+            result.add_warning("character_consistency", f"Character count mismatch: actual={actual_count}, reported={total_characters}")
 
         # Check character summaries consistency
         character_summaries = output_data.get("character_summaries", [])
         if len(character_summaries) != actual_count:
-            result.add_warning(f"Character summaries count mismatch: summaries={len(character_summaries)}, characters={actual_count}")
+            result.add_warning("character_summaries", f"Character summaries count mismatch: summaries={len(character_summaries)}, characters={actual_count}")
 
         # Validate generation metadata
         timestamp = output_data.get("generation_timestamp")

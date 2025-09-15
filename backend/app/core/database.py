@@ -75,6 +75,11 @@ async def close_db() -> None:
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """Get database session for dependency injection."""
+    if MOCK_DATABASE or AsyncSessionLocal is None:
+        # Mock mode - yield None as session
+        yield None
+        return
+
     async with AsyncSessionLocal() as session:
         try:
             yield session

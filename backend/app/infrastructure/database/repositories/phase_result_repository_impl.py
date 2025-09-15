@@ -54,7 +54,7 @@ class PhaseResultRepositoryImpl(PhaseResultRepository):
             memory_usage_mb=model.memory_usage_mb,
             api_call_count=model.api_call_count,
             cache_hit_count=model.cache_hit_count,
-            metadata=model.metadata or {},
+            metadata=model.phase_metadata or {},
             created_at=model.created_at,
             updated_at=model.updated_at
         )
@@ -87,7 +87,6 @@ class PhaseResultRepositoryImpl(PhaseResultRepository):
             "memory_usage_mb": entity.memory_usage_mb,
             "api_call_count": entity.api_call_count,
             "cache_hit_count": entity.cache_hit_count,
-            "metadata": entity.metadata,
             "created_at": entity.created_at,
             "updated_at": entity.updated_at
         }

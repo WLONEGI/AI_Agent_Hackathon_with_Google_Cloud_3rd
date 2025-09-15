@@ -18,13 +18,13 @@ from app.core.config import settings
 from app.core.logging import LoggerMixin
 from app.core.redis_client import redis_manager
 from app.models.manga import (
-    MangaSession, 
-    PhaseResult, 
+    MangaSession,
     PreviewVersion,
     UserFeedback,
     GeneratedImage,
     GenerationStatus
 )
+from app.infrastructure.database.models.phase_result_model import PhaseResultModel
 from app.models.quality_gates import (
     PhaseQualityGate,
     QualityOverrideRequest,
@@ -298,8 +298,8 @@ class IntegratedAIService(LoggerMixin):
             # セッション完了
             manga_session.status = GenerationStatus.COMPLETED
             manga_session.completed_at = datetime.utcnow()
-            manga_session.total_processing_time = time.time() - start_time
-            manga_session.final_quality_score = final_quality
+            manga_session.total_processing_time_ms = int((time.time() - start_time) * 1000)
+            manga_session.quality_score = final_quality
             await db.commit()
             
             # 完了通知
@@ -372,14 +372,35 @@ class IntegratedAIService(LoggerMixin):
             )
         
         # 結果の保存
-        phase_result = PhaseResult(
+        # エージェントが返すresultの型を確認して適切に処理
+        if hasattr(result, 'output_data'):
+            # resultがドメインエンティティPhaseResultオブジェクトの場合
+            output_data = result.output_data
+            quality_score_value = result.quality_score if hasattr(result, 'quality_score') and result.quality_score else 0.0
+            status = result.status.value if hasattr(result, 'status') else "completed"
+            error_message = result.error_message if hasattr(result, 'error_message') else None
+            processing_time = result.processing_time if hasattr(result, 'processing_time') else 0
+            # metadataは除外（manga.pyのPhaseResultモデルには存在しない）
+        else:
+            # resultが辞書の場合
+            output_data = result
+            quality_score_value = result.get("quality_score", 0.0) if isinstance(result, dict) else 0.0
+            status = result.get("status", "completed") if isinstance(result, dict) else "completed"
+            error_message = result.get("error_message") if isinstance(result, dict) else None
+            processing_time = result.get("processing_time", 0) if isinstance(result, dict) else 0
+            # metadataは除外（manga.pyのPhaseResultモデルには存在しない）
+
+        # SQLAlchemyモデルPhaseResultModelの作成
+        phase_result = PhaseResultModel(
             session_id=manga_session.id,
             phase_number=phase_num,
             phase_name=phase_config["name"],
             input_data=phase_input.model_dump(),
-            output_data=result,
-            processing_time_ms=int(phase_config["timeout"] * 1000),
-            quality_score=result.get("quality_score", 0.0)
+            output_data=output_data,
+            processing_time_ms=int(processing_time * 1000) if processing_time else int(phase_config["timeout"] * 1000),
+            quality_score=quality_score_value,
+            status=status,
+            error_message=error_message
         )
         db.add(phase_result)
         await db.flush()
@@ -401,16 +422,15 @@ class IntegratedAIService(LoggerMixin):
     ) -> Dict[str, Any]:
         """並列処理対応フェーズの実行（Phase 5用）"""
 
-        # Phase 5の特殊処理
+        # Phase 5の処理（標準process_phaseメソッド使用）
         if Phase5ImageAgent and isinstance(agent, Phase5ImageAgent):
-            # 並列画像生成の実行
+            # 標準的な処理方式で実行
             input_data = phase_input.dict(exclude={'previous_results'})
             previous_results = phase_input.previous_results
-            return await agent.process_phase_parallel(
+            return await agent.process_phase(
                 input_data,
-                previous_results,
                 session_id,
-                max_workers=5
+                previous_results
             )
         
         # デフォルト処理
@@ -601,8 +621,8 @@ class IntegratedAIService(LoggerMixin):
             "session_id": str(manga_session.id),
             "user_id": str(manga_session.user_id),
             "created_at": manga_session.created_at.isoformat(),
-            "processing_time": manga_session.total_processing_time,
-            "quality_score": manga_session.final_quality_score,
+            "processing_time": manga_session.total_processing_time_ms,
+            "quality_score": manga_session.quality_score,
             "phases_completed": len(pipeline_state.phase_results),
             "title": pipeline_state.phase_results.get(1, {}).get("title", "Untitled"),
             "genre": pipeline_state.phase_results.get(1, {}).get("genre", "Unknown"),
@@ -638,14 +658,12 @@ class IntegratedAIService(LoggerMixin):
         self.logger.debug(f"DEBUG Phase {phase_num}: pipeline_state.phase_results = {pipeline_state.phase_results}")
         self.logger.debug(f"DEBUG Phase {phase_num}: pipeline_state object id = {id(pipeline_state)}")
 
-        # 前フェーズの結果を辞書形式で準備（フェーズ番号をキーとして）
+        # 前フェーズの結果を辞書形式で準備（全前フェーズを含む）
         previous_results = None
         if phase_num > 1:
-            # フェーズ2以降の場合、前フェーズの結果を取得
-            prev_phase_num = phase_num - 1
             import os
 
-            self.logger.debug(f"DEBUG Phase {phase_num}: Looking for previous phase {prev_phase_num} results")
+            self.logger.debug(f"DEBUG Phase {phase_num}: Preparing all previous phase results (1-{phase_num-1})")
             self.logger.debug(f"DEBUG Phase {phase_num}: pipeline_state.phase_results type = {type(pipeline_state.phase_results)}")
             self.logger.debug(f"DEBUG Phase {phase_num}: phase_results keys = {list(pipeline_state.phase_results.keys()) if pipeline_state.phase_results else 'None'}")
 
@@ -654,30 +672,51 @@ class IntegratedAIService(LoggerMixin):
                 for key, value in pipeline_state.phase_results.items():
                     self.logger.debug(f"DEBUG Phase {phase_num}: phase_results[{key}] = {type(value)} (length: {len(str(value)) if value else 0})")
 
-            # 前フェーズの結果が存在し、かつ有効なデータがある場合
-            if (pipeline_state.phase_results and
-                prev_phase_num in pipeline_state.phase_results and
-                pipeline_state.phase_results[prev_phase_num]):
+            # 全前フェーズの結果を準備
+            previous_results = {}
 
-                # Phase結果の構造を調整（outputフィールドの内容をフラット化）
-                phase_result = pipeline_state.phase_results[prev_phase_num].copy()
+            # Phase 1からphase_num-1まで全て含める
+            for prev_phase_num in range(1, phase_num):
+                if (pipeline_state.phase_results and
+                    prev_phase_num in pipeline_state.phase_results and
+                    pipeline_state.phase_results[prev_phase_num]):
 
-                # outputフィールドがある場合、その内容を上位レベルにマージ
-                if 'output' in phase_result and isinstance(phase_result['output'], dict):
-                    output_data = phase_result.pop('output')
-                    phase_result.update(output_data)
-                    self.logger.debug(f"DEBUG Phase {phase_num}: Flattened output data from phase {prev_phase_num}")
+                    # Phase結果をコピー（PhaseResultオブジェクトか辞書かを判定）
+                    phase_result_raw = pipeline_state.phase_results[prev_phase_num]
 
-                previous_results = {prev_phase_num: phase_result}
-                self.logger.debug(f"DEBUG Phase {phase_num}: Found previous results for phase {prev_phase_num}")
-            else:
+                    # PhaseResultオブジェクトの場合、output_dataを取得
+                    if hasattr(phase_result_raw, 'output_data'):
+                        # PhaseResultオブジェクトの場合
+                        phase_result = phase_result_raw.output_data.copy() if phase_result_raw.output_data else {}
+                        self.logger.debug(f"DEBUG Phase {phase_num}: Extracted output_data from PhaseResult object for phase {prev_phase_num}")
+                    elif isinstance(phase_result_raw, dict):
+                        # 辞書の場合
+                        phase_result = phase_result_raw.copy()
+
+                        # outputフィールドがある場合、その内容を上位レベルにマージ
+                        if 'output' in phase_result and isinstance(phase_result['output'], dict):
+                            output_data = phase_result.pop('output')
+                            phase_result.update(output_data)
+                            self.logger.debug(f"DEBUG Phase {phase_num}: Flattened output data from phase {prev_phase_num}")
+
+                        self.logger.debug(f"DEBUG Phase {phase_num}: phase_results[{prev_phase_num}] = <class 'dict'> (length: {len(str(phase_result))})")
+                    else:
+                        # その他の場合は空の辞書
+                        phase_result = {}
+                        self.logger.warning(f"DEBUG Phase {phase_num}: Unexpected type for phase {prev_phase_num} result: {type(phase_result_raw)}")
+
+                    previous_results[prev_phase_num] = phase_result
+                    self.logger.debug(f"DEBUG Phase {phase_num}: Added phase {prev_phase_num} results to previous_results")
+
+            # 結果が空の場合はモックデータを使用
+            if not previous_results:
                 # 開発環境または前フェーズの結果が存在しない場合はモックデータを作成
                 # ENVIRONMENT変数のチェックを緩める（development, dev, test環境で有効）
                 current_env = os.getenv("ENVIRONMENT", "development").lower()
                 self.logger.debug(f"DEBUG Phase {phase_num}: Current environment = {current_env}")
 
                 if current_env in ["development", "dev", "test"] or True:  # 強制的にモックデータを使用
-                    self.logger.warning(f"Development mode: Creating mock data for phase {prev_phase_num}")
+                    self.logger.warning(f"Development mode: Creating mock data for phases 1-{phase_num-1}")
                     # 全フェーズに対応したモックデータを準備
                     mock_data_map = {
                         1: {
@@ -726,12 +765,14 @@ class IntegratedAIService(LoggerMixin):
                         }
                     }
 
-                    if prev_phase_num in mock_data_map:
-                        previous_results = {prev_phase_num: mock_data_map[prev_phase_num]}
-                    else:
-                        # 基本的なモックデータ
-                        previous_results = {
-                            prev_phase_num: {
+                    # 全前フェーズのモックデータを作成
+                    previous_results = {}
+                    for mock_phase_num in range(1, phase_num):
+                        if mock_phase_num in mock_data_map:
+                            previous_results[mock_phase_num] = mock_data_map[mock_phase_num]
+                        else:
+                            # 基本的なモックデータ
+                            previous_results[mock_phase_num] = {
                                 "concept": "妖精の少女リナが森を救う物語",
                                 "world_analysis": "魔法の森での冒険物語",
                                 "theme": "友情、勇気、成長",
@@ -739,10 +780,9 @@ class IntegratedAIService(LoggerMixin):
                                 "quality_score": 0.90,
                                 "mock": True
                             }
-                        }
                 else:
                     # 本番環境でデータが無い場合はエラー
-                    raise ValueError(f"Previous phase {prev_phase_num} results not found")
+                    raise ValueError(f"Previous phase results not found for phase {phase_num}")
 
         # accumulated_contextに元のテキストを含める（Phase 1で必要）
         accumulated_context = pipeline_state.accumulated_context.copy()
@@ -854,7 +894,7 @@ class IntegratedAIService(LoggerMixin):
             "created_at": manga_session.created_at.isoformat(),
             "current_phase": len(phases),
             "total_phases": 7,
-            "quality_score": manga_session.final_quality_score,
+            "quality_score": manga_session.quality_score,
             "phases_completed": [
                 {
                     "phase": p.phase_number,

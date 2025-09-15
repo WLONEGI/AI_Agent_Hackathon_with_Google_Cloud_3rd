@@ -61,7 +61,7 @@ class PhaseResultModel(Base):
     cache_hit_count = Column(Integer, default=0, nullable=False)
     
     # Metadata (stored as JSON)
-    metadata = Column(JSON, nullable=True)
+    phase_metadata = Column(JSON, nullable=True)
     
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

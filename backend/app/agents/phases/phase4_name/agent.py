@@ -9,7 +9,7 @@ import random
 from app.agents.base.agent import BaseAgent
 from app.core.config import settings
 from app.services.vertex_ai_service import VertexAIService
-from app.models.manga import PhaseResult
+from app.domain.manga.entities.phase_result import PhaseStatus
 
 from .schemas import (
     NameGenerationInput, NameGenerationOutput, PageLayout,
@@ -47,7 +47,7 @@ class Phase4NameAgent(BaseAgent):
         input_data: Dict[str, Any],
         session_id: UUID,
         previous_results: Optional[Dict[int, Any]] = None
-    ) -> PhaseResult:
+    ) -> Dict[str, Any]:
         """
         Process name generation - the most critical phase for manga creation.
 
@@ -57,7 +57,7 @@ class Phase4NameAgent(BaseAgent):
             previous_results: Results from phases 1-3
 
         Returns:
-            PhaseResult containing complete panel layout with camera work and composition
+            Dict containing complete panel layout with camera work and composition
         """
         # Extract from previous phases
         phase1 = previous_results.get(1, {}) if previous_results else {}
@@ -69,6 +69,15 @@ class Phase4NameAgent(BaseAgent):
         scenes = phase3.get("scenes", [])
         page_allocation = phase3.get("page_allocation", [])
         pacing = phase3.get("pacing", {})
+
+        # Fallback if phase3 data is empty
+        if not page_allocation:
+            self.log_warning("Phase 3 page_allocation is empty, creating fallback data")
+            page_allocation = [{"page": 1, "scenes": [1]}]
+
+        if not scenes:
+            self.log_warning("Phase 3 scenes is empty, creating fallback data")
+            scenes = [{"scene_number": 1, "content": "Default scene", "type": "dialogue"}]
 
         try:
             # Generate prompt for AI analysis
@@ -106,6 +115,40 @@ class Phase4NameAgent(BaseAgent):
         # Enhance pages with additional processing
         enhanced_pages = await self._enhance_page_layouts(pages, scenes, genre, characters)
 
+        # Final fallback if no pages were created
+        if not enhanced_pages:
+            self.log_warning("No pages were generated, creating minimal fallback page")
+            from .schemas import PageLayout, Panel, PanelSize, PanelPosition, CameraSettings, ReadingFlow
+
+            # Create a minimal page with one panel
+            minimal_panel = Panel(
+                panel_id=1,
+                position=PanelPosition(x=0.0, y=0.0, z_index=0),
+                size=PanelSize(width=1.0, height=1.0, aspect_ratio=(1, 1)),
+                camera=CameraSettings(
+                    angle="medium",
+                    position="center",
+                    focus="character"
+                ),
+                content="Fallback panel",
+                dialogue=[],
+                importance="medium"
+            )
+
+            minimal_page = PageLayout(
+                page_number=1,
+                panels=[minimal_panel],
+                layout_pattern="standard",
+                reading_flow=ReadingFlow(
+                    primary_path=[(0.5, 0.5)],
+                    secondary_paths=[],
+                    focal_points=[]
+                ),
+                composition_guide={}
+            )
+
+            enhanced_pages = [minimal_page]
+
         # Generate comprehensive analysis
         layout_analysis = self._analyze_layout(enhanced_pages)
         camera_statistics = self._calculate_camera_statistics(enhanced_pages)
@@ -141,22 +184,19 @@ class Phase4NameAgent(BaseAgent):
                      panels=output.total_panels,
                      quality=quality_scores.get("overall_quality", 0))
 
-        return PhaseResult(
-            phase_number=self.phase_number,
-            phase_name=self.phase_name,
-            input_data=input_data,
-            output_data=output.dict(),
-            session_id=session_id,
-            success=is_valid,
-            error_message="; ".join(errors) if errors else None,
-            quality_score=quality_scores.get("overall_quality", 0),
-            processing_time=0,  # Will be set by parent
-            metadata={
+        # 辞書形式で結果を返す（IntegratedAIServiceとの互換性を確保）
+        return {
+            **output.dict(),  # メインの出力データ
+            "status": "completed" if is_valid else "error",
+            "error_message": "; ".join(errors) if errors else None,
+            "quality_score": quality_scores.get("overall_quality", 0),
+            "processing_time": 0,  # Will be set by parent
+            "metadata": {
                 "validation_errors": errors,
                 "quality_breakdown": quality_scores,
                 "ai_assisted": ai_response.get("success", False) if 'ai_response' in locals() else False
             }
-        )
+        }
 
     async def generate_prompt(
         self,
@@ -755,7 +795,7 @@ class Phase4NameAgent(BaseAgent):
 
         # Layout consistency
         panel_counts = [len(page.panels) for page in pages]
-        consistency = 1.0 - (max(panel_counts) - min(panel_counts)) / max(panel_counts, 1)
+        consistency = 1.0 - (max(panel_counts) - min(panel_counts)) / (max(panel_counts) if panel_counts else 1)
 
         # Camera variety
         all_angles = [panel.camera_settings.angle for page in pages for panel in page.panels]

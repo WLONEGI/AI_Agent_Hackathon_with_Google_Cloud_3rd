@@ -238,7 +238,7 @@ async def generate_manga(
         str(session.id),
         request.text,
         request.title,
-        str(dev_user.id),
+        str(session.user_id),
         request.feedback_mode.enabled
     )
     
@@ -486,7 +486,7 @@ async def dev_generate_manga(
         str(session.id),
         request.text,
         request.title,
-        str(dev_user.id),
+        str(session.user_id),
         request.feedback_mode.enabled
     )
     
