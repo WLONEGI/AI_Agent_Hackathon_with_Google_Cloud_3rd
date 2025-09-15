@@ -5,7 +5,7 @@
   flex-direction: column;
   height: 100vh;
   width: 100vw;
-  background: var(--genspark-gray-800);
+  background: linear-gradient(135deg, var(--genspark-gray-900) 0%, var(--genspark-gray-800) 100%);
   color: var(--genspark-gray-100);
   font-family: var(--genspark-font-sans);
   overflow: hidden;
@@ -16,13 +16,14 @@
 .statusBar {
   flex-shrink: 0;
   height: 36px;
-  background: var(--genspark-gray-900);
-  border-bottom: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  border-bottom: var(--genspark-border-thin) solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   padding: 0 var(--genspark-space-4);
   z-index: 100;
-  box-shadow: var(--genspark-shadow-sm);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 /* === MAIN CONTENT AREA === */
@@ -40,8 +41,8 @@
 .leftPanel {
   display: flex;
   flex-direction: column;
-  background: var(--genspark-gray-800);
-  border-right: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  background: rgba(0, 0, 0, 0.2);
+  border-right: var(--genspark-border-thin) solid rgba(255, 255, 255, 0.05);
   overflow: hidden;
   min-width: 300px;
 }
@@ -51,7 +52,7 @@
 .rightPanel {
   display: flex;
   flex-direction: column;
-  background: var(--genspark-gray-700);
+  background: rgba(0, 0, 0, 0.3);
   overflow: hidden;
   min-width: 320px;
 }
@@ -59,26 +60,26 @@
 /* === RESIZE HANDLE === */
 
 .resizeHandle {
-  width: 8px;
-  background: var(--genspark-gray-600);
+  width: 3px;
+  background: rgba(255, 255, 255, 0.1);
   cursor: ew-resize;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
-  border-left: var(--genspark-border-thin) solid var(--genspark-gray-500);
-  border-right: var(--genspark-border-thin) solid var(--genspark-gray-500);
   transition: all var(--genspark-duration-fast) var(--genspark-ease);
 }
 
 .resizeHandle:hover {
-  background: var(--genspark-gray-500);
-  width: 12px;
+  background: var(--genspark-accent);
+  width: 4px;
+  box-shadow: 0 0 8px var(--genspark-accent);
 }
 
 .resizeHandle.dragging {
-  background: var(--genspark-accent-muted);
-  width: 12px;
+  background: var(--genspark-accent);
+  width: 4px;
+  box-shadow: 0 0 12px var(--genspark-accent);
 }
 
 .resizeIndicator {
@@ -104,15 +105,16 @@
 
 .sessionFooter {
   flex-shrink: 0;
-  height: 28px;
-  background: var(--genspark-gray-900);
-  border-top: var(--genspark-border-thin) solid var(--genspark-gray-500);
+  height: 24px;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(10px);
+  border-top: var(--genspark-border-thin) solid rgba(255, 255, 255, 0.05);
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--genspark-space-4);
-  font-size: var(--genspark-text-xs);
-  box-shadow: var(--genspark-shadow-sm);
+  font-size: 10px;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .sessionInfo {

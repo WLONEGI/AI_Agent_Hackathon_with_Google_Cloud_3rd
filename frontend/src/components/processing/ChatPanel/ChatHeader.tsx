@@ -95,66 +95,27 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           </div>
         </div>
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Simplified */}
         <div className={styles.actions}>
-          {/* Navigation Controls */}
-          <div className={styles.navControls}>
-            <button
-              onClick={onScrollToTop}
-              className="genspark-button ghost"
-              title="先頭に移動"
-            >
-              <span className="material-symbols-outlined genspark-icon">
-                keyboard_double_arrow_up
-              </span>
-            </button>
-            
-            <button
-              onClick={onScrollToBottom}
-              className="genspark-button ghost"
-              title="最新に移動"
-            >
-              <span className="material-symbols-outlined genspark-icon">
-                keyboard_double_arrow_down
-              </span>
-            </button>
-          </div>
+          <button
+            onClick={onToggleSearch}
+            className={`genspark-button ghost ${isSearchVisible ? styles.active : ''}`}
+            title="検索"
+          >
+            <span className="material-symbols-outlined genspark-icon">
+              search
+            </span>
+          </button>
 
-          {/* Toggle Controls */}
-          <div className={styles.toggleControls}>
-            <button
-              onClick={onToggleAutoScroll}
-              className={`genspark-button ghost ${autoScroll ? styles.active : ''}`}
-              title={autoScroll ? '自動スクロール ON' : '自動スクロール OFF'}
-            >
-              <span className="material-symbols-outlined genspark-icon">
-                {autoScroll ? 'vertical_align_bottom' : 'pause'}
-              </span>
-            </button>
-
-            <button
-              onClick={onToggleSearch}
-              className={`genspark-button ghost ${isSearchVisible ? styles.active : ''}`}
-              title="検索"
-            >
-              <span className="material-symbols-outlined genspark-icon">
-                search
-              </span>
-            </button>
-          </div>
-
-          {/* Utility Actions */}
-          <div className={styles.utilityActions}>
-            <button
-              onClick={onClearLogs}
-              className="genspark-button ghost"
-              title="ログをクリア"
-            >
-              <span className="material-symbols-outlined genspark-icon">
-                clear_all
-              </span>
-            </button>
-          </div>
+          <button
+            onClick={onClearLogs}
+            className="genspark-button ghost"
+            title="ログをクリア"
+          >
+            <span className="material-symbols-outlined genspark-icon">
+              clear_all
+            </span>
+          </button>
         </div>
       </div>
 
@@ -204,12 +165,6 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
             </div>
           </form>
 
-          {/* Search Help */}
-          <div className={styles.searchHelp}>
-            <span className="genspark-text genspark-text-muted">
-              💡 メッセージ内容、ソース（system/ai/user）、レベル（info/warning/error）で検索できます
-            </span>
-          </div>
         </div>
       )}
     </div>

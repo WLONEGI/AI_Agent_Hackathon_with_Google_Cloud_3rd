@@ -1,24 +1,27 @@
-# AI漫画生成サービス (AI Manga Generation Service)
+# プロジェクト概要
 
-## Project Purpose
-- **Hackathon Project**: 第3回 AI Agent Hackathon with Google Cloud
-- **Main Goal**: Automatically generate manga from text input using AI
-- **Target Users**: Amateur writers, content creators, people wanting to convert novels to manga
-- **Key Feature**: Complete automation from text to manga in 10-15 minutes
+## プロジェクト名
+「Spell - 書けば、描ける呪文」
 
-## Core Functionality
-- 8-stage AI processing pipeline for manga generation
-- Text → [Analysis → Structure → Split → Design → Layout → Image Gen → Placement → Integration] → Manga
-- Quality assurance with 70% threshold
-- Multi-format output: PDF (print) + WebP (web)
+## プロジェクトの目的
+Google Cloud AI Agent Hackathon Vol.3 参加作品として開発された、小説テキストから漫画を自動生成するAIサービス。
 
-## Performance Targets
-- Processing time: 10-15 minutes per work
-- Concurrent processing: 50 requests per instance
-- Scaling: 1-50 instances
-- Availability: 99.9% target
+## 解決する課題
+- 300万人のクリエイターが物語を絵にできない問題
+- 視覚表現への3つの壁：
+  1. 能力習得に必要な膨大な時間（1-3年の練習が必要）
+  2. プロに依頼する際の高額な費用（100-200万円）
+  3. 既存AI画像生成ツールの限界（単発イラストのみ、漫画形式不可）
 
-## Development Status
-- Initial infrastructure and both frontend/backend implemented
-- Recent commits show completed development environment setup
-- Main branch with feature branch workflow
+## 主要機能
+- 7段階のHITL（Human-in-the-Loop）処理システム
+- 自然言語での修正指示対応
+- 完全自動の漫画文法適用（コマ割り、吹き出し、効果線など）
+
+## システム特徴
+- フロントエンド: Next.js (React) + TypeScript
+- バックエンド: FastAPI (Python) + PostgreSQL
+- AI技術: Vertex AI (Gemini Pro) + Imagen 4
+- インフラ: Google Cloud (Cloud Run)
+- 7つの独立したAgentによるマルチエージェント設計
+- 並列処理による高速化（特にPhase 5の画像生成）

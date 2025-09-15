@@ -6,37 +6,47 @@ from sqlalchemy.orm import declarative_base
 from contextlib import asynccontextmanager
 import logging
 import os
+from dotenv import load_dotenv
+
+# Load environment variables first
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
 # Get database URL from environment variable to avoid circular imports
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/manga_service")
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:password@localhost/manga_service")
 DATABASE_ECHO = os.getenv("DATABASE_ECHO", "false").lower() == "true"
+MOCK_DATABASE = os.getenv("MOCK_DATABASE", "false").lower() == "true"
 
-# Create async engine for PostgreSQL only
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=DATABASE_ECHO,
-    pool_size=20,  # Increased from default for production load
-    max_overflow=10,  # Allow temporary spike connections
-    pool_pre_ping=True,  # Verify connections before using
-    pool_recycle=3600,  # Recycle connections after 1 hour
-    pool_timeout=30,  # Connection timeout in seconds
-    connect_args={
-        "server_settings": {"jit": "off"},  # Disable JIT for consistent performance
-        "command_timeout": 60,
-        "timeout": 60,
-    },
-)
+# Create async engine for PostgreSQL only (skip if mock mode)
+if MOCK_DATABASE:
+    logger.info("Mock database mode enabled - skipping PostgreSQL connection")
+    engine = None
+    AsyncSessionLocal = None
+else:
+    engine = create_async_engine(
+        DATABASE_URL,
+        echo=DATABASE_ECHO,
+        pool_size=20,  # Increased from default for production load
+        max_overflow=10,  # Allow temporary spike connections
+        pool_pre_ping=True,  # Verify connections before using
+        pool_recycle=3600,  # Recycle connections after 1 hour
+        pool_timeout=30,  # Connection timeout in seconds
+        connect_args={
+            "server_settings": {"jit": "off"},  # Disable JIT for consistent performance
+            "command_timeout": 60,
+            "timeout": 60,
+        },
+    )
+    # Create async session factory
+    AsyncSessionLocal = async_sessionmaker(
+        engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autocommit=False,
+        autoflush=False,
+    )
 
-# Create async session factory
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autocommit=False,
-    autoflush=False,
-)
 
 # Base class for models
 Base = declarative_base()

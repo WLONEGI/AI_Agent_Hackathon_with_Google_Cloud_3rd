@@ -64,26 +64,23 @@ export default function Home() {
 
   return (
     <ClaudeLayout>
-      <div className="flex flex-col h-screen" style={{ background: 'linear-gradient(to bottom, #1a1a1a, #202020)' }}>
+      <div className="flex flex-col h-screen" style={{ background: 'radial-gradient(ellipse at top, #2a2a3e 0%, #1a1a1a 100%)' }}>
         {/* Header */}
-        <div className="relative px-8 py-6">
-          <h1 className="text-center text-white font-bold text-4xl">Spell</h1>
-          {/* Right corner icon */}
-          <div className="absolute right-8 top-6">
-            <div className="w-10 h-10 rounded-full bg-white bg-opacity-10 flex items-center justify-center cursor-pointer hover:bg-opacity-20 transition-all">
-              <span className="material-symbols-outlined text-white text-xl">
-                auto_fix_high
-              </span>
-            </div>
-          </div>
+        <div className="px-8 py-8">
+          <h1 className="text-center text-white font-bold text-5xl tracking-wider" style={{ textShadow: '0 2px 10px rgba(255, 255, 255, 0.1)' }}>Spell</h1>
         </div>
 
         {/* Main centered content */}
         <div className="flex-1 flex flex-col items-center justify-center px-8">
           <div className="w-full max-w-3xl">
             {/* Large rounded input area */}
-            <div className="relative bg-gray-800 bg-opacity-50 backdrop-blur-sm rounded-2xl border border-gray-700 p-6" 
-                 style={{ backgroundColor: '#2a2a2a', borderColor: '#454545' }}>
+            <div className="relative backdrop-blur-md rounded-3xl p-8 shadow-2xl"
+                 style={{
+                   backgroundColor: 'rgba(42, 42, 58, 0.4)',
+                   borderColor: 'rgba(255, 255, 255, 0.08)',
+                   border: '1px solid rgba(255, 255, 255, 0.08)',
+                   boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                 }}>
               <ChatInput
                 placeholder="書けば、描ける呪文"
                 onSubmit={handleSubmit}
@@ -91,13 +88,14 @@ export default function Home() {
                 maxLength={50000}
                 showCharacterCount={false}
                 className="w-full"
+                style={{ fontSize: '18px' }}
               />
             </div>
 
             {/* Error Display */}
             {error && (
-              <div className="mt-4">
-                <div className="p-4 bg-red-900 bg-opacity-20 border border-red-800 rounded-lg">
+              <div className="mt-6">
+                <div className="p-4 backdrop-blur-sm rounded-xl" style={{ backgroundColor: 'rgba(220, 38, 38, 0.1)', border: '1px solid rgba(220, 38, 38, 0.2)' }}>
                   <div className="flex items-start">
                     <span className="material-symbols-outlined text-red-400 mr-3 text-lg">
                       error
@@ -110,10 +108,10 @@ export default function Home() {
             
             {/* Loading indicator */}
             {isGenerating && (
-              <div className="text-center mt-4">
-                <div className="inline-flex items-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-gray-400 mr-3"></div>
-                  <span className="text-gray-400">マンガ生成を開始しています...</span>
+              <div className="text-center mt-6">
+                <div className="inline-flex items-center px-6 py-3 backdrop-blur-sm rounded-full" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)' }}>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-400 mr-3"></div>
+                  <span className="text-gray-300">マンガ生成を開始しています...</span>
                 </div>
               </div>
             )}
@@ -122,10 +120,10 @@ export default function Home() {
 
         {/* User info (bottom right) */}
         {isAuthenticated && user && (
-          <div className="absolute bottom-4 right-4">
-            <div className="bg-gray-800 bg-opacity-50 border border-gray-700 rounded-lg px-3 py-2 shadow-sm">
-              <div className="flex items-center text-sm text-gray-400">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+          <div className="absolute bottom-6 right-6">
+            <div className="backdrop-blur-sm rounded-full px-4 py-2" style={{ backgroundColor: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
+              <div className="flex items-center text-sm text-gray-300">
+                <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
                 {user.display_name || user.email}
               </div>
             </div>

@@ -130,6 +130,8 @@ class BaseAgent(ABC, LoggerMixin):
                     )
                     validation_result["is_valid"] = False
         elif required_phases:
+            # Debug: log the actual previous_results value
+            print(f"DEBUG Phase {current_phase}: required_phases={required_phases}, previous_results={previous_results}")
             validation_result["errors"].append(
                 "Previous phase results required but not provided"
             )

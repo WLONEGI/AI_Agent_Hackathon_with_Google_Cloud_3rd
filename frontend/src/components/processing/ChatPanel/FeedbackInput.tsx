@@ -141,26 +141,6 @@ export const FeedbackInput = React.forwardRef<HTMLTextAreaElement, FeedbackInput
           )}
         </div>
 
-        {/* Quick Options */}
-        <div className={styles.quickOptions}>
-          <span className="genspark-text genspark-text-muted">
-            クイック選択：
-          </span>
-          <div className={styles.optionButtons}>
-            {quickOptions.map((option) => (
-              <button
-                key={option.value}
-                onClick={() => handleQuickOption(option)}
-                disabled={isSubmitting}
-                className={`${styles.optionButton} genspark-button ghost`}
-                title={option.label}
-              >
-                <span className={styles.optionEmoji}>{option.emoji}</span>
-                <span className={styles.optionLabel}>{option.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* Text Input */}
         <form onSubmit={handleSubmit} className={styles.inputForm}>
@@ -219,13 +199,6 @@ export const FeedbackInput = React.forwardRef<HTMLTextAreaElement, FeedbackInput
           </div>
         </form>
 
-        {/* Help Text */}
-        <div className={styles.helpText}>
-          <p className="genspark-text genspark-text-muted">
-            💡 このフェーズの結果に対する具体的な改善点や要望があれば教えてください。
-            クイック選択でも結構です。
-          </p>
-        </div>
       </div>
     );
   }

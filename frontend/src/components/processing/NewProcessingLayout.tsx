@@ -213,15 +213,11 @@ export const NewProcessingLayout: React.FC<NewProcessingLayoutProps> = ({
           <ChatPanel />
         </div>
 
-        {/* Resize Handle */}
-        <div 
+        {/* Resize Handle - Simplified */}
+        <div
           className={`${styles.resizeHandle} ${isDragging ? styles.dragging : ''}`}
           onMouseDown={handleMouseDown}
-        >
-          <div className={styles.resizeIndicator}>
-            <span className="material-symbols-outlined genspark-icon">drag_indicator</span>
-          </div>
-        </div>
+        />
 
         {/* Right Panel */}
         <div 
@@ -232,24 +228,11 @@ export const NewProcessingLayout: React.FC<NewProcessingLayoutProps> = ({
         </div>
       </div>
 
-      {/* Session Footer */}
+      {/* Session Footer - Minimized */}
       <div className={styles.sessionFooter}>
         <div className={styles.sessionInfo}>
-          <span className="genspark-text-mono">
-            セッション: {sessionId}
-          </span>
-          <span className="genspark-text-mono">
-            ステータス: {getSessionStatusText(sessionStatus)}
-          </span>
           <span className="genspark-text-mono genspark-text-muted">
-            パネル幅: {Math.round(leftPanelWidth)}% | {Math.round(100 - leftPanelWidth)}%
-          </span>
-        </div>
-        
-        {/* Keyboard Shortcuts Info */}
-        <div className={styles.shortcuts}>
-          <span className="genspark-text genspark-text-muted">
-            ショートカット: Ctrl+R (再接続) • Ctrl+L (ログ) • Ctrl+P (詳細) • Ctrl+[ / ] (パネル)
+            {sessionId} • {getSessionStatusText(sessionStatus)}
           </span>
         </div>
       </div>

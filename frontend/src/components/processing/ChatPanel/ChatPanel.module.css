@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--genspark-gray-800);
+  background: linear-gradient(180deg, var(--genspark-gray-900) 0%, var(--genspark-gray-800) 100%);
   border: none;
   border-radius: 0;
   box-shadow: none;
@@ -24,8 +24,8 @@
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--genspark-space-2) var(--genspark-space-4);
-  background: var(--genspark-gray-800);
+  padding: var(--genspark-space-4) var(--genspark-space-4);
+  background: transparent;
   position: relative;
 }
 
@@ -63,9 +63,9 @@
 
 .feedbackContainer {
   flex-shrink: 0;
-  background: var(--genspark-gray-700);
-  border-top: var(--genspark-border-thin) solid var(--genspark-gray-500);
-  padding: var(--genspark-space-4);
+  background: var(--genspark-gray-900);
+  border-top: var(--genspark-border-thin) solid var(--genspark-gray-600);
+  padding: var(--genspark-space-3);
   animation: genspark-slide-in var(--genspark-duration-normal) var(--genspark-ease-out);
 }
 

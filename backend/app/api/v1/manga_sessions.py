@@ -31,14 +31,14 @@ from app.api.v1.security import (
 async def get_optional_user_for_dev(db: AsyncSession = Depends(get_db)) -> Optional[User]:
     """Get optional user for development environment with auth bypass."""
     from app.core.config import settings
-    
+
     # Development environment: create/return mock user
-    if settings.debug:
+    if settings.debug and settings.env.lower() == "development":
         from sqlalchemy import select
         stmt = select(User).where(User.email == "dev@example.com")
         result = await db.execute(stmt)
         user = result.scalar_one_or_none()
-        
+
         if not user:
             user = User(
                 id="00000000-0000-0000-0000-000000000123",
@@ -50,10 +50,11 @@ async def get_optional_user_for_dev(db: AsyncSession = Depends(get_db)) -> Optio
             db.add(user)
             await db.commit()
             await db.refresh(user)
-        
+
         return user
-    
-    # Production environment: return None (would need proper auth)
+
+    # Production environment: return None (requires proper authentication)
+    # TODO: Replace with get_current_active_user for production deployment
     return None
 
 def get_optional_user() -> Optional[User]:
@@ -192,21 +193,25 @@ async def generate_manga(
     current_user: User = Depends(get_optional_user_for_dev)
 ) -> SessionResponse:
     """Start manga generation request (POST /api/v1/manga/generate).
-    
+
     Fully complies with API design document specification.
     Returns 202 Accepted with request_id for tracking.
-    
+
     Requires: manga:create permission
     Rate limit: 10 generations per hour per user
     """
-    
+
     import uuid
     from uuid import UUID
     from datetime import datetime, timedelta
+    from app.core.config import settings
     
     # Create MangaSession in database with auto-generated ID
     session = MangaSession(
-        user_id=current_user.id if current_user else UUID("00000000-0000-0000-0000-000000000123"),
+        user_id=current_user.id if current_user else (
+            UUID("00000000-0000-0000-0000-000000000123") if settings.env.lower() == "development"
+            else None  # Production requires authentication
+        ),
         title=request.title,
         input_text=request.text,
         status=GenerationStatus.PENDING.value,
