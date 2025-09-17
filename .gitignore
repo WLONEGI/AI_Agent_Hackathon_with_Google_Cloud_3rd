@@ -40,26 +40,13 @@ out/
 .nuxt/
 dist/
 
-# Environment variables (unified at project root)
-.env
-.env.local
-.env.development
-.env.test
-.env.production
-*.env.*
-
 # Legacy env file locations (no longer used)
 frontend/.env*
 backend/.env*
 backend/config/.env*
 
-# Google Cloud
-service-account-key.json
-*.json.key
-gcloud-key.json
-
 # Credentials directory
-infrastructure/credentials/
+infrastructure/credentials/service-account-key.json
 
 # IDE
 .vscode/launch.json
