@@ -59,7 +59,7 @@ service-account-key.json
 gcloud-key.json
 
 # Credentials directory
-backend/credentials/
+infrastructure/credentials/
 
 # IDE
 .vscode/launch.json
