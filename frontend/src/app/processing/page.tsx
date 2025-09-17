@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'reac
 import { useRouter } from 'next/navigation';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { NewProcessingLayout } from '@/components/processing/NewProcessingLayout';
+import { useAuthStore } from '@/stores/useAuthStore';
 
 // Loading component for the processing screen
 const ProcessingLoading: React.FC = () => {
@@ -39,6 +40,7 @@ const ProcessingLoading: React.FC = () => {
 
 export default function Processing() {
   const router = useRouter();
+  const { tokens: authTokens } = useAuthStore();
   const [sessionData, setSessionData] = useState<{
     sessionId: string;
     title: string;
@@ -61,7 +63,11 @@ export default function Processing() {
         let requestId = sessionStorage.getItem('requestId');
         let sessionTitle = sessionStorage.getItem('sessionTitle') || 'AI生成漫画';
         let sessionText = sessionStorage.getItem('sessionText') || '';
-        let authToken = sessionStorage.getItem('authToken') || '';
+        let authToken = sessionStorage.getItem('authToken') || authTokens?.access_token || '';
+
+        if (!sessionStorage.getItem('authToken') && authTokens?.access_token) {
+          sessionStorage.setItem('authToken', authTokens.access_token);
+        }
 
         // Development environment mock data for UI testing
         if (!requestId && process.env.NODE_ENV === 'development') {
@@ -69,7 +75,7 @@ export default function Processing() {
           
           const mockSessionId = `mock-session-${Date.now()}`;
           const mockStoryText = 'テスト用ストーリー：勇者が魔王を倒す冒険の物語です。仲間たちと共に困難を乗り越え、最後には平和を取り戻します。';
-          const mockAuthToken = `mock-auth-token-${Math.random().toString(36).substr(2, 9)}`;
+          const mockAuthToken = authTokens?.access_token || `mock-auth-token-${Math.random().toString(36).substr(2, 9)}`;
           
           // Set mock data in sessionStorage for development
           sessionStorage.setItem('requestId', mockSessionId);
@@ -116,7 +122,7 @@ export default function Processing() {
     return () => {
       isMounted = false;
     };
-  }, [router]);
+  }, [router, authTokens]);
 
   // Handle session cleanup on unmount
   useEffect(() => {

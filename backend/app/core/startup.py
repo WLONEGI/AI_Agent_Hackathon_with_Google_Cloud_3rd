@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 from app.core.config import settings
-from app.core.database import init_db, close_db, get_db
+from app.core.database import init_db, close_db, get_db_context
 from app.core.redis_client import redis_manager
 from app.core.firebase import initialize_firebase
 from app.core.service_health import health_monitor, ServiceStatus
@@ -52,7 +52,7 @@ class ApplicationStartup:
             await init_db()
             
             # Verify connection
-            health = await health_monitor.check_database(get_db)
+            health = await health_monitor.check_database(get_db_context)
             health_monitor.register_health(
                 name="database",
                 status=health.status,
@@ -246,7 +246,7 @@ class ApplicationStartup:
         
         # Get overall health status
         self.services.health_status = await health_monitor.run_all_checks(
-            db_session_func=get_db if db_available else None,
+            db_session_func=get_db_context if db_available else None,
             redis_client=redis_manager.client if redis_available else None,
             ai_service=self.services.integrated_ai_service
         )

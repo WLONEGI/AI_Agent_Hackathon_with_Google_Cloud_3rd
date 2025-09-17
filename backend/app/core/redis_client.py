@@ -2,13 +2,16 @@
 
 import json
 import asyncio
+import logging
+import os
 from typing import Any, Optional, Union
 from datetime import timedelta
+
 import redis.asyncio as aioredis
 from redis.exceptions import RedisError
-import logging
 
 from app.core.config import settings
+from app.core.mock_services import get_mock_redis
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +23,36 @@ class RedisManager:
         self.redis: Optional[aioredis.Redis] = None
         self._pool = None
         self._healthy = False
+
+        env_override = os.getenv("MOCK_REDIS")
+        default_mock_envs = {"development", "dev", "local"}
+        self._use_mock = False
+
+        if env_override is not None:
+            self._use_mock = env_override.lower() == "true"
+        else:
+            self._use_mock = getattr(settings, "env", "development").lower() in default_mock_envs
+
+        if os.getenv("FORCE_REAL_REDIS", "false").lower() == "true":
+            self._use_mock = False
+
+        self._allow_mock_fallback = os.getenv("REDIS_ALLOW_MOCK_FALLBACK", "true").lower() != "false"
+
+        if self._use_mock:
+            self.redis = get_mock_redis()
+            self._healthy = True
+
+    @property
+    def client(self) -> Optional[aioredis.Redis]:
+        """Expose the underlying Redis client for health checks."""
+        return self.redis
     
     async def connect(self) -> None:
         """Initialize Redis connection pool."""
+        if self._use_mock:
+            logger.info("Using MockRedis for cache layer (development mode)")
+            return
+
         try:
             self._pool = aioredis.ConnectionPool.from_url(
                 settings.cache.redis_url,
@@ -35,13 +65,25 @@ class RedisManager:
             logger.info("Redis connection established")
         except Exception as e:
             logger.error(f"Failed to connect to Redis: {e}")
-            raise
+
+            if self._allow_mock_fallback:
+                self.redis = get_mock_redis()
+                self._healthy = True
+                self._use_mock = True
+                logger.warning("Falling back to MockRedis due to connection failure")
+            else:
+                raise
     
     async def disconnect(self) -> None:
         """Close Redis connections."""
+        if self._use_mock:
+            logger.info("MockRedis shutdown - no connection to close")
+            return
+
         try:
             if self.redis:
                 await self.redis.close()
+            if self._pool:
                 await self._pool.disconnect()
             logger.info("Redis connections closed")
         except Exception as e:
@@ -61,14 +103,18 @@ class RedisManager:
     
     async def get(self, key: str) -> Optional[Any]:
         """Get value from cache."""
+        if not self.redis:
+            logger.debug(f"Redis client unavailable during get({key})")
+            return None
+
         try:
             value = await self.redis.get(key)
             if value:
-                return json.loads(value)
+                try:
+                    return json.loads(value)
+                except json.JSONDecodeError:
+                    return value
             return None
-        except json.JSONDecodeError:
-            # Return raw value if not JSON
-            return value
         except Exception as e:
             logger.error(f"Error getting key {key}: {e}")
             return None
@@ -85,12 +131,18 @@ class RedisManager:
             if not isinstance(value, str):
                 value = json.dumps(value)
             
+            if not self.redis:
+                logger.debug(f"Redis client unavailable during set({key})")
+                return False
+
+            if ttl and isinstance(ttl, timedelta):
+                ttl = int(ttl.total_seconds())
+
             if ttl:
-                if isinstance(ttl, timedelta):
-                    ttl = int(ttl.total_seconds())
+                if self._use_mock:
+                    return await self.redis.set(key, value, expire=ttl)
                 return await self.redis.setex(key, ttl, value)
-            else:
-                return await self.redis.set(key, value)
+            return await self.redis.set(key, value)
         except Exception as e:
             logger.error(f"Error setting key {key}: {e}")
             return False
@@ -98,6 +150,8 @@ class RedisManager:
     async def delete(self, key: str) -> bool:
         """Delete key from cache."""
         try:
+            if not self.redis:
+                return False
             return await self.redis.delete(key) > 0
         except Exception as e:
             logger.error(f"Error deleting key {key}: {e}")
@@ -106,6 +160,8 @@ class RedisManager:
     async def exists(self, key: str) -> bool:
         """Check if key exists in cache."""
         try:
+            if not self.redis:
+                return False
             return await self.redis.exists(key) > 0
         except Exception as e:
             logger.error(f"Error checking key existence {key}: {e}")
@@ -114,6 +170,8 @@ class RedisManager:
     async def incr(self, key: str, amount: int = 1) -> int:
         """Increment counter."""
         try:
+            if not self.redis:
+                return 0
             return await self.redis.incr(key, amount)
         except Exception as e:
             logger.error(f"Error incrementing key {key}: {e}")
@@ -122,6 +180,8 @@ class RedisManager:
     async def expire(self, key: str, ttl: Union[int, timedelta]) -> bool:
         """Set expiration time for key."""
         try:
+            if not self.redis:
+                return False
             if isinstance(ttl, timedelta):
                 ttl = int(ttl.total_seconds())
             return await self.redis.expire(key, ttl)
@@ -132,6 +192,8 @@ class RedisManager:
     async def get_ttl(self, key: str) -> int:
         """Get TTL for key in seconds."""
         try:
+            if not self.redis:
+                return -1
             return await self.redis.ttl(key)
         except Exception as e:
             logger.error(f"Error getting TTL for key {key}: {e}")
@@ -143,6 +205,8 @@ class RedisManager:
         try:
             if not isinstance(value, str):
                 value = json.dumps(value)
+            if not self.redis:
+                return False
             return await self.redis.hset(name, key, value)
         except Exception as e:
             logger.error(f"Error setting hash field {name}:{key}: {e}")
@@ -151,6 +215,8 @@ class RedisManager:
     async def hget(self, name: str, key: str) -> Optional[Any]:
         """Get hash field."""
         try:
+            if not self.redis:
+                return None
             value = await self.redis.hget(name, key)
             if value:
                 return json.loads(value)
@@ -164,6 +230,8 @@ class RedisManager:
     async def hgetall(self, name: str) -> dict:
         """Get all hash fields."""
         try:
+            if not self.redis:
+                return {}
             data = await self.redis.hgetall(name)
             result = {}
             for key, value in data.items():

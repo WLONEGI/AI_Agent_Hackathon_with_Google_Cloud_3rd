@@ -145,19 +145,13 @@ class CacheService(LoggerMixin):
         self.stats["l2_requests"] += 1
         redis_data = await self.redis_client.get(key)
         
-        if redis_data:
+        if redis_data is not None:
             self.stats["l2_hits"] += 1
             self.logger.debug(f"L2 cache hit: {key}")
             
             # L1にも保存
-            try:
-                data = json.loads(redis_data)
-                self.memory_cache.set(key, data, ttl=60)  # 1分間メモリに保持
-                return data
-            except json.JSONDecodeError:
-                # バイナリデータはサポートしない（セキュリティリスクのため）
-                self.logger.warning(f"Skipping invalid JSON data for key: {key}")
-                return None
+            self.memory_cache.set(key, redis_data, ttl=60)  # 1分間メモリに保持
+            return redis_data
         
         # L3: PostgreSQLは別途実装（必要に応じて）
         self.stats["l3_requests"] += 1
@@ -184,16 +178,7 @@ class CacheService(LoggerMixin):
             self.memory_cache.set(key, value, ttl=min(ttl, 300))  # メモリは最大5分
             
             # L2: Redis
-            if isinstance(value, (dict, list, str, int, float, bool)) or value is None:
-                serialized = json.dumps(value, default=str)
-            else:
-                # 複雑なオブジェクトは辞書に変換してからシリアライズ
-                if hasattr(value, '__dict__'):
-                    serialized = json.dumps(value.__dict__, default=str)
-                else:
-                    serialized = json.dumps(str(value))
-            
-            await self.redis_client.set(key, serialized, ttl=ttl)
+            await self.redis_client.set(key, value, ttl=ttl)
             
             # キャッシュウォーミングパターンの記録
             if self.warming_enabled:

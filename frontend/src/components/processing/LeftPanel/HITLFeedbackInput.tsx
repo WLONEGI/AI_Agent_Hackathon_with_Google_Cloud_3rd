@@ -1,8 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useFeedbackState, useProcessingStore } from '@/stores/processingStore';
-import { useProcessingWebSocket } from '@/stores/websocketStore';
 import styles from './HITLFeedbackInput.module.css';
 
 export const HITLFeedbackInput: React.FC = () => {
@@ -14,22 +13,23 @@ export const HITLFeedbackInput: React.FC = () => {
     feedbackInput 
   } = useFeedbackState();
   
-  const { 
-    updateFeedbackInput, 
-    submitFeedback, 
-    skipFeedback, 
-    updateFeedbackTimer 
+  const {
+    updateFeedbackInput,
+    submitFeedback,
+    skipFeedback,
+    updateFeedbackTimer
   } = useProcessingStore();
   
-  const { submitFeedback: sendFeedbackToWS, skipFeedback: skipFeedbackWS } = useProcessingWebSocket();
-  
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [quickOptions, setQuickOptions] = useState<string[]>([
-    'より明るく',
-    'より詳細に',
-    'シンプルに',
-    'より深刻に'
-  ]);
+  const quickOptions = useMemo(
+    () => ([
+      { label: 'より明るく', value: 'make_brighter' as const },
+      { label: 'より詳細に', value: 'add_detail' as const },
+      { label: 'シンプルに', value: 'simplify' as const },
+      { label: 'より深刻に', value: 'more_serious' as const }
+    ]),
+    []
+  );
   
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -72,12 +72,8 @@ export const HITLFeedbackInput: React.FC = () => {
     setIsSubmitting(true);
     
     try {
-      // Submit to WebSocket
-      sendFeedbackToWS(feedbackPhase, feedbackInput);
-      
-      // Update local store
-      submitFeedback(feedbackInput, 'natural_language');
-      
+      await submitFeedback(feedbackInput, 'natural_language');
+
     } catch (error) {
       console.error('Failed to submit feedback:', error);
       // TODO: Show error message to user
@@ -86,17 +82,13 @@ export const HITLFeedbackInput: React.FC = () => {
     }
   };
 
-  const handleSkip = async (reason: string = 'satisfied') => {
+  const handleSkip = async (reason: 'satisfied' | 'time_constraint' | 'default_acceptable' = 'satisfied') => {
     if (!feedbackPhase || isSubmitting) return;
 
     setIsSubmitting(true);
     
     try {
-      // Skip on WebSocket
-      skipFeedbackWS(feedbackPhase, reason);
-      
-      // Update local store
-      skipFeedback(reason);
+      await skipFeedback(reason);
       
     } catch (error) {
       console.error('Failed to skip feedback:', error);
@@ -106,17 +98,20 @@ export const HITLFeedbackInput: React.FC = () => {
   };
 
   const handleAutoSkip = () => {
-    handleSkip('timeout');
+    handleSkip('time_constraint');
   };
 
-  const handleQuickFeedback = (option: string) => {
-    updateFeedbackInput(option);
-    // Auto-submit quick feedback after short delay
-    setTimeout(() => {
-      if (feedbackInput === option) {
-        handleSubmit();
-      }
-    }, 100);
+  const handleQuickFeedback = async (option: (typeof quickOptions)[number]) => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    try {
+      await submitFeedback(option.value, 'quick_option');
+    } catch (error) {
+      console.error('Failed to submit quick feedback:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -132,7 +127,7 @@ export const HITLFeedbackInput: React.FC = () => {
         handleSubmit();
       }
     } else if (e.key === 'Escape') {
-      handleSkip('user_cancelled');
+      handleSkip('default_acceptable');
     }
   };
 
@@ -185,12 +180,12 @@ export const HITLFeedbackInput: React.FC = () => {
         <div className={styles.quickButtons}>
           {quickOptions.map((option, index) => (
             <button
-              key={index}
+              key={option.value}
               className={styles.quickButton}
               onClick={() => handleQuickFeedback(option)}
               disabled={isSubmitting}
             >
-              {option}
+              {option.label}
             </button>
           ))}
         </div>
@@ -229,7 +224,7 @@ export const HITLFeedbackInput: React.FC = () => {
           <div className={styles.inputActions}>
             <button
               className={styles.cancelButton}
-              onClick={() => handleSkip('user_cancelled')}
+              onClick={() => handleSkip('default_acceptable')}
               disabled={isSubmitting}
             >
               キャンセル

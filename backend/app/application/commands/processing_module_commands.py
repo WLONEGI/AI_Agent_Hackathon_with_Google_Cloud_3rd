@@ -202,7 +202,7 @@ class CreatePhaseExecutionCommand(Command[str], RequireUserMixin, RequireIdMixin
                 raise CommandValidationError("Feedback timeout must be in the future")
 
 
-@dataclass 
+@dataclass(kw_only=True)
 class CompletePhaseExecutionCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to complete a phase execution."""
     

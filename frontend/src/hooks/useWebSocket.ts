@@ -132,31 +132,25 @@ export function useWebSocket() {
     store.startSession(text);
   }, [isConnected, store]);
 
-  const sendFeedback = useCallback((phaseId: PhaseId, feedback: string) => {
-    if (!isConnected) {
-      logger.warn('WebSocket not connected');
-      return;
+  const sendFeedback = useCallback(async (_phaseId: PhaseId, feedback: string) => {
+    try {
+      await store.submitFeedback(feedback, 'natural_language');
+    } catch (submitError) {
+      logger.error('Failed to submit feedback via API:', submitError);
     }
-    wsClient.current.sendFeedback(phaseId, feedback);
-    store.addFeedback(phaseId, feedback);
-  }, [isConnected, store]);
+  }, [store]);
 
-  const skipFeedback = useCallback((phaseId: PhaseId) => {
-    if (!isConnected) {
-      logger.warn('WebSocket not connected');
-      return;
+  const skipFeedback = useCallback(async (_phaseId: PhaseId) => {
+    try {
+      await store.skipFeedback('default_acceptable');
+    } catch (skipError) {
+      logger.error('Failed to skip feedback via API:', skipError);
     }
-    wsClient.current.skipFeedback(phaseId);
-  }, [isConnected]);
+  }, [store]);
 
   const cancelGeneration = useCallback(() => {
-    if (!isConnected) {
-      logger.warn('WebSocket not connected');
-      return;
-    }
-    wsClient.current.cancelGeneration();
     store.resetSession();
-  }, [isConnected, store]);
+  }, [store]);
 
   return {
     isConnected,

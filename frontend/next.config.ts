@@ -1,8 +1,12 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   // Production optimization for Cloud Run deployment
   output: 'standalone',
+
+  // Silence root detection warning in monorepo style workspace
+  outputFileTracingRoot: path.join(__dirname, ".."),
   
   // Disable ESLint during build to prevent deployment failures
   eslint: {

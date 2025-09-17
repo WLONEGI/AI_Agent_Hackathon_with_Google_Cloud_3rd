@@ -26,7 +26,7 @@ from app.application.queries.manga_project_queries import (
     GetMangaProjectQuery,
     ListMangaProjectsQuery,
     SearchMangaProjectsQuery,
-    GetProjectStatsQuery
+    GetMangaProjectStatsQuery
 )
 
 # DTOs
@@ -255,7 +255,7 @@ class AddProjectTagCommandHandler(AbstractCommandHandler[AddProjectTagCommand, b
             # Add tag through repository
             success = await self.project_repository.add_tag(
                 project_id=UUID(command.project_id),
-                tag=command.tag
+                tag=command.tag_name
             )
             
             result = CommandResult.success_result(success)
@@ -472,14 +472,14 @@ class SearchMangaProjectsQueryHandler(AbstractQueryHandler[SearchMangaProjectsQu
             return error_result
 
 
-class GetProjectStatsQueryHandler(AbstractQueryHandler[GetProjectStatsQuery, MangaProjectStatsDTO], BaseHandler):
+class GetMangaProjectStatsQueryHandler(AbstractQueryHandler[GetMangaProjectStatsQuery, MangaProjectStatsDTO], BaseHandler):
     """Handler for getting project statistics."""
     
     def __init__(self, project_repository: MangaProjectsRepository):
         super().__init__()
         self.project_repository = project_repository
     
-    async def handle(self, query: GetProjectStatsQuery) -> QueryResult[MangaProjectStatsDTO]:
+    async def handle(self, query: GetMangaProjectStatsQuery) -> QueryResult[MangaProjectStatsDTO]:
         """Handle get project stats query."""
         try:
             await self.validate_query(query)

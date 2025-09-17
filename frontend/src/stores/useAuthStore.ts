@@ -78,81 +78,41 @@ export const useAuthStore = create<AuthStore>()(
           const isProduction = process.env.NEXT_PUBLIC_APP_ENV === 'production';
           const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
           
-          let response;
-          
-          if (isProduction) {
-            // Production: Use real Firebase authentication
-            response = await fetch(`${apiUrl}/api/v1/auth/google/login`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ 
-                id_token: idToken
-              }),
-            });
-          } else {
-            // Development: Use mock authentication
-            response = await fetch(`${apiUrl}/api/v1/auth/google/login`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                id_token: 'mock-dev-token'
-              }),
-            });
-          }
-          
+          const requestPayload = {
+            id_token: isProduction ? idToken : 'mock-dev-token'
+          };
+
+          const response = await fetch(`${apiUrl}/api/v1/auth/google/login`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestPayload),
+          });
+
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.detail || 'Authentication failed');
           }
           
-          const authData = await response.json();
-          
-          let tokens: AuthTokens;
-          let userInfo: any;
-          
-          if (isProduction) {
-            // Production: Handle real Firebase authentication response
-            tokens = {
-              access_token: authData.access_token,
-              refresh_token: authData.refresh_token,
-              expires_at: Date.now() + (authData.expires_in * 1000)
-            };
-            userInfo = authData.user;
-          } else {
-            // Development: Handle mock authentication response
-            tokens = {
-              access_token: authData.token,
-              refresh_token: `refresh_${authData.token}`,
-              expires_at: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-            };
-            userInfo = {
-              id: authData.user.uid,
-              email: authData.user.email,
-              username: authData.user.name,
-              display_name: authData.user.name,
-              photo_url: authData.user.picture,
-              is_active: authData.user.email_verified,
-              provider: authData.user.provider,
-              created_at: new Date().toISOString(),
-              last_login: new Date().toISOString(),
-              account_type: 'free'
-            };
-          }
+          const authData: AuthResponse = await response.json();
+
+          const tokens: AuthTokens = {
+            access_token: authData.access_token,
+            refresh_token: authData.refresh_token,
+            expires_at: Date.now() + (authData.expires_in * 1000)
+          };
           
           // Set tokens and user
           get().setTokens(tokens);
           set({ 
-            user: userInfo,
+            user: authData.user,
             isAuthenticated: true,
             isLoading: false,
             error: null
           });
           
-          console.log(`${isProduction ? 'Firebase' : 'Mock'} authentication successful:`, userInfo.email);
+          console.log('Authentication successful:', authData.user.email);
           return true;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Login failed';

@@ -29,10 +29,10 @@ export const FeedbackInput = React.forwardRef<HTMLTextAreaElement, FeedbackInput
     
     // Quick feedback options
     const quickOptions = [
-      { label: '良い', value: 'good', emoji: '👍' },
-      { label: '改善が必要', value: 'needs_improvement', emoji: '🔄' },
-      { label: 'やり直し', value: 'redo', emoji: '↩️' },
-      { label: 'スキップ', value: 'skip', emoji: '⏭️' }
+      { label: 'より明るく', value: 'make_brighter' as const, emoji: '🌟' },
+      { label: 'よりシリアスに', value: 'more_serious' as const, emoji: '🎭' },
+      { label: '詳細を追加', value: 'add_detail' as const, emoji: '📝' },
+      { label: 'シンプルに', value: 'simplify' as const, emoji: '✨' }
     ];
 
     // Sync local input with store
@@ -64,22 +64,18 @@ export const FeedbackInput = React.forwardRef<HTMLTextAreaElement, FeedbackInput
     }, [localInput, submitFeedback, isSubmitting]);
 
     // Quick option handler
-    const handleQuickOption = useCallback(async (option: typeof quickOptions[0]) => {
+    const handleQuickOption = useCallback(async (option: (typeof quickOptions)[number]) => {
       if (isSubmitting) return;
 
       setIsSubmitting(true);
       try {
-        if (option.value === 'skip') {
-          await skipFeedback('ユーザーが手動でスキップ');
-        } else {
-          await submitFeedback(option.value, 'quick_option');
-        }
+        await submitFeedback(option.value, 'quick_option');
       } catch (error) {
         console.error('Failed to submit quick feedback:', error);
       } finally {
         setIsSubmitting(false);
       }
-    }, [submitFeedback, skipFeedback, isSubmitting]);
+    }, [submitFeedback, isSubmitting]);
 
     // Skip handler
     const handleSkip = useCallback(async () => {
@@ -87,7 +83,7 @@ export const FeedbackInput = React.forwardRef<HTMLTextAreaElement, FeedbackInput
       
       setIsSubmitting(true);
       try {
-        await skipFeedback('ユーザーがスキップを選択');
+        await skipFeedback('default_acceptable');
       } catch (error) {
         console.error('Failed to skip feedback:', error);
       } finally {

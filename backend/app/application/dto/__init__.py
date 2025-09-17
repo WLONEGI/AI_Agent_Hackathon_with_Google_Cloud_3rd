@@ -20,7 +20,8 @@ from .generation_request_dto import (
     GenerationRequestCreateDTO,
     GenerationRequestUpdateDTO,
     GenerationRequestStatsDTO,
-    GenerationRequestProgressDTO
+    GenerationRequestProgressDTO,
+    QueueStatsDTO
 )
 from .processing_module_dto import (
     ProcessingModuleDTO,
@@ -63,6 +64,7 @@ __all__ = [
     "GenerationRequestUpdateDTO",
     "GenerationRequestStatsDTO",
     "GenerationRequestProgressDTO",
+    "QueueStatsDTO",
     
     # Processing Module DTOs
     "ProcessingModuleDTO",

@@ -8,7 +8,7 @@ import { GoogleLoginModal } from '@/components/auth/GoogleLoginModal';
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, tokens } = useAuthStore();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -42,8 +42,8 @@ export default function Home() {
         sessionStorage.setItem('sessionText', storyText.trim());
 
         // Store auth token for development environment
-        if (process.env.NODE_ENV === 'development') {
-          sessionStorage.setItem('authToken', 'mock-dev-token');
+        if (tokens?.access_token) {
+          sessionStorage.setItem('authToken', tokens.access_token);
         }
 
         router.push('/processing');

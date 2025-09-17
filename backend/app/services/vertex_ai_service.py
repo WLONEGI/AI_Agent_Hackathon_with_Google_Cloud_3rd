@@ -6,21 +6,24 @@ Gemini Pro と Imagen 4 の統合クライアント
 import asyncio
 import base64
 import json
-import time
-from typing import Dict, List, Any, Optional, Union
-from datetime import datetime
 import logging
+import os
+import random
+import time
+from datetime import datetime
 from io import BytesIO
+from typing import Any, Dict, List, Optional, Union
 
 import google.auth
+import vertexai
 from google.cloud import aiplatform
 from google.oauth2 import service_account
-import vertexai
 from vertexai.generative_models import GenerativeModel, Part
 from vertexai.preview.vision_models import ImageGenerationModel
 
 from app.core.config import settings
 from app.core.logging import LoggerMixin
+from app.core.mock_services import get_mock_ai_service
 
 
 class VertexAIService(LoggerMixin):
@@ -29,33 +32,64 @@ class VertexAIService(LoggerMixin):
     def __init__(self):
         super().__init__()
         
-        # Vertex AI初期化
-        self._initialize_vertex_ai()
-        
-        # モデル設定
-        self.gemini_config = settings.ai_models.get_gemini_config()
-        self.imagen_config = settings.ai_models.get_imagen_config()
-        
-        # レート制限設定
-        self.rate_limit_config = settings.ai_models.get_rate_limit_config()
+        self._mock_mode = os.getenv("MOCK_AI_SERVICES", "false").lower() == "true"
+        self._allow_mock_fallback = os.getenv("AI_ALLOW_MOCK_FALLBACK", "true").lower() != "false"
+        self._mock_ai = None
+
+        # デフォルト設定（モックモードでも利用）
+        self.gemini_config: Dict[str, Any] = {}
+        self.imagen_config: Dict[str, Any] = {}
+        self.rate_limit_config: Dict[str, Any] = {
+            "max_parallel_requests": 1,
+            "max_parallel_images": 1,
+            "requests_per_minute": 60,
+            "images_per_minute": 60
+        }
+
+        # モデルインスタンス
+        self._gemini_model = None
+        self._imagen_model = None
+
+        # 初期化処理
+        if not self._mock_mode:
+            try:
+                self._initialize_vertex_ai()
+                self.gemini_config = settings.ai_models.get_gemini_config()
+                self.imagen_config = settings.ai_models.get_imagen_config()
+                self.rate_limit_config = settings.ai_models.get_rate_limit_config()
+            except Exception as e:
+                if self._allow_mock_fallback:
+                    self._mock_mode = True
+                    self._mock_ai = get_mock_ai_service()
+                    self.logger.warning(
+                        "Vertex AI initialization failed; switching to mock mode",
+                        error=str(e)
+                    )
+                else:
+                    raise
+        else:
+            self._mock_ai = get_mock_ai_service()
+            self.logger.info("VertexAIService configured to use mock AI services")
+
         self._request_counts = {
             "gemini": {"count": 0, "window_start": time.time()},
             "imagen": {"count": 0, "window_start": time.time()}
         }
-        
-        # セマフォでの並行制御
+
         self.gemini_semaphore = asyncio.Semaphore(
-            self.rate_limit_config["max_parallel_requests"]
+            max(1, self.rate_limit_config.get("max_parallel_requests", 1))
         )
         self.imagen_semaphore = asyncio.Semaphore(
-            self.rate_limit_config["max_parallel_images"]
+            max(1, self.rate_limit_config.get("max_parallel_images", 1))
         )
-        
-        # モデルインスタンス
-        self._gemini_model = None
-        self._imagen_model = None
-        
-        self.logger.info("VertexAI service initialized")
+
+        if self._mock_mode and self._mock_ai is None:
+            self._mock_ai = get_mock_ai_service()
+
+        if self._mock_mode:
+            self.logger.info("VertexAI service running in mock mode; external API calls disabled")
+        else:
+            self.logger.info("VertexAI service initialized")
     
     def _initialize_vertex_ai(self):
         """Vertex AI の初期化"""
@@ -143,59 +177,54 @@ class VertexAIService(LoggerMixin):
         Returns:
             生成結果辞書
         """
+        if self._mock_mode:
+            return await self._mock_generate_text(prompt, phase_number)
+
         async with self.gemini_semaphore:
-            # レート制限チェック
             await self._check_rate_limit("gemini")
-            
-            # フェーズ固有の設定取得
+
             generation_config = self._get_phase_config(phase_number)
-            
+
             start_time = time.time()
             last_error = None
-            
+
             for attempt in range(max_retries + 1):
                 try:
-                    # プロンプト構築
                     full_prompt = self._build_prompt(prompt, system_prompt, phase_number)
-                    
-                    # Gemini Pro API呼び出し
+
                     response = await self._call_gemini_api(
                         full_prompt, generation_config
                     )
-                    
-                    # レスポンス処理
+
                     result = self._process_gemini_response(response, start_time)
-                    
-                    # 成功ログ
+
                     self.logger.info(
-                        f"Gemini generation successful",
+                        "Gemini generation successful",
                         phase=phase_number,
                         tokens=result.get("usage", {}).get("total_tokens", 0),
                         time=result.get("processing_time", 0)
                     )
-                    
+
                     return result
-                    
+
                 except Exception as e:
                     last_error = e
                     self.logger.warning(
                         f"Gemini generation attempt {attempt + 1} failed: {str(e)}",
                         phase=phase_number
                     )
-                    
+
                     if attempt < max_retries:
-                        # エクスポネンシャルバックオフ
                         await asyncio.sleep(2 ** attempt)
                     else:
                         break
-            
-            # 全試行失敗
+
             self.logger.error(
                 f"Gemini generation failed after {max_retries + 1} attempts",
                 phase=phase_number,
                 error=str(last_error)
             )
-            
+
             return {
                 "success": False,
                 "error": str(last_error),
@@ -221,25 +250,25 @@ class VertexAIService(LoggerMixin):
         Returns:
             生成結果のリスト
         """
-        # 並列処理用のセマフォ制御
+        if self._mock_mode:
+            return await self._mock_generate_images(prompts)
+
         semaphore = asyncio.Semaphore(batch_size)
-        
+
         async def generate_single_image(prompt: str, index: int) -> Dict[str, Any]:
             async with semaphore:
                 return await self._generate_single_image(
                     prompt, negative_prompt, index, max_retries
                 )
-        
-        # 全プロンプトの並列処理
+
         start_time = time.time()
         tasks = [
-            generate_single_image(prompt, i) 
+            generate_single_image(prompt, i)
             for i, prompt in enumerate(prompts)
         ]
-        
+
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
-        # 結果の処理
+
         processed_results = []
         for i, result in enumerate(results):
             if isinstance(result, Exception):
@@ -251,18 +280,18 @@ class VertexAIService(LoggerMixin):
                 })
             else:
                 processed_results.append(result)
-        
+
         total_time = time.time() - start_time
         success_count = sum(1 for r in processed_results if r.get("success", False))
-        
+
         self.logger.info(
-            f"Imagen batch generation completed",
+            "Imagen batch generation completed",
             total_images=len(prompts),
             successful=success_count,
             failed=len(prompts) - success_count,
             total_time=total_time
         )
-        
+
         return processed_results
     
     async def _generate_single_image(
@@ -273,6 +302,9 @@ class VertexAIService(LoggerMixin):
         max_retries: int
     ) -> Dict[str, Any]:
         """単一画像の生成"""
+        if self._mock_mode:
+            return await self._mock_generate_image(prompt, index)
+
         async with self.imagen_semaphore:
             # レート制限チェック
             await self._check_rate_limit("imagen")
@@ -466,7 +498,86 @@ class VertexAIService(LoggerMixin):
                 "prompt_index": index,
                 "processing_time": time.time() - start_time
             }
-    
+
+    async def _mock_generate_text(
+        self,
+        prompt: str,
+        phase_number: Optional[int]
+    ) -> Dict[str, Any]:
+        """Mock Gemini response for development mode."""
+
+        await asyncio.sleep(0.1)
+
+        payload: Dict[str, Any] = {
+            "phase": phase_number or 0,
+            "summary": "Mock Gemini response",
+            "prompt_excerpt": prompt[:160]
+        }
+
+        if phase_number == 4:
+            payload["panel_layouts"] = [
+                {
+                    "page_number": 1,
+                    "panels": [
+                        {
+                            "panel_id": "mock_panel_1",
+                            "camera_angle": "medium",
+                            "composition": "rule_of_thirds",
+                            "importance": "high",
+                            "description": "Mock panel generated in mock mode"
+                        },
+                        {
+                            "panel_id": "mock_panel_2",
+                            "camera_angle": "close_up",
+                            "composition": "centered",
+                            "importance": "medium",
+                            "description": "Supporting mock panel"
+                        }
+                    ]
+                }
+            ]
+
+        content = json.dumps(payload, ensure_ascii=False)
+
+        return {
+            "success": True,
+            "content": content,
+            "usage": {
+                "prompt_tokens": max(8, len(prompt) // 4),
+                "completion_tokens": 128,
+                "total_tokens": max(32, len(prompt) // 4 + 128)
+            },
+            "processing_time": 0.1,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
+    async def _mock_generate_images(self, prompts: List[str]) -> List[Dict[str, Any]]:
+        """Mock Imagen batch response for development mode."""
+
+        results: List[Dict[str, Any]] = []
+        for index, prompt in enumerate(prompts):
+            result = await self._mock_generate_image(prompt, index)
+            results.append(result)
+        return results
+
+    async def _mock_generate_image(self, prompt: str, index: int) -> Dict[str, Any]:
+        """Mock single Imagen response."""
+
+        await asyncio.sleep(0.15)
+
+        quality_score = round(random.uniform(0.74, 0.92), 3)
+        base_url = "https://example.com/mock-images"
+
+        return {
+            "success": True,
+            "image_url": f"{base_url}/{index}.png",
+            "thumbnail_url": f"{base_url}/{index}_thumb.png",
+            "quality_score": quality_score,
+            "prompt_index": index,
+            "processing_time": 0.15,
+            "timestamp": datetime.utcnow().isoformat()
+        }
+
     def _build_prompt(
         self,
         user_prompt: str,
@@ -508,6 +619,9 @@ class VertexAIService(LoggerMixin):
     
     async def _check_rate_limit(self, model_type: str):
         """レート制限のチェック"""
+        if self._mock_mode:
+            return
+
         current_time = time.time()
         rate_info = self._request_counts[model_type]
         

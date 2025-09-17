@@ -48,7 +48,7 @@ class User(Base):
     __tablename__ = "users"
     
     # Primary key - UUID format compatible with PostgreSQL UUID type
-    id = Column(UUID(as_uuid=False), primary_key=True)
+    id = Column(GUID(), primary_key=True, default=uuid4)
     
     # Authentication fields
     email = Column(String(255), unique=True, nullable=False, index=True)

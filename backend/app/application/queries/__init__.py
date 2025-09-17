@@ -52,6 +52,8 @@ __all__ = [
     # Generation Request Queries
     "GetGenerationRequestQuery",
     "ListGenerationRequestsQuery",
+    "GetGenerationProgressQuery",
+    "GetGenerationQueueStatsQuery",
     "GetGenerationRequestsByUserQuery",
     "GetGenerationRequestsByProjectQuery", 
     "GetGenerationRequestStatsQuery",

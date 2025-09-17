@@ -6,6 +6,10 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Callable
 import logging
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
@@ -18,15 +22,28 @@ from sqlalchemy.orm import declarative_base
 logger = logging.getLogger(__name__)
 
 
-DEFAULT_LOCAL_DB_URL = "sqlite+aiosqlite:///./tmp/dev.sqlite3"
-
-
 def _load_database_url() -> str:
+    mock_database = os.getenv("MOCK_DATABASE", "false").lower() == "true"
+    sqlite_url = os.getenv("SQLITE_DATABASE_URL", "sqlite+aiosqlite:///./dev_manga.db")
     url = os.getenv("DATABASE_URL")
+
+    if mock_database:
+        logger.info("Using SQLite database for development (MOCK_DATABASE=true)")
+        return sqlite_url
+
     if not url:
-        logger.warning("DATABASE_URL not set; falling back to local SQLite database.")
-        return DEFAULT_LOCAL_DB_URL
-    return url
+        raise ValueError("DATABASE_URL environment variable is required")
+
+    if url.startswith(("postgresql://", "postgresql+asyncpg://")):
+        return url
+
+    if url.startswith("sqlite://") or url.startswith("sqlite+aiosqlite://"):
+        logger.warning("Using SQLite database URL from configuration")
+        return url
+
+    raise ValueError(
+        "DATABASE_URL must start with postgresql://, postgresql+asyncpg://, or sqlite+aiosqlite://"
+    )
 
 
 DATABASE_URL = _load_database_url()
@@ -43,6 +60,10 @@ if DATABASE_URL.startswith(("postgresql://", "postgresql+asyncpg://")):
         "max_overflow": 10,
         "pool_recycle": 3600,
         "pool_timeout": 30,
+    })
+elif DATABASE_URL.startswith("sqlite"):
+    _engine_kwargs.update({
+        "connect_args": {"check_same_thread": False}
     })
 
 engine = create_async_engine(

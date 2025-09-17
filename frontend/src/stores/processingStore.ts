@@ -3,6 +3,8 @@ import { devtools } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import { useShallow } from 'zustand/react/shallow';
 import type { WebSocketClient } from '@/lib/websocket';
+import { apiClient } from '@/lib/api';
+import { PHASE_DEFINITIONS } from '@/types/phases';
 
 // Type definitions for the processing store
 export interface LogEntry {
@@ -51,6 +53,7 @@ export interface ProcessingState {
   phases: PhaseState[];
   currentPhase: number;
   overallProgress: number;
+  completedSessionId: string | null;
   
   // Real-time Communication
   wsClient: WebSocketClient | null;
@@ -80,6 +83,9 @@ export interface ProcessingState {
     phaseStartTimes: Record<number, Date>;
     feedbackResponseTimes: Record<number, number>;
   };
+
+  // Global Logs (非フェーズ固有ログ)
+  globalLogs: LogEntry[];
 }
 
 export interface ProcessingActions {
@@ -105,8 +111,8 @@ export interface ProcessingActions {
   // HITL Feedback Actions
   requestFeedback: (phaseId: number, timeout?: number) => void;
   updateFeedbackInput: (input: string) => void;
-  submitFeedback: (feedback: string, type?: FeedbackEntry['type']) => void;
-  skipFeedback: (reason: string) => void;
+  submitFeedback: (feedback: string, type?: FeedbackEntry['type']) => Promise<void>;
+  skipFeedback: (reason: 'satisfied' | 'time_constraint' | 'default_acceptable') => Promise<void>;
   clearFeedbackRequest: () => void;
   updateFeedbackTimer: (timeRemaining: number) => void;
   
@@ -132,102 +138,25 @@ export interface ProcessingActions {
   recordPhaseStart: (phaseId: number) => void;
   recordFeedbackResponse: (phaseId: number, responseTime: number) => void;
   getSessionDuration: () => number;
+
+  // Session Completion Actions
+  setCompletedSessionId: (sessionId: string | null) => void;
 }
 
 // Initial phases configuration based on the 7-phase AI system
-const initialPhases: PhaseState[] = [
-  {
-    id: 1,
-    name: "コンセプト分析",
-    description: "ユーザーの入力テキストを分析し、物語のコンセプトとテーマを抽出",
-    status: 'pending',
-    progress: 0,
-    startTime: null,
-    endTime: null,
-    preview: null,
-    logs: [],
-    feedbackHistory: [],
-    estimatedDuration: 30
-  },
-  {
-    id: 2,
-    name: "キャラクター設計",
-    description: "主要キャラクターの外見、性格、背景設定を生成",
-    status: 'pending',
-    progress: 0,
-    startTime: null,
-    endTime: null,
-    preview: null,
-    logs: [],
-    feedbackHistory: [],
-    estimatedDuration: 45
-  },
-  {
-    id: 3,
-    name: "プロット構造化",
-    description: "物語の構造を4コマ漫画形式に最適化して構成",
-    status: 'pending',
-    progress: 0,
-    startTime: null,
-    endTime: null,
-    preview: null,
-    logs: [],
-    feedbackHistory: [],
-    estimatedDuration: 40
-  },
-  {
-    id: 4,
-    name: "ネーミング生成",
-    description: "キャラクター名、場所名、作品タイトルなどの名前を生成",
-    status: 'pending',
-    progress: 0,
-    startTime: null,
-    endTime: null,
-    preview: null,
-    logs: [],
-    feedbackHistory: [],
-    estimatedDuration: 25
-  },
-  {
-    id: 5,
-    name: "シーン画像生成",
-    description: "各コマの背景とキャラクターイラストを生成",
-    status: 'pending',
-    progress: 0,
-    startTime: null,
-    endTime: null,
-    preview: null,
-    logs: [],
-    feedbackHistory: [],
-    estimatedDuration: 90
-  },
-  {
-    id: 6,
-    name: "セリフ配置",
-    description: "生成された画像にセリフとテキストを配置",
-    status: 'pending',
-    progress: 0,
-    startTime: null,
-    endTime: null,
-    preview: null,
-    logs: [],
-    feedbackHistory: [],
-    estimatedDuration: 35
-  },
-  {
-    id: 7,
-    name: "最終統合",
-    description: "全てのコマを統合してPDF形式の完成作品を生成",
-    status: 'pending',
-    progress: 0,
-    startTime: null,
-    endTime: null,
-    preview: null,
-    logs: [],
-    feedbackHistory: [],
-    estimatedDuration: 30
-  }
-];
+const initialPhases: PhaseState[] = Object.values(PHASE_DEFINITIONS).map((definition) => ({
+  id: definition.id,
+  name: definition.name,
+  description: definition.description,
+  status: 'pending',
+  progress: 0,
+  startTime: null,
+  endTime: null,
+  preview: null,
+  logs: [],
+  feedbackHistory: [],
+  estimatedDuration: Math.ceil(definition.estimated_duration_seconds ?? 0)
+}));
 
 const initialState: ProcessingState = {
   // Session Management
@@ -240,6 +169,7 @@ const initialState: ProcessingState = {
   phases: initialPhases,
   currentPhase: 0,
   overallProgress: 0,
+  completedSessionId: null,
   
   // Real-time Communication
   wsClient: null,
@@ -268,7 +198,9 @@ const initialState: ProcessingState = {
     sessionStartTime: null,
     phaseStartTimes: {},
     feedbackResponseTimes: {}
-  }
+  },
+
+  globalLogs: []
 };
 
 // Create the store with middleware
@@ -295,6 +227,7 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
             state.currentPhase = 0;
             state.overallProgress = 0;
             state.performanceMetrics.sessionStartTime = new Date();
+            state.completedSessionId = null;
             
             // Add initialization log with immutable approach
             const initLog: LogEntry = {
@@ -306,8 +239,8 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
             };
             
             // Use immutable array update
-            state.phases[0].logs = [...state.phases[0].logs, initLog];
-            state.totalLogs++;
+            state.globalLogs = [initLog];
+            state.totalLogs = 1;
           });
         },
 
@@ -443,8 +376,8 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
           set((state) => {
             state.feedbackRequired = true;
             state.feedbackPhase = phaseId;
-            state.feedbackTimeout = timeout || 300; // 5 minutes default
-            state.feedbackTimeRemaining = timeout || 300;
+            state.feedbackTimeout = timeout ?? null;
+            state.feedbackTimeRemaining = timeout ?? null;
             state.feedbackInput = '';
             
             // Update phase status
@@ -461,60 +394,92 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
           });
         },
 
-        submitFeedback: (feedback: string, type = 'natural_language') => {
-          const state = get();
-          if (state.feedbackPhase) {
-            set((draft) => {
-              const phase = draft.phases.find(p => p.id === state.feedbackPhase);
-              if (phase) {
-                const feedbackEntry: FeedbackEntry = {
-                  id: `feedback_${Date.now()}_${Math.random()}`,
-                  timestamp: new Date(),
-                  phaseId: state.feedbackPhase!,
-                  type: type as FeedbackEntry['type'],
-                  content: feedback
-                };
-                phase.feedbackHistory = [...phase.feedbackHistory, feedbackEntry];
-                
-                // Record response time
-                if (draft.performanceMetrics.phaseStartTimes[state.feedbackPhase!]) {
-                  const responseTime = Date.now() - draft.performanceMetrics.phaseStartTimes[state.feedbackPhase!].getTime();
-                  draft.performanceMetrics.feedbackResponseTimes[state.feedbackPhase!] = responseTime;
-                }
-              }
-              
-              draft.feedbackRequired = false;
-              draft.feedbackPhase = null;
-              draft.feedbackTimeout = null;
-              draft.feedbackTimeRemaining = null;
-              draft.feedbackInput = '';
-            });
+        submitFeedback: async (feedback: string, type: FeedbackEntry['type'] = 'natural_language') => {
+          const { sessionId, feedbackPhase } = get();
+          if (!sessionId || !feedbackPhase) {
+            throw new Error('フィードバック対象のセッションが見つかりませんでした');
           }
+
+          const requestPayload = {
+            phase: feedbackPhase,
+            feedback_type: type === 'quick_option' ? 'quick_option' : 'natural_language',
+            content: {
+              natural_language: type === 'natural_language' ? feedback : undefined,
+              quick_option: type === 'quick_option' ? (feedback as 'make_brighter' | 'more_serious' | 'add_detail' | 'simplify') : undefined,
+              intensity: 0.7,
+              target_elements: [] as string[]
+            }
+          };
+
+          const response = await apiClient.submitFeedback(sessionId, requestPayload);
+          if (!response.success) {
+            throw new Error(response.error || 'フィードバックの送信に失敗しました');
+          }
+
+          set((draft) => {
+            const phase = draft.phases.find(p => p.id === feedbackPhase);
+            if (phase) {
+              const feedbackEntry: FeedbackEntry = {
+                id: `feedback_${Date.now()}_${Math.random()}`,
+                timestamp: new Date(),
+                phaseId: feedbackPhase,
+                type,
+                content: type === 'natural_language' ? feedback : `quick_option:${feedback}`
+              };
+              phase.feedbackHistory = [...phase.feedbackHistory, feedbackEntry];
+
+              if (draft.performanceMetrics.phaseStartTimes[feedbackPhase]) {
+                const responseTime = Date.now() - draft.performanceMetrics.phaseStartTimes[feedbackPhase].getTime();
+                draft.performanceMetrics.feedbackResponseTimes[feedbackPhase] = responseTime;
+              }
+            }
+
+            draft.feedbackRequired = false;
+            draft.feedbackPhase = null;
+            draft.feedbackTimeout = null;
+            draft.feedbackTimeRemaining = null;
+            draft.feedbackInput = '';
+          });
+
+          get().updatePhaseStatus(feedbackPhase, 'processing');
         },
 
-        skipFeedback: (reason: string) => {
-          const state = get();
-          if (state.feedbackPhase) {
-            set((draft) => {
-              const phase = draft.phases.find(p => p.id === state.feedbackPhase);
-              if (phase) {
-                const skipEntry: FeedbackEntry = {
-                  id: `skip_${Date.now()}_${Math.random()}`,
-                  timestamp: new Date(),
-                  phaseId: state.feedbackPhase!,
-                  type: 'skip',
-                  content: `スキップ: ${reason}`
-                };
-                phase.feedbackHistory = [...phase.feedbackHistory, skipEntry];
-              }
-              
-              draft.feedbackRequired = false;
-              draft.feedbackPhase = null;
-              draft.feedbackTimeout = null;
-              draft.feedbackTimeRemaining = null;
-              draft.feedbackInput = '';
-            });
+        skipFeedback: async (reason: 'satisfied' | 'time_constraint' | 'default_acceptable') => {
+          const { sessionId, feedbackPhase } = get();
+          if (!sessionId || !feedbackPhase) {
+            throw new Error('スキップ対象のセッションが見つかりませんでした');
           }
+
+          const response = await apiClient.skipFeedback(sessionId, {
+            phase: feedbackPhase,
+            skip_reason: reason
+          });
+
+          if (!response.success) {
+            throw new Error(response.error || 'フィードバックのスキップに失敗しました');
+          }
+
+          set((draft) => {
+            const phase = draft.phases.find(p => p.id === feedbackPhase);
+            if (phase) {
+              const skipEntry: FeedbackEntry = {
+                id: `skip_${Date.now()}_${Math.random()}`,
+                timestamp: new Date(),
+                phaseId: feedbackPhase,
+                type: 'skip',
+                content: `skip_reason:${reason}`
+              };
+              phase.feedbackHistory = [...phase.feedbackHistory, skipEntry];
+            }
+
+            draft.feedbackRequired = false;
+            draft.feedbackPhase = null;
+            draft.feedbackTimeout = null;
+            draft.feedbackTimeRemaining = null;
+            draft.feedbackInput = '';
+          });
+
+          get().updatePhaseStatus(feedbackPhase, 'processing');
         },
 
         clearFeedbackRequest: () => {
@@ -530,12 +495,6 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
         updateFeedbackTimer: (timeRemaining: number) => {
           set((state) => {
             state.feedbackTimeRemaining = Math.max(0, timeRemaining);
-            if (timeRemaining <= 0) {
-              // Auto-skip on timeout
-              state.feedbackRequired = false;
-              state.feedbackPhase = null;
-              state.feedbackTimeout = null;
-            }
           });
         },
 
@@ -557,6 +516,11 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
                   phase.logs = phase.logs.slice(1);
                 }
               }
+            } else {
+              state.globalLogs = [...state.globalLogs, newLog];
+              if (state.globalLogs.length > state.maxLogHistory) {
+                state.globalLogs = state.globalLogs.slice(-state.maxLogHistory);
+              }
             }
             
             state.totalLogs++;
@@ -568,6 +532,7 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
             state.phases.forEach(phase => {
               phase.logs = [];
             });
+            state.globalLogs = [];
             state.totalLogs = 0;
           });
         },
@@ -650,6 +615,12 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
             return Math.floor((Date.now() - state.performanceMetrics.sessionStartTime.getTime()) / 1000);
           }
           return 0;
+        },
+
+        setCompletedSessionId: (sessionId: string | null) => {
+          set((state) => {
+            state.completedSessionId = sessionId;
+          });
         }
       })),
     {
@@ -706,9 +677,8 @@ export const useUIState = () => useProcessingStore(useShallow(
 
 // Simple logs selector with shallow comparison
 export const useLogs = () => useProcessingStore(useShallow((state) => 
-  state.phases.reduce((allLogs: LogEntry[], phase) => {
-    return allLogs.concat(phase.logs);
-  }, []).sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+  [...state.globalLogs, ...state.phases.flatMap((phase) => phase.logs)]
+    .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
 ));
 
 // Get current phase ID for HITL feedback

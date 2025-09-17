@@ -237,3 +237,56 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
 }
+
+// ===== MANGA WORKS API TYPES =====
+
+export interface MangaWorkItem {
+  manga_id: string;
+  title: string;
+  status: string;
+  pages: number;
+  style: string;
+  created_at: string;
+  updated_at: string;
+  thumbnail_url?: string | null;
+  size_bytes: number;
+}
+
+export interface PaginationResponse {
+  page: number;
+  limit: number;
+  total_items: number;
+  total_pages: number;
+  has_next: boolean;
+  has_previous: boolean;
+}
+
+export interface MangaWorksListResponse {
+  items: MangaWorkItem[];
+  pagination: PaginationResponse;
+}
+
+export interface MangaWorkMetadata {
+  pages: number;
+  style: string;
+  characters_count: number;
+  word_count: number;
+  processing_time_seconds: number;
+}
+
+export interface MangaWorkFiles {
+  pdf_url: string;
+  webp_urls: string[];
+  thumbnail_url: string;
+}
+
+export interface MangaWorkDetailResponse {
+  manga_id: string;
+  title: string;
+  status: string;
+  metadata: MangaWorkMetadata;
+  files: MangaWorkFiles;
+  created_at: string;
+  updated_at: string;
+  expires_at: string;
+}

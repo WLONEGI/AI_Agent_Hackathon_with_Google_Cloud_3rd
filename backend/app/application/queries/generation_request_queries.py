@@ -5,7 +5,12 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from .base_query import Query, RequireUserMixin, RequireIdMixin, QueryValidationError
-from ..dto.generation_request_dto import GenerationRequestDTO, GenerationRequestStatsDTO, GenerationRequestProgressDTO
+from ..dto.generation_request_dto import (
+    GenerationRequestDTO,
+    GenerationRequestStatsDTO,
+    GenerationRequestProgressDTO,
+    QueueStatsDTO
+)
 
 
 @dataclass(kw_only=True)
@@ -307,3 +312,14 @@ class GetGenerationHistoryQuery(Query[List[dict]], RequireUserMixin, RequireIdMi
             for action_type in self.action_types:
                 if action_type not in valid_types:
                     raise QueryValidationError(f"Invalid action type: {action_type}")
+
+@dataclass(kw_only=True)
+class GetGenerationQueueStatsQuery(Query[QueueStatsDTO], RequireUserMixin):
+    """Query to retrieve aggregated queue statistics."""
+
+    include_processing_nodes: bool = False
+
+    def validate(self) -> None:
+        """Validate queue stats query."""
+        self.validate_user_required()
+

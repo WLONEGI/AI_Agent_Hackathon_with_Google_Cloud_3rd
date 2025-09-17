@@ -1,42 +1,23 @@
 'use client';
 
 import React, { useEffect, useRef, useMemo } from 'react';
-import { useProcessingStore, usePhases, useUIState } from '@/stores/processingStore';
-import { type LogEntry } from '@/stores/processingStore';
+import { useProcessingStore, useUIState, useLogs } from '@/stores/processingStore';
+import type { LogEntry } from '@/stores/processingStore';
 import styles from './LogsContainer.module.css';
 
 export const LogsContainer: React.FC = () => {
-  const phases = usePhases();
+  const logs = useLogs();
   const { autoScroll, selectedPhase } = useUIState();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Aggregate all logs from all phases, sorted by timestamp
-  const allLogs = useMemo(() => {
-    const logs: (LogEntry & { phaseId?: number })[] = [];
-    
-    phases.forEach(phase => {
-      phase.logs.forEach(log => {
-        logs.push({
-          ...log,
-          phaseId: phase.id
-        });
-      });
-    });
-    
-    // Sort by timestamp
-    return logs.sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
-  }, [phases]);
-
-  // Filter logs based on selected phase
   const filteredLogs = useMemo(() => {
     if (selectedPhase === null) {
-      return allLogs;
+      return logs;
     }
-    return allLogs.filter(log => log.phaseId === selectedPhase);
-  }, [allLogs, selectedPhase]);
+    return logs.filter(log => log.phaseId === selectedPhase);
+  }, [logs, selectedPhase]);
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {

@@ -20,7 +20,8 @@ from .generation_request_commands import (
     UpdateGenerationRequestStatusCommand,
     RetryGenerationRequestCommand,
     CancelGenerationRequestCommand,
-    ProcessFeedbackCommand
+    ProcessFeedbackCommand,
+    UpdateGenerationProgressCommand
 )
 from .processing_module_commands import (
     StartProcessingModuleCommand,
@@ -54,6 +55,7 @@ __all__ = [
     "RetryGenerationRequestCommand",
     "CancelGenerationRequestCommand",
     "ProcessFeedbackCommand",
+    "UpdateGenerationProgressCommand",
     
     # Processing Module Commands
     "StartProcessingModuleCommand",

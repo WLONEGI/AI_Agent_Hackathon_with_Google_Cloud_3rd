@@ -391,3 +391,28 @@ class GenerationPerformanceDTO(BaseDTO):
         
         if self.period_start >= self.period_end:
             raise ValueError("Period start must be before period end")
+
+@dataclass
+class QueueStatsDTO(BaseDTO):
+    """DTO for generation queue statistics."""
+
+    queued_count: int
+    processing_count: int
+    completed_count: int
+    failed_count: int
+    average_wait_time_seconds: float
+    estimated_wait_time_seconds: float
+    total_processed_today: int
+
+    def validate(self) -> None:
+        """Validate queue stats DTO."""
+        if any(value < 0 for value in [
+            self.queued_count,
+            self.processing_count,
+            self.completed_count,
+            self.failed_count,
+            self.total_processed_today
+        ]):
+            raise ValueError("Queue counts cannot be negative")
+        if self.average_wait_time_seconds < 0 or self.estimated_wait_time_seconds < 0:
+            raise ValueError("Wait times cannot be negative")

@@ -211,6 +211,36 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
+        const handlePhaseProgress = (data: { phaseId: number; progress?: number; status?: string | null; preview?: any | null }) => {
+          if (typeof data.phaseId !== 'number') {
+            return;
+          }
+
+          if (typeof data.progress === 'number') {
+            processingStore.updatePhaseProgress(data.phaseId, data.progress);
+          }
+
+          if (data.preview) {
+            processingStore.setPhasePreview(data.phaseId, data.preview);
+          }
+
+          if (data.status) {
+            const statusMap: Record<string, 'pending' | 'processing' | 'waiting_feedback' | 'completed' | 'error'> = {
+              pending: 'pending',
+              processing: 'processing',
+              waiting_feedback: 'waiting_feedback',
+              feedback_waiting: 'waiting_feedback',
+              completed: 'completed',
+              error: 'error'
+            };
+
+            const mapped = statusMap[data.status] ?? undefined;
+            if (mapped) {
+              processingStore.updatePhaseStatus(data.phaseId, mapped);
+            }
+          }
+        };
+
         const handlePhaseComplete = (data: { phaseId: number; result: any }) => {
           processingStore.updatePhaseStatus(data.phaseId, 'completed');
           processingStore.updatePhaseProgress(data.phaseId, 100);
@@ -238,18 +268,26 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handleFeedbackRequest = (data: { phaseId: number; preview: any; timeout?: number }) => {
-          processingStore.requestFeedback(data.phaseId, data.timeout);
-          
+        const handleFeedbackWaiting = (data: { phaseId: number; preview?: any; timeout?: number | null }) => {
+          processingStore.requestFeedback(data.phaseId, data.timeout ?? undefined);
+
           if (data.preview) {
             processingStore.setPhasePreview(data.phaseId, data.preview);
           }
 
           processingStore.addLog({
             level: 'info',
-            message: `フェーズ${data.phaseId}のフィードバックが必要です`,
+            message: `フェーズ${data.phaseId}のフィードバックを待機しています`,
             phaseId: data.phaseId,
             source: 'websocket'
+          });
+        };
+
+        const handleFeedbackRequest = (data: { phaseId: number; preview: any; timeout?: number }) => {
+          handleFeedbackWaiting({
+            phaseId: data.phaseId,
+            preview: data.preview,
+            timeout: data.timeout
           });
         };
 
@@ -297,8 +335,10 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handleSessionComplete = (data: { results: any }) => {
+        const handleSessionComplete = (data: { results: any; sessionId?: string | null }) => {
           processingStore.updateSessionStatus('completed');
+          const currentSessionId = useProcessingStore.getState().sessionId;
+          processingStore.setCompletedSessionId(data.sessionId ?? currentSessionId ?? null);
           
           processingStore.addLog({
             level: 'info',
@@ -314,9 +354,11 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
         client.on('maxReconnectAttemptsReached', handleMaxReconnectAttemptsReached);
         client.on('sessionStart', handleSessionStart);
         client.on('phaseStart', handlePhaseStart);
+        client.on('phaseProgress', handlePhaseProgress);
         client.on('phaseComplete', handlePhaseComplete);
         client.on('phaseError', handlePhaseError);
         client.on('feedbackRequest', handleFeedbackRequest);
+        client.on('feedbackWaiting', handleFeedbackWaiting);
         client.on('feedbackApplied', handleFeedbackApplied);
         client.on('previewReady', handlePreviewReady);
         client.on('chatMessage', handleChatMessage);
@@ -331,9 +373,11 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
         handlers.set('maxReconnectAttemptsReached', new Set([handleMaxReconnectAttemptsReached]));
         handlers.set('sessionStart', new Set([handleSessionStart]));
         handlers.set('phaseStart', new Set([handlePhaseStart]));
+        handlers.set('phaseProgress', new Set([handlePhaseProgress]));
         handlers.set('phaseComplete', new Set([handlePhaseComplete]));
         handlers.set('phaseError', new Set([handlePhaseError]));
         handlers.set('feedbackRequest', new Set([handleFeedbackRequest]));
+        handlers.set('feedbackWaiting', new Set([handleFeedbackWaiting]));
         handlers.set('feedbackApplied', new Set([handleFeedbackApplied]));
         handlers.set('previewReady', new Set([handlePreviewReady]));
         handlers.set('chatMessage', new Set([handleChatMessage]));
@@ -419,26 +463,6 @@ export const useProcessingWebSocket = () => {
         type: 'start_generation',
         data: { text }
       });
-    },
-
-    submitFeedback: (phaseId: number, feedback: string) => {
-      sendMessage({
-        type: 'feedback',
-        data: { phaseId, feedback }
-      });
-      
-      // Update local store
-      processingStore.submitFeedback(feedback);
-    },
-
-    skipFeedback: (phaseId: number, reason: string = 'satisfied') => {
-      sendMessage({
-        type: 'skip_feedback',
-        data: { phaseId, reason }
-      });
-      
-      // Update local store
-      processingStore.skipFeedback(reason);
     },
 
     sendChatMessage: (phaseId: number, message: string, messageType: 'text' | 'quick_action' = 'text') => {

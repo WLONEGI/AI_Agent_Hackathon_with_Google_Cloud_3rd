@@ -136,7 +136,7 @@ class UpdateUserQuotaCommand(Command[bool], RequireUserMixin, RequireIdMixin):
             raise CommandValidationError("Used value cannot be negative")
 
 
-@dataclass 
+@dataclass(kw_only=True)
 class ResetUserPasswordCommand(Command[bool], RequireIdMixin):
     """Command to reset user password."""
     

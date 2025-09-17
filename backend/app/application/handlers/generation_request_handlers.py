@@ -16,16 +16,16 @@ from app.application.handlers.base_handler import (
 # Commands and Queries
 from app.application.commands.generation_request_commands import (
     CreateGenerationRequestCommand,
-    UpdateStatusCommand,
-    RetryRequestCommand,
-    CancelRequestCommand,
-    UpdateProgressCommand
+    UpdateGenerationRequestStatusCommand,
+    RetryGenerationRequestCommand,
+    CancelGenerationRequestCommand,
+    UpdateGenerationProgressCommand
 )
 from app.application.queries.generation_request_queries import (
     GetGenerationRequestQuery,
     ListGenerationRequestsQuery,
-    GetProgressQuery,
-    GetQueueStatsQuery
+    GetGenerationProgressQuery,
+    GetGenerationQueueStatsQuery
 )
 
 # DTOs
@@ -33,7 +33,7 @@ from app.application.dto.generation_request_dto import (
     GenerationRequestDTO,
     GenerationRequestCreateDTO,
     QueueStatsDTO,
-    ProgressDTO
+    GenerationRequestProgressDTO
 )
 
 # Domain services and repositories
@@ -119,14 +119,14 @@ class CreateGenerationRequestCommandHandler(AbstractCommandHandler[CreateGenerat
             return error_result
 
 
-class UpdateStatusCommandHandler(AbstractCommandHandler[UpdateStatusCommand, bool], BaseHandler):
+class UpdateGenerationRequestStatusCommandHandler(AbstractCommandHandler[UpdateGenerationRequestStatusCommand, bool], BaseHandler):
     """Handler for updating request status."""
     
     def __init__(self, request_repository: GenerationRequestsRepository):
         super().__init__()
         self.request_repository = request_repository
     
-    async def handle(self, command: UpdateStatusCommand) -> CommandResult[bool]:
+    async def handle(self, command: UpdateGenerationRequestStatusCommand) -> CommandResult[bool]:
         """Handle status update command."""
         try:
             await self.validate_command(command)
@@ -181,14 +181,14 @@ class UpdateStatusCommandHandler(AbstractCommandHandler[UpdateStatusCommand, boo
             return error_result
 
 
-class RetryRequestCommandHandler(AbstractCommandHandler[RetryRequestCommand, bool], BaseHandler):
+class RetryGenerationRequestCommandHandler(AbstractCommandHandler[RetryGenerationRequestCommand, bool], BaseHandler):
     """Handler for retrying failed requests."""
     
     def __init__(self, request_repository: GenerationRequestsRepository):
         super().__init__()
         self.request_repository = request_repository
     
-    async def handle(self, command: RetryRequestCommand) -> CommandResult[bool]:
+    async def handle(self, command: RetryGenerationRequestCommand) -> CommandResult[bool]:
         """Handle retry request command."""
         try:
             await self.validate_command(command)
@@ -221,14 +221,14 @@ class RetryRequestCommandHandler(AbstractCommandHandler[RetryRequestCommand, boo
             return error_result
 
 
-class CancelRequestCommandHandler(AbstractCommandHandler[CancelRequestCommand, bool], BaseHandler):
+class CancelGenerationRequestCommandHandler(AbstractCommandHandler[CancelGenerationRequestCommand, bool], BaseHandler):
     """Handler for cancelling requests."""
     
     def __init__(self, request_repository: GenerationRequestsRepository):
         super().__init__()
         self.request_repository = request_repository
     
-    async def handle(self, command: CancelRequestCommand) -> CommandResult[bool]:
+    async def handle(self, command: CancelGenerationRequestCommand) -> CommandResult[bool]:
         """Handle cancel request command."""
         try:
             await self.validate_command(command)
@@ -261,14 +261,14 @@ class CancelRequestCommandHandler(AbstractCommandHandler[CancelRequestCommand, b
             return error_result
 
 
-class UpdateProgressCommandHandler(AbstractCommandHandler[UpdateProgressCommand, bool], BaseHandler):
+class UpdateGenerationProgressCommandHandler(AbstractCommandHandler[UpdateGenerationProgressCommand, bool], BaseHandler):
     """Handler for updating request progress."""
     
     def __init__(self, request_repository: GenerationRequestsRepository):
         super().__init__()
         self.request_repository = request_repository
     
-    async def handle(self, command: UpdateProgressCommand) -> CommandResult[bool]:
+    async def handle(self, command: UpdateGenerationProgressCommand) -> CommandResult[bool]:
         """Handle progress update command."""
         try:
             await self.validate_command(command)
@@ -339,7 +339,7 @@ class GetGenerationRequestQueryHandler(AbstractQueryHandler[GetGenerationRequest
                 # Add progress information
                 if query.include_progress and request.status == "processing":
                     progress_data = request.request_settings.get("progress", {})
-                    request_dto.progress = ProgressDTO(
+                    request_dto.progress = GenerationRequestProgressDTO(
                         current_module=request.current_module,
                         total_modules=8,
                         progress_percentage=int((request.current_module / 8) * 100),
@@ -461,14 +461,14 @@ class ListGenerationRequestsQueryHandler(AbstractQueryHandler[ListGenerationRequ
             return error_result
 
 
-class GetProgressQueryHandler(AbstractQueryHandler[GetProgressQuery, ProgressDTO], BaseHandler):
+class GetGenerationProgressQueryHandler(AbstractQueryHandler[GetGenerationProgressQuery, GenerationRequestProgressDTO], BaseHandler):
     """Handler for getting request progress."""
     
     def __init__(self, request_repository: GenerationRequestsRepository):
         super().__init__()
         self.request_repository = request_repository
     
-    async def handle(self, query: GetProgressQuery) -> QueryResult[ProgressDTO]:
+    async def handle(self, query: GetGenerationProgressQuery) -> QueryResult[GenerationRequestProgressDTO]:
         """Handle get progress query."""
         try:
             await self.validate_query(query)
@@ -483,7 +483,7 @@ class GetProgressQueryHandler(AbstractQueryHandler[GetProgressQuery, ProgressDTO
                 # Calculate progress
                 progress_data = request.request_settings.get("progress", {})
                 
-                progress = ProgressDTO(
+                progress = GenerationRequestProgressDTO(
                     current_module=request.current_module,
                     total_modules=8,
                     progress_percentage=int((request.current_module / 8) * 100),
@@ -528,14 +528,14 @@ class GetProgressQueryHandler(AbstractQueryHandler[GetProgressQuery, ProgressDTO
         return module_names[module_index] if 0 <= module_index < len(module_names) else "Unknown"
 
 
-class GetQueueStatsQueryHandler(AbstractQueryHandler[GetQueueStatsQuery, QueueStatsDTO], BaseHandler):
+class GetGenerationQueueStatsQueryHandler(AbstractQueryHandler[GetGenerationQueueStatsQuery, QueueStatsDTO], BaseHandler):
     """Handler for getting queue statistics."""
     
     def __init__(self, request_repository: GenerationRequestsRepository):
         super().__init__()
         self.request_repository = request_repository
     
-    async def handle(self, query: GetQueueStatsQuery) -> QueryResult[QueueStatsDTO]:
+    async def handle(self, query: GetGenerationQueueStatsQuery) -> QueryResult[QueueStatsDTO]:
         """Handle get queue stats query."""
         try:
             await self.validate_query(query)
