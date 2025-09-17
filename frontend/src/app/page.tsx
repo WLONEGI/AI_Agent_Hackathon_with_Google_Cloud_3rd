@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { startMangaGeneration } from '@/lib/api';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { GoogleLoginModal } from '@/components/auth/GoogleLoginModal';
+import { Sidebar } from '@/components/layout/Sidebar';
 
 export default function Home() {
   const router = useRouter();
@@ -13,6 +14,31 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [storyText, setStoryText] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea function
+  const autoResizeTextarea = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      // Reset height to auto to get the correct scrollHeight
+      textarea.style.height = 'auto';
+      // Set height based on scrollHeight with minimum height for single line
+      const minHeight = 48; // Minimum height for single line
+      const maxHeight = 200; // Maximum height to prevent excessive growth
+      const newHeight = Math.min(Math.max(textarea.scrollHeight, minHeight), maxHeight);
+      textarea.style.height = `${newHeight}px`;
+    }
+  }, []);
+
+  // Auto-resize on text change
+  useEffect(() => {
+    autoResizeTextarea();
+  }, [storyText, autoResizeTextarea]);
+
+  // Auto-resize on component mount
+  useEffect(() => {
+    autoResizeTextarea();
+  }, [autoResizeTextarea]);
 
   const handleSubmit = useCallback(async () => {
     // Skip auth check in development mode
@@ -40,6 +66,16 @@ export default function Home() {
         sessionStorage.setItem('requestId', response.request_id);
         sessionStorage.setItem('sessionTitle', 'AI Generated Manga');
         sessionStorage.setItem('sessionText', storyText.trim());
+        if (response.websocket_channel) {
+          sessionStorage.setItem('websocketChannel', response.websocket_channel);
+        } else {
+          sessionStorage.removeItem('websocketChannel');
+        }
+        if (response.status_url) {
+          sessionStorage.setItem('statusUrl', response.status_url);
+        } else {
+          sessionStorage.removeItem('statusUrl');
+        }
 
         // Store auth token for development environment
         if (tokens?.access_token) {
@@ -59,7 +95,7 @@ export default function Home() {
       );
       setIsGenerating(false);
     }
-  }, [isAuthenticated, router, storyText]);
+  }, [isAuthenticated, router, storyText, tokens]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !isGenerating && storyText.trim()) {
@@ -70,6 +106,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white relative overflow-hidden">
+      {/* Sidebar */}
+      <Sidebar />
+
       {/* Subtle background gradient */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#0a0a0a] via-[#111111] to-[#0f0f0f] opacity-60" />
 
@@ -88,89 +127,81 @@ export default function Home() {
         )}
 
         {/* Main container */}
-        <div className="flex flex-col items-center justify-center min-h-screen px-6 py-12">
+        <div className="flex flex-col items-center justify-center min-h-screen px-6 py-8 ml-16 -mt-16">
           <div className="w-full max-w-2xl mx-auto space-y-12">
 
             {/* Header */}
             <div className="text-center space-y-6">
-              <div className="space-y-4">
-                <h1 className="text-6xl md:text-7xl font-light tracking-tight bg-gradient-to-br from-white via-white/90 to-white/70 bg-clip-text text-transparent">
-                  Spell
-                </h1>
-                <div className="space-y-2">
-                  <p className="text-xl md:text-2xl text-white/80 font-light">
-                    書けば、描ける呪文
-                  </p>
-                  <p className="text-base text-white/50 max-w-lg mx-auto leading-relaxed">
-                    あなたの物語を7段階の処理で美しい漫画に変換
-                  </p>
+              <div className="space-y-6">
+                {/* Logo */}
+                <div className="flex justify-center">
+                  <div className="relative">
+                    {/* Glowing effect */}
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-400/30 to-purple-400/30 blur-xl animate-pulse" />
+                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-300/20 to-purple-300/20 blur-lg" />
+
+                    {/* Logo container */}
+                    <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden">
+                      {/* Logo image - fills entire circle */}
+                      <img
+                        src="/logo.svg"
+                        alt="Spell Logo"
+                        className="w-full h-full object-cover rounded-full drop-shadow-lg"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h1 className="text-6xl md:text-7xl font-light tracking-tight bg-gradient-to-br from-white via-white/90 to-white/70 bg-clip-text text-transparent">
+                    Spell
+                  </h1>
+                  <div className="space-y-2">
+                    <p className="text-xl md:text-2xl text-white/80 font-light">
+                      書けば、描ける呪文
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Input section */}
             <div className="space-y-6">
-              <div className="space-y-4">
-                <label
-                  htmlFor="story-input"
-                  className="block text-sm font-medium text-white/70"
+              <div className="relative">
+                <textarea
+                  ref={textareaRef}
+                  id="story-input"
+                  value={storyText}
+                  onChange={(e) => {
+                    setStoryText(e.target.value);
+                    // Auto-resize will be triggered by useEffect
+                  }}
+                  onKeyDown={handleKeyDown}
+                  placeholder="例：勇敢な騎士が魔王を倒すため仲間たちと共に冒険する物語..."
+                  className="relative w-full min-h-[48px] px-6 py-3 pr-14 bg-gray-700 border-2 border-white rounded-2xl text-white placeholder-gray-300 resize-none focus:outline-none focus:ring-0 focus:border-white transition-all duration-200 overflow-y-auto shadow-2xl"
+                  maxLength={50000}
+                  disabled={isGenerating}
+                  rows={1}
+                />
+
+                {/* Submit button - positioned inside textarea with proper padding alignment */}
+                <button
+                  onClick={handleSubmit}
+                  disabled={isGenerating || !storyText.trim()}
+                  className="absolute bottom-3 right-3 w-9 h-9 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-400/30 hover:to-purple-400/30 disabled:from-white/5 disabled:to-white/5 border border-white/20 hover:border-white/40 disabled:border-white/10 rounded-xl text-white disabled:text-white/40 transition-all duration-300 backdrop-blur-sm group flex items-center justify-center shadow-lg hover:shadow-xl disabled:shadow-none overflow-hidden z-50"
+                  title={isGenerating ? "生成中..." : "漫画生成を開始"}
                 >
-                  物語のアイデア
-                </label>
+                  {/* Glow effect similar to logo */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-300/10 to-purple-300/10 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                <div className="relative">
-                  <textarea
-                    id="story-input"
-                    value={storyText}
-                    onChange={(e) => setStoryText(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="例：勇敢な騎士が魔王を倒すため仲間たちと共に冒険する物語..."
-                    className="w-full h-32 px-4 py-4 bg-white/5 border border-white/10 rounded-2xl text-white placeholder-white/40 resize-none focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-transparent transition-all duration-200 backdrop-blur-sm"
-                    maxLength={50000}
-                    disabled={isGenerating}
-                  />
-
-                  {/* Character count */}
-                  <div className="absolute bottom-3 right-4 text-xs text-white/30">
-                    {storyText.length.toLocaleString()} / 50,000
-                  </div>
-                </div>
-
-                {/* Helper text */}
-                <div className="flex justify-between items-center text-xs text-white/40">
-                  <span>⌘+Enter で送信</span>
-                </div>
-              </div>
-
-              {/* Submit button */}
-              <button
-                onClick={handleSubmit}
-                disabled={isGenerating || !storyText.trim()}
-                className="w-full h-14 bg-white/10 hover:bg-white/15 disabled:bg-white/5 border border-white/20 hover:border-white/30 disabled:border-white/10 rounded-2xl font-medium text-white disabled:text-white/40 transition-all duration-200 backdrop-blur-sm group relative overflow-hidden"
-              >
-                {/* Button gradient overlay */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
-
-                <div className="relative flex items-center justify-center gap-3">
                   {isGenerating ? (
-                    <>
-                      <div className="flex gap-1">
-                        <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-                        <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse" style={{ animationDelay: '200ms' }} />
-                        <div className="w-2 h-2 bg-white/60 rounded-full animate-pulse" style={{ animationDelay: '400ms' }} />
-                      </div>
-                      <span>生成を開始しています</span>
-                    </>
+                    <div className="w-4 h-4 border-2 border-white/60 border-t-transparent rounded-full animate-spin relative z-10" />
                   ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                      </svg>
-                      <span>漫画生成を開始</span>
-                    </>
+                    <span className="material-symbols-outlined text-xl relative z-10 group-hover:scale-110 transition-transform duration-300">arrow_upward</span>
                   )}
-                </div>
-              </button>
+                </button>
+              </div>
             </div>
 
             {/* Error display */}
@@ -192,57 +223,6 @@ export default function Home() {
               </div>
             )}
 
-            {/* Features */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
-              {[
-                {
-                  icon: (
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                  ),
-                  title: "AI分析",
-                  description: "物語を7つのフェーズで詳細に分析し、最適な漫画形式に変換"
-                },
-                {
-                  icon: (
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                  ),
-                  title: "自動描画",
-                  description: "キャラクター設定から画像生成まで、すべてを自動化"
-                },
-                {
-                  icon: (
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                    </svg>
-                  ),
-                  title: "対話修正",
-                  description: "各段階で自然言語による修正指示が可能"
-                }
-              ].map((feature, index) => (
-                <div
-                  key={index}
-                  className="group p-6 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm hover:bg-white/10 transition-all duration-200"
-                >
-                  <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="p-3 bg-white/10 rounded-xl text-white/80 group-hover:text-white transition-colors duration-200">
-                      {feature.icon}
-                    </div>
-                    <div className="space-y-2">
-                      <h3 className="text-sm font-medium text-white/90">
-                        {feature.title}
-                      </h3>
-                      <p className="text-xs text-white/60 leading-relaxed">
-                        {feature.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       </div>

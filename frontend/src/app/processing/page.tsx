@@ -1,10 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { NewProcessingLayout } from '@/components/processing/NewProcessingLayout';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { usePolling } from '@/hooks/usePolling';
+import { checkSessionStatus } from '@/lib/api';
+import type { SessionStatusResponse } from '@/types/api-schema';
 
 // Loading component for the processing screen
 const ProcessingLoading: React.FC = () => {
@@ -46,9 +49,14 @@ export default function Processing() {
     title: string;
     text: string;
     authToken: string;
+    websocketChannel: string | null;
+    statusUrl: string | null;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusSnapshot, setStatusSnapshot] = useState<SessionStatusResponse | null>(null);
+  const statusUrlRef = useRef<string | null>(null);
+  const redirectRef = useRef(false);
 
   // Initialize session data from storage/URL params
   useEffect(() => {
@@ -64,6 +72,15 @@ export default function Processing() {
         let sessionTitle = sessionStorage.getItem('sessionTitle') || 'AI生成漫画';
         let sessionText = sessionStorage.getItem('sessionText') || '';
         let authToken = sessionStorage.getItem('authToken') || authTokens?.access_token || '';
+        let websocketChannel = sessionStorage.getItem('websocketChannel');
+        let statusUrl = sessionStorage.getItem('statusUrl');
+
+        if (websocketChannel === '') {
+          websocketChannel = null;
+        }
+        if (statusUrl === '') {
+          statusUrl = null;
+        }
 
         if (!sessionStorage.getItem('authToken') && authTokens?.access_token) {
           sessionStorage.setItem('authToken', authTokens.access_token);
@@ -82,12 +99,16 @@ export default function Processing() {
           sessionStorage.setItem('sessionTitle', '【開発モック】AI生成漫画');
           sessionStorage.setItem('sessionText', mockStoryText);
           sessionStorage.setItem('authToken', mockAuthToken);
+          sessionStorage.removeItem('websocketChannel');
+          sessionStorage.removeItem('statusUrl');
           
           // Use mock data
           requestId = mockSessionId;
           sessionTitle = '【開発モック】AI生成漫画';
           sessionText = mockStoryText;
           authToken = mockAuthToken;
+          websocketChannel = null;
+          statusUrl = null;
         } else if (!requestId) {
           // If no session data in production, redirect to home
           if (isMounted) {
@@ -101,8 +122,11 @@ export default function Processing() {
             sessionId: requestId,
             title: sessionTitle,
             text: sessionText,
-            authToken: authToken
+            authToken,
+            websocketChannel: websocketChannel ?? null,
+            statusUrl: statusUrl ?? null,
           });
+          statusUrlRef.current = statusUrl ?? null;
         }
 
       } catch (err) {
@@ -123,6 +147,47 @@ export default function Processing() {
       isMounted = false;
     };
   }, [router, authTokens]);
+
+  const statusFetcher = useCallback(
+    async (sessionId: string) => checkSessionStatus(sessionId, statusUrlRef.current ?? undefined),
+    []
+  );
+
+  const { startPolling, stopPolling } = usePolling(sessionData?.sessionId ?? null, {
+    interval: 4000,
+    maxRetries: 5,
+    fetcher: statusFetcher,
+    enabled: Boolean(sessionData?.sessionId),
+    onSuccess: (status) => {
+      setStatusSnapshot(status);
+      if (status.status === 'completed' && !redirectRef.current) {
+        redirectRef.current = true;
+        router.push(`/results?sessionId=${status.request_id}`);
+      }
+      if (status.status === 'failed') {
+        setError('生成処理に失敗しました。時間をおいて再度お試しください。');
+      } else {
+        setError(null);
+      }
+    },
+    onError: (err) => {
+      console.error('Status polling error:', err.message);
+    },
+    stopWhen: (status) => status.status === 'completed' || status.status === 'failed',
+  });
+
+  useEffect(() => {
+    if (!sessionData?.sessionId) {
+      return;
+    }
+    statusUrlRef.current = sessionData.statusUrl;
+    redirectRef.current = false;
+    startPolling();
+
+    return () => {
+      stopPolling();
+    };
+  }, [sessionData?.sessionId, sessionData?.statusUrl, startPolling, stopPolling]);
 
   // Handle session cleanup on unmount
   useEffect(() => {
@@ -271,6 +336,7 @@ export default function Processing() {
           initialTitle={sessionData.title}
           initialText={sessionData.text}
           authToken={sessionData.authToken}
+          status={statusSnapshot}
         />
       </Suspense>
     </ErrorBoundary>

@@ -2,28 +2,31 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
-  // Production optimization for Cloud Run deployment
-  output: 'standalone',
+  // Static export for Firebase Hosting
+  output: 'export',
+  distDir: 'out',
 
-  // Silence root detection warning in monorepo style workspace
-  outputFileTracingRoot: path.join(__dirname, ".."),
-  
+  // Required for static export with Next/Image
+  images: {
+    unoptimized: true,
+  },
+
+  // Add trailing slash for better Firebase Hosting compatibility
+  trailingSlash: true,
+
   // Disable ESLint during build to prevent deployment failures
   eslint: {
     ignoreDuringBuilds: true,
   },
-  
+
   // Disable TypeScript type checking during build for deployment
   typescript: {
     ignoreBuildErrors: true,
   },
-  
-  // Simplified configuration for development stability
-  serverExternalPackages: ['firebase-admin'],
-  
+
   // Webpack fallback for Firebase client-side compatibility
   webpack: (config, { dev, isServer }) => {
-    if (dev && !isServer) {
+    if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,
@@ -34,7 +37,7 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  
+
   // Environment variables
   env: {
     FIREBASE_COMPATIBILITY_MODE: process.env.NODE_ENV === 'development' ? 'true' : 'false',

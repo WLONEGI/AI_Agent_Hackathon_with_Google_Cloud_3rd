@@ -18,7 +18,7 @@ export interface WebSocketState {
 
 export interface WebSocketActions {
   // Connection Management
-  initializeClient: (sessionId?: string, authToken?: string) => void;
+  initializeClient: (sessionId?: string, authToken?: string, channel?: string | null) => void;
   disconnect: () => void;
   reconnect: () => void;
   
@@ -53,7 +53,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
     (set, get) => ({
       ...initialState,
 
-      initializeClient: (sessionId?: string, authToken?: string) => {
+      initializeClient: (sessionId?: string, authToken?: string, channel?: string | null) => {
         const { client } = get();
         
         // Don't reinitialize if already connected
@@ -73,12 +73,11 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
         setupProcessingEventHandlers();
 
         // Connect to session if provided
-        if (sessionId) {
-          // Use development token if no auth token provided
-          const token = authToken || (process.env.NEXT_PUBLIC_APP_ENV === 'development' ? 'mock-dev-token' : '');
-          if (token) {
-            wsClient.connectToSession(sessionId, token);
-          }
+        const token = authToken || (process.env.NEXT_PUBLIC_APP_ENV === 'development' ? 'mock-dev-token' : '');
+        if (channel) {
+          wsClient.connectToChannel(channel, token);
+        } else if (sessionId && token) {
+          wsClient.connectToSession(sessionId, token);
         }
       },
 

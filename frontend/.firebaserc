@@ -1,0 +1,15 @@
+{
+  "projects": {
+    "default": "comic-ai-agent-470309"
+  },
+  "targets": {
+    "comic-ai-agent-470309": {
+      "hosting": {
+        "main": [
+          "comic-ai-agent-470309"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}

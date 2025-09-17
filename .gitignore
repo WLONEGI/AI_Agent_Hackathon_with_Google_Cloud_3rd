@@ -80,6 +80,7 @@ tmp/
 temp/
 *.tmp
 *.temp
+clients/
 
 # Test coverage
 coverage/
@@ -100,4 +101,3 @@ crash.*.log
 
 .serena/
 .playwright/
-

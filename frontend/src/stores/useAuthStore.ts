@@ -1,17 +1,16 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { apiClient } from '@/lib/api';
-import { 
-  type UserInfo, 
-  type AuthResponse, 
-  type FirebaseLoginRequest,
-  type RefreshTokenRequest 
+import {
+  type UserInfo,
+  type AuthResponse,
 } from '@/types/api-schema';
 
 interface AuthTokens {
   access_token: string;
   refresh_token: string;
   expires_at: number;
+  token_type?: string;
 }
 
 interface AuthStore {
@@ -44,6 +43,8 @@ const initializeFirebaseAuth = () => {
   }
 };
 
+const MOCK_AUTH_ENABLED = process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === 'true';
+
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
@@ -72,52 +73,75 @@ export const useAuthStore = create<AuthStore>()(
       
       loginWithGoogle: async (idToken: string): Promise<boolean> => {
         set({ isLoading: true, error: null });
-        
+
         try {
-          // Check environment to determine authentication method
-          const isProduction = process.env.NEXT_PUBLIC_APP_ENV === 'production';
-          const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-          
-          const requestPayload = {
-            id_token: isProduction ? idToken : 'mock-dev-token'
-          };
+          if (MOCK_AUTH_ENABLED) {
+            console.log('🧪 Development mode: Using mock authentication');
 
-          const response = await fetch(`${apiUrl}/api/v1/auth/google/login`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestPayload),
-          });
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 1000));
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.detail || 'Authentication failed');
+            // Mock user data
+            const mockUser: UserInfo = {
+              id: 'dev-user-123',
+              email: 'developer@example.com',
+              display_name: 'Developer User',
+              account_type: 'individual',
+              provider: 'google',
+              is_active: true,
+              created_at: new Date().toISOString(),
+              last_login: new Date().toISOString()
+            };
+
+            // Mock tokens
+            const mockTokens: AuthTokens = {
+              access_token: `dev-access-token-${Date.now()}`,
+              refresh_token: `dev-refresh-token-${Date.now()}`,
+              expires_at: Date.now() + (3600 * 1000) // 1 hour
+            };
+
+            // Set mock authentication state
+            get().setTokens(mockTokens);
+            set({
+              user: mockUser,
+              isAuthenticated: true,
+              isLoading: false,
+              error: null
+            });
+
+            console.log('✅ Mock authentication successful:', mockUser.email);
+            return true;
           }
-          
-          const authData: AuthResponse = await response.json();
+
+          const result = await apiClient.loginWithGoogle({ id_token: idToken });
+          if (!result.success || !result.data) {
+            throw new Error(result.error || 'Authentication failed');
+          }
+
+          const authData: AuthResponse = result.data;
 
           const tokens: AuthTokens = {
             access_token: authData.access_token,
             refresh_token: authData.refresh_token,
-            expires_at: Date.now() + (authData.expires_in * 1000)
+            expires_at: Date.now() + authData.expires_in * 1000,
+            token_type: authData.token_type,
           };
-          
+
           // Set tokens and user
           get().setTokens(tokens);
-          set({ 
+          set({
             user: authData.user,
             isAuthenticated: true,
             isLoading: false,
             error: null
           });
-          
+
           console.log('Authentication successful:', authData.user.email);
           return true;
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Login failed';
           console.error('Google login failed:', errorMessage);
-          set({ 
+          set({
             user: null,
             tokens: null,
             isAuthenticated: false,
@@ -135,33 +159,25 @@ export const useAuthStore = create<AuthStore>()(
         }
         
         try {
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/auth/refresh`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ refresh_token: currentTokens.refresh_token }),
-          });
-          
-          if (!response.ok) {
-            throw new Error('Token refresh failed');
+          const result = await apiClient.refreshAccessToken({ refresh_token: currentTokens.refresh_token });
+          if (!result.success || !result.data) {
+            throw new Error(result.error || 'Token refresh failed');
           }
-          
-          const authData: AuthResponse = await response.json();
-          
-          const newTokens: AuthTokens = {
-            access_token: authData.access_token,
-            refresh_token: authData.refresh_token,
-            expires_at: Date.now() + (authData.expires_in * 1000)
+
+          const refreshedTokens: AuthTokens = {
+            access_token: result.data.access_token,
+            refresh_token: currentTokens.refresh_token,
+            expires_at: Date.now() + result.data.expires_in * 1000,
+            token_type: result.data.token_type,
           };
-          
-          get().setTokens(newTokens);
-          set({ 
-            user: authData.user,
-            isAuthenticated: true,
-            error: null
-          });
-          
+
+          get().setTokens(refreshedTokens);
+
+          const profile = await apiClient.getCurrentUser();
+          if (profile.success && profile.data) {
+            set({ user: profile.data, isAuthenticated: true, error: null });
+          }
+
           return true;
         } catch (error) {
           console.error('Token refresh failed:', error);
@@ -175,16 +191,7 @@ export const useAuthStore = create<AuthStore>()(
         
         try {
           const tokens = get().tokens;
-          if (tokens) {
-            // Call backend logout endpoint
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/auth/logout`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${tokens.access_token}`,
-                'Content-Type': 'application/json',
-              },
-            });
-          }
+          await apiClient.logout(tokens?.refresh_token);
         } catch (error) {
           console.error('Logout API call failed:', error);
           // Continue with client-side logout regardless
@@ -210,46 +217,35 @@ export const useAuthStore = create<AuthStore>()(
           if (!tokens) {
             set({ 
               isAuthenticated: false,
-              isLoading: false 
+              isLoading: false,
             });
             return;
           }
           
           // Check if access token is expired
-          const now = Date.now();
-          const timeUntilExpiry = tokens.expires_at - now;
-          
-          // If token expires in less than 5 minutes, try to refresh
-          if (timeUntilExpiry < 300000) { // 5 minutes in milliseconds
-            const refreshSuccess = await get().refreshToken();
-            if (!refreshSuccess) {
-              set({ 
+          const timeUntilExpiry = tokens.expires_at - Date.now();
+          if (timeUntilExpiry < 300000) { // < 5 minutes
+            const refreshed = await get().refreshToken();
+            if (!refreshed) {
+              set({
                 user: null,
                 tokens: null,
                 isAuthenticated: false,
-                isLoading: false 
+                isLoading: false,
               });
               return;
             }
           }
-          
-          // Verify with backend by calling /auth/me
-          const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/auth/me`, {
-            headers: {
-              'Authorization': `Bearer ${tokens.access_token}`,
-            },
-          });
-          
-          if (!response.ok) {
-            throw new Error('Session validation failed');
+
+          const profile = await apiClient.getCurrentUser();
+          if (!profile.success || !profile.data) {
+            throw new Error(profile.error || 'Session validation failed');
           }
-          
-          const userInfo: UserInfo = await response.json();
-          
-          set({ 
-            user: userInfo,
+
+          set({
+            user: profile.data,
             isAuthenticated: true,
-            isLoading: false 
+            isLoading: false,
           });
         } catch (error) {
           console.error('Session check failed:', error);
@@ -275,10 +271,11 @@ export const useAuthStore = create<AuthStore>()(
       }),
       // Version for cache invalidation on schema changes
       version: 2,
-      onRehydrateStorage: () => {
-        // Initialize Firebase auth monitoring when store is rehydrated
+      onRehydrateStorage: () => (state) => {
+        if (state?.tokens) {
+          apiClient.setAuthToken(state.tokens.access_token);
+        }
         initializeFirebaseAuth();
-        return () => {};
       },
     }
   )

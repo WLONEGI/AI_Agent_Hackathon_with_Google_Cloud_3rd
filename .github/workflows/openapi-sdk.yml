@@ -1,0 +1,54 @@
+name: Build OpenAPI SDKs
+
+on:
+  push:
+    paths:
+      - 'docs/05.API_openapi.yaml'
+      - '.github/workflows/openapi-sdk.yml'
+      - 'scripts/generate_openapi_clients.sh'
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    env:
+      OPENAPI_GENERATOR_VERSION: '7.8.0'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Download OpenAPI Generator CLI
+        run: |
+          curl -L https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/${OPENAPI_GENERATOR_VERSION}/openapi-generator-cli-${OPENAPI_GENERATOR_VERSION}.jar -o openapi-generator-cli.jar
+
+      - name: Generate TypeScript client (fetch)
+        run: |
+          java -jar openapi-generator-cli.jar generate \
+            -i docs/05.API_openapi.yaml \
+            -g typescript-fetch \
+            -o clients/typescript-fetch
+
+      - name: Generate Python client
+        run: |
+          java -jar openapi-generator-cli.jar generate \
+            -i docs/05.API_openapi.yaml \
+            -g python \
+            -o clients/python
+
+      - name: Upload generated SDKs
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-clients
+          path: |
+            clients/typescript-fetch
+            clients/python
+
+      - name: Clean up
+        if: always()
+        run: rm -rf clients openapi-generator-cli.jar

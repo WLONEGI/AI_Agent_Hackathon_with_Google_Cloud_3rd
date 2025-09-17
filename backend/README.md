@@ -1,183 +1,93 @@
-# AI Manga Generation Service - Backend
+# AI Manga Backend
 
-AI漫画生成サービスのバックエンドAPIサーバー
+FastAPI-based backend for the Spell AI manga generation platform. The service exposes public REST/WebSocket APIs for clients, schedules background jobs via Cloud Tasks, and persists state in PostgreSQL.
 
-## 技術スタック
+## Architecture Overview
 
-- **Framework**: FastAPI (Python 3.11)
-- **Database**: PostgreSQL 15 (async with SQLAlchemy)
-- **Cache**: Redis 7
-- **AI Integration**: Google Cloud AI (Gemini Pro, Imagen 4)
-- **WebSocket**: リアルタイムHITL通信
+- **FastAPI** application served on Cloud Run.
+- **Cloud Tasks** used to execute seven-phase generation pipelines asynchronously.
+- **PostgreSQL (Cloud SQL)** stores session state, phase outputs, preview versions, and feedback.
+- **Cloud Storage** keeps preview payloads; signed URLs are issued per phase.
+- **Firebase Hosting** fronts the public client; all public traffic hits the backend through Hosting rewrites.
 
-## セットアップ
+## Requirements
 
-### 1. 環境変数設定
+- Python 3.11+
+- Google Cloud project with Cloud Tasks, Cloud Storage, Cloud Run, and Secret Manager enabled
+- PostgreSQL 15 instance reachable from the application
 
-```bash
-cp .env.example .env
-# .envファイルを編集して必要な設定を行う
-```
+### Google Cloud client libraries
 
-### 2. Docker Composeで起動
+The backend requires the following official libraries at runtime:
 
-```bash
-# 開発環境起動
-docker-compose up -d
+- `google-cloud-tasks`
+- `google-cloud-storage`
+- `google-auth`
 
-# ログ確認
-docker-compose logs -f backend
-```
-
-### 3. データベースマイグレーション
+They are included in `pyproject.toml`, but verify the installation inside your virtual environment:
 
 ```bash
-# コンテナ内でマイグレーション実行
-docker-compose exec backend alembic upgrade head
-
-# 新しいマイグレーション作成
-docker-compose exec backend alembic revision --autogenerate -m "Description"
+pip install google-cloud-tasks google-cloud-storage google-auth
 ```
 
-### 4. ローカル開発（Docker未使用）
+> 本番環境では、`pip install -e .` の実行後に `pip list | grep google-` で導入済みか確認してください。Cloud Runイメージではビルド時に必ず導入されるよう、CI/CDで同コマンドを実行することを推奨します。
+
+## Getting Started
+
+1. Create and activate a virtual environment.
+2. Install dependencies:
+   ```bash
+   pip install -e .
+   ```
+3. Copy configuration template:
+   ```bash
+   cp .env.example .env
+   ```
+   Update database URL, Cloud Tasks, and Firebase credentials.
+4. Apply migrations (requires running PostgreSQL):
+   ```bash
+   alembic upgrade head
+   ```
+5. Launch the development server:
+   ```bash
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8080
+   ```
+
+## Key Commands
+
+- `alembic revision --autogenerate -m "message"` – create a new migration.
+- `alembic upgrade head` – apply migrations.
+- `uvicorn app.main:app` – run the service.
+
+## Environment Variables
+
+Refer to `.env.example`. Important values:
+
+- `DATABASE_URL` – SQLAlchemy async connection string.
+- `CLOUD_TASKS_QUEUE` / `CLOUD_TASKS_LOCATION` / `CLOUD_TASKS_SERVICE_URL` – Cloud Tasksキュー設定。
+- `CLOUD_TASKS_PROJECT` – 利用するGCPプロジェクトID（本番: `comic-ai-agent-470309`）。
+- `GCS_BUCKET_PREVIEW` & `SIGNED_URL_TTL_SECONDS` – preview storage configuration.
+- `FIREBASE_*` – service account credentials (used for signed requests).
+- `AUTH_SECRET_KEY` – HMACベースのアクセストークン署名に使用する機微情報。Google Secret Managerなどで安全に管理し、ローカル開発では`.env`に直接記載しないよう注意してください。
+- `ACCESS_TOKEN_EXPIRES_MINUTES` / `REFRESH_TOKEN_EXPIRES_DAYS` – 認証トークンの有効期限を制御します（省略時は既定値）。
+- `VERTEX_PROJECT_ID` / `VERTEX_LOCATION` – Vertex AIを呼び出す際のプロジェクト・リージョン。
+- `VERTEX_TEXT_MODEL` / `VERTEX_IMAGE_MODEL` – 使用するGeminiテキストモデル/Imagenモデルの指定。
+
+### Secret Manager integration
+
+`deploy/fetch-secrets.sh` を用いると、Google Secret Managerに保管したシークレットを `.env.gcp` などのローカルファイルへ書き出せます。利用前に `PROJECT_ID` と必要であれば `SECRET_PREFIX` を設定してください。
 
 ```bash
-# Python仮想環境作成
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-
-# 依存関係インストール
-pip install -r requirements.txt
-
-# PostgreSQLとRedisを起動（別途インストール必要）
-# ...
-
-# マイグレーション実行
-alembic upgrade head
-
-# サーバー起動
-uvicorn app.main:app --reload --port 8000
+PROJECT_ID=my-gcp-project SECRET_PREFIX=spell-backend ./deploy/fetch-secrets.sh .env.gcp
 ```
 
-## API エンドポイント
+### OpenAPI client generation
 
-### ヘルスチェック
-- `GET /health` - 基本ヘルスチェック
-- `GET /health/detailed` - 詳細ヘルスチェック
-- `GET /health/ready` - Kubernetes Readiness
-- `GET /health/live` - Kubernetes Liveness
-
-### 漫画生成
-- `POST /api/v1/manga/generate` - 新規生成開始
-- `GET /api/v1/manga/sessions` - セッション一覧
-- `GET /api/v1/manga/sessions/{session_id}` - セッション詳細
-- `GET /api/v1/manga/sessions/{session_id}/phase/{phase_number}` - フェーズ結果取得
-- `POST /api/v1/manga/sessions/{session_id}/feedback` - フィードバック送信
-- `POST /api/v1/manga/sessions/{session_id}/cancel` - 生成キャンセル
-
-### WebSocket
-- `WS /ws/session/{session_id}` - リアルタイム進捗通知
-
-## プロジェクト構造
-
-```
-backend/
-├── app/
-│   ├── core/           # コア機能（設定、DB、Redis、ログ）
-│   ├── models/         # SQLAlchemyモデル
-│   ├── agents/         # 7フェーズ処理エージェント
-│   ├── engine/         # 漫画生成エンジン
-│   ├── preview/        # プレビューシステム
-│   ├── api/            # APIエンドポイント
-│   ├── websocket/      # WebSocket処理
-│   └── services/       # ビジネスロジック
-├── tests/              # テストコード
-├── alembic/            # DBマイグレーション
-├── requirements.txt    # Python依存関係
-├── Dockerfile          # コンテナ設定
-└── docker-compose.yml  # 開発環境設定
-```
-
-## 7フェーズ処理
-
-1. **Phase 1**: コンセプト・世界観分析 (12秒)
-2. **Phase 2**: キャラクター設定・簡易ビジュアル生成 (18秒)
-3. **Phase 3**: プロット・ストーリー構成 (15秒)
-4. **Phase 4**: ネーム生成 (20秒)
-5. **Phase 5**: シーン画像生成 (25秒)
-6. **Phase 6**: セリフ配置 (4秒)
-7. **Phase 7**: 最終統合・品質調整 (3秒)
-
-**総処理時間**: 97秒
-
-## 開発
-
-### テスト実行
+- GitHub Actions: `.github/workflows/openapi-sdk.yml` が `docs/05.API_openapi.yaml` に変更があった場合にTypeScript/Pythonクライアントを自動生成し、アーティファクトとして保存します。
+- ローカル: `scripts/generate_openapi_clients.sh` を実行するとDocker上のOpenAPI Generatorで同じクライアントを生成できます。
 
 ```bash
-# ユニットテスト
-pytest tests/
-
-# カバレッジ付きテスト
-pytest --cov=app tests/
-
-# 特定のテスト実行
-pytest tests/test_agents/test_phase1.py
+./scripts/generate_openapi_clients.sh
 ```
 
-### APIドキュメント
-
-サーバー起動後、以下のURLでアクセス可能:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-
-### ログ確認
-
-```bash
-# Docker環境
-docker-compose logs -f backend
-
-# ローカル環境
-# ターミナルに直接出力される
-```
-
-## パフォーマンス最適化
-
-- **並列処理**: Phase 5で最大5並列の画像生成
-- **キャッシュ**: 3層キャッシュ戦略（L1: メモリ、L2: Redis、L3: PostgreSQL）
-- **CDN**: 静的画像配信の最適化
-- **非同期処理**: 全API呼び出しを非同期化
-
-## セキュリティ
-
-- JWT認証（Access: 1時間、Refresh: 7日）
-- Rate Limiting（IP毎: 100req/分）
-- AES-256-GCM暗号化
-- CORS設定
-
-## トラブルシューティング
-
-### データベース接続エラー
-```bash
-# PostgreSQL接続確認
-docker-compose exec postgres psql -U manga_user -d manga_db
-```
-
-### Redis接続エラー
-```bash
-# Redis接続確認
-docker-compose exec redis redis-cli ping
-```
-
-### マイグレーションエラー
-```bash
-# マイグレーション履歴確認
-docker-compose exec backend alembic history
-
-# ダウングレード
-docker-compose exec backend alembic downgrade -1
-```
-
-## ライセンス
-
-Proprietary - All rights reserved
+Detailed deployment instructions (Cloud Run + Firebase Hosting integration) will be added alongside CI/CD scripts.

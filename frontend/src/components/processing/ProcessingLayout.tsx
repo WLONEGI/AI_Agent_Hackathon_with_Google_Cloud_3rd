@@ -14,13 +14,15 @@ interface ProcessingLayoutProps {
   initialTitle?: string;
   initialText?: string;
   authToken?: string;
+  websocketChannel?: string | null;
 }
 
 export const ProcessingLayout: React.FC<ProcessingLayoutProps> = ({
   sessionId,
   initialTitle = 'AI生成漫画',
   initialText = '',
-  authToken = ''
+  authToken = '',
+  websocketChannel = null,
 }) => {
   const { sessionStatus } = useSessionInfo();
   const { leftPanelWidth } = useUIState();
@@ -45,7 +47,7 @@ export const ProcessingLayout: React.FC<ProcessingLayoutProps> = ({
         useProcessingStore.getState().initializeSession(sessionId, initialTitle, initialText);
         
         // Initialize WebSocket connection
-        useWebSocketStore.getState().initializeClient(sessionId, authToken);
+        useWebSocketStore.getState().initializeClient(sessionId, authToken, websocketChannel);
         
         // Add initialization log
         useProcessingStore.getState().addLog({
@@ -99,7 +101,7 @@ export const ProcessingLayout: React.FC<ProcessingLayoutProps> = ({
             event.preventDefault();
             // Reconnect WebSocket
             if (connectionStatus === 'error' || connectionStatus === 'disconnected') {
-              initializeClient(sessionId, authToken);
+              initializeClient(sessionId, authToken, websocketChannel);
             }
             break;
           case 'l':

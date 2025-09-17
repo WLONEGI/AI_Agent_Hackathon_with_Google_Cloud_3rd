@@ -1,0 +1,856 @@
+openapi: 3.1.0
+info:
+  title: AI漫画生成サービス API
+  version: 0.1.0
+  description: |
+    AI漫画生成サービスのREST API仕様です。RESTエンドポイント、認証方式、および主要なリクエスト/レスポンスモデルを定義します。
+servers:
+  - url: https://api.example.com
+    description: 本番環境
+  - url: https://staging-api.example.com
+    description: ステージング環境
+  - url: http://localhost:8080
+    description: ローカル開発環境
+tags:
+  - name: Auth
+    description: 認証関連エンドポイント
+  - name: Manga Projects
+    description: 作品管理エンドポイント
+  - name: Manga Sessions
+    description: 生成セッション管理
+  - name: System
+    description: システム状態およびメタ情報
+  - name: Internal
+    description: 内部連携エンドポイント（Cloud Tasksなど）
+paths:
+  /api/v1/auth/google/login:
+    post:
+      tags: [Auth]
+      summary: Google ID トークンを使ったログイン
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GoogleLoginRequest'
+      responses:
+        '200':
+          description: ログイン成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthTokensResponse'
+        '400':
+          description: IDトークン検証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/refresh:
+    post:
+      tags: [Auth]
+      summary: リフレッシュトークンでアクセストークンを再発行
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenRefreshRequest'
+      responses:
+        '200':
+          description: 新しいアクセストークンを返却
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessTokenResponse'
+        '401':
+          description: リフレッシュトークンが無効または期限切れ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/auth/logout:
+    post:
+      tags: [Auth]
+      summary: リフレッシュトークンの失効
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '200':
+          description: ログアウト完了
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogoutResponse'
+  /api/v1/auth/me:
+    get:
+      tags: [Auth]
+      summary: 現在のユーザー情報取得
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: プロファイル情報
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/manga:
+    get:
+      tags: [Manga Projects]
+      summary: 作品一覧の取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+          description: ページ番号 (デフォルト1)
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+          description: 1ページ当たり件数 (デフォルト20)
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum: [created_at, updated_at, title]
+          description: ソート対象カラム
+        - in: query
+          name: order
+          schema:
+            type: string
+            enum: [asc, desc]
+          description: ソート順 (デフォルトdesc)
+        - in: query
+          name: status_filter
+          schema:
+            type: string
+            enum: [all, draft, processing, completed, failed]
+          description: ステータスフィルター
+      responses:
+        '200':
+          description: 作品一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MangaProjectListResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/manga/{manga_id}:
+    get:
+      tags: [Manga Projects]
+      summary: 作品詳細の取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MangaId'
+      responses:
+        '200':
+          description: 作品詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MangaProjectDetailResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 作品が存在しない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      tags: [Manga Projects]
+      summary: 作品情報の更新
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MangaId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MangaProjectUpdateRequest'
+      responses:
+        '200':
+          description: 更新結果
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MangaProjectUpdateResponse'
+        '400':
+          description: 更新対象が無いまたは不正
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 作品が存在しない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      tags: [Manga Projects]
+      summary: 作品の削除
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/MangaId'
+      responses:
+        '204':
+          description: 削除成功
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 作品が存在しない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/manga/generate:
+    post:
+      tags: [Manga Sessions]
+      summary: マンガ生成ジョブの投入
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateRequest'
+      responses:
+        '202':
+          description: ジョブをキューに登録
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/manga/sessions/{request_id}/status:
+    get:
+      tags: [Manga Sessions]
+      summary: 生成セッションの進捗確認
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: 現在のステータス
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStatusResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: セッションが存在しない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/manga/sessions/{request_id}:
+    get:
+      tags: [Manga Sessions]
+      summary: セッション詳細の取得
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      responses:
+        '200':
+          description: セッション詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionDetailResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: セッションが存在しない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/manga/sessions/{request_id}/feedback:
+    post:
+      tags: [Manga Sessions]
+      summary: フィードバック送信
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/RequestId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackRequest'
+      responses:
+        '202':
+          description: フィードバック受領
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptedResponse'
+        '401':
+          description: 認証エラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: セッションが存在しない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/v1/system/health:
+    get:
+      tags: [System]
+      summary: システムヘルスチェック
+      responses:
+        '200':
+          description: 現在のシステム状態
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemHealthResponse'
+  /api/v1/system/capabilities:
+    get:
+      tags: [System]
+      summary: サービス提供機能情報
+      responses:
+        '200':
+          description: 利用可能な機能一覧
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemCapabilitiesResponse'
+  /api/v1/system/dashboard:
+    get:
+      tags: [System]
+      summary: 統計ダッシュボード
+      responses:
+        '200':
+          description: 主要メトリクス
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemDashboardResponse'
+  /internal/tasks/manga:
+    post:
+      tags: [Internal]
+      summary: Cloud Tasksから生成パイプラインを実行
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskPayload'
+      responses:
+        '202':
+          description: 処理受付
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcceptedResponse'
+        '404':
+          description: セッションが存在しない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    MangaId:
+      name: manga_id
+      in: path
+      required: true
+      description: 作品ID (UUID)
+      schema:
+        type: string
+        format: uuid
+    RequestId:
+      name: request_id
+      in: path
+      required: true
+      description: 生成セッションのリクエストID (UUID)
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    GoogleLoginRequest:
+      type: object
+      properties:
+        id_token:
+          type: string
+          minLength: 10
+      required: [id_token]
+    TokenRefreshRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+          minLength: 10
+      required: [refresh_token]
+    LogoutRequest:
+      type: object
+      properties:
+        refresh_token:
+          type: string
+          nullable: true
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+          nullable: true
+        account_type:
+          type: string
+        provider:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        last_login:
+          type: string
+          format: date-time
+          nullable: true
+      required: [id, email, account_type, provider, is_active, created_at]
+    AuthTokensResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+          description: アクセストークン有効期間(秒)
+        token_type:
+          type: string
+          default: bearer
+        user:
+          $ref: '#/components/schemas/UserProfile'
+      required: [access_token, refresh_token, expires_in, user]
+    AccessTokenResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+        token_type:
+          type: string
+          default: bearer
+      required: [access_token, expires_in]
+    LogoutResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          default: Successfully logged out
+      required: [message]
+    FeedbackMode:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          default: true
+        timeout_minutes:
+          type: integer
+          minimum: 1
+          maximum: 120
+          default: 30
+        allow_skip:
+          type: boolean
+          default: true
+    GenerateOptions:
+      type: object
+      properties:
+        priority:
+          type: string
+          enum: [normal, high]
+          default: normal
+        webhook_url:
+          type: string
+          format: uri
+          nullable: true
+        auto_publish:
+          type: boolean
+          nullable: true
+    GenerateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        text:
+          type: string
+          minLength: 10
+          maxLength: 50000
+        ai_auto_settings:
+          type: boolean
+          default: true
+        feedback_mode:
+          $ref: '#/components/schemas/FeedbackMode'
+        options:
+          $ref: '#/components/schemas/GenerateOptions'
+      required: [title, text]
+    GenerateResponse:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [queued, running, awaiting_feedback, completed, failed]
+        estimated_completion_time:
+          type: string
+          format: date-time
+          nullable: true
+        expected_duration_minutes:
+          type: integer
+          nullable: true
+        status_url:
+          type: string
+        websocket_channel:
+          type: string
+          nullable: true
+      required: [request_id, status, status_url]
+    SessionStatusResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        current_phase:
+          type: integer
+          nullable: true
+        updated_at:
+          type: string
+          format: date-time
+      required: [session_id, status, updated_at]
+    SessionDetailResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        current_phase:
+          type: integer
+          nullable: true
+        started_at:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        retry_count:
+          type: integer
+        phase_results:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        preview_versions:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+      required: [session_id, status, retry_count, phase_results, preview_versions]
+    FeedbackPayload:
+      type: object
+      properties:
+        feedback_type:
+          type: string
+          default: natural_language
+        content:
+          type: object
+          additionalProperties: true
+      required: [feedback_type, content]
+    FeedbackRequest:
+      type: object
+      properties:
+        phase:
+          type: integer
+        payload:
+          $ref: '#/components/schemas/FeedbackPayload'
+      required: [phase, payload]
+    TaskPayload:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+      required: [request_id]
+    MangaProjectItem:
+      type: object
+      properties:
+        manga_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        status:
+          type: string
+        pages:
+          type: integer
+          nullable: true
+        style:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        thumbnail_url:
+          type: string
+          format: uri
+          nullable: true
+        size_bytes:
+          type: integer
+          nullable: true
+      required: [manga_id, title, status, created_at, updated_at]
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+        limit:
+          type: integer
+        total_items:
+          type: integer
+        total_pages:
+          type: integer
+        has_next:
+          type: boolean
+        has_previous:
+          type: boolean
+      required: [page, limit, total_items, total_pages, has_next, has_previous]
+    MangaProjectListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MangaProjectItem'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+      required: [items, pagination]
+    MangaProjectDetailResponse:
+      type: object
+      properties:
+        manga_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        status:
+          type: string
+        metadata:
+          type: object
+          additionalProperties: true
+        files:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+      required: [manga_id, title, status, metadata, files, created_at, updated_at]
+    MangaProjectUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          nullable: true
+          items:
+            type: string
+        visibility:
+          type: string
+          enum: [private, public, unlisted]
+          nullable: true
+    MangaProjectUpdateResponse:
+      type: object
+      properties:
+        manga_id:
+          type: string
+          format: uuid
+        updated_fields:
+          type: array
+          items:
+            type: string
+        updated_at:
+          type: string
+          format: date-time
+      required: [manga_id, updated_fields, updated_at]
+    SystemHealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        services:
+          type: object
+          properties:
+            database:
+              type: string
+            cloud_tasks:
+              type: string
+            storage:
+              type: string
+          required: [database, cloud_tasks, storage]
+      required: [status, timestamp, services]
+    SystemCapabilitiesResponse:
+      type: object
+      properties:
+        supported_styles:
+          type: array
+          items:
+            type: string
+        max_pages:
+          type: integer
+        max_text_length:
+          type: integer
+        max_characters:
+          type: integer
+        languages:
+          type: array
+          items:
+            type: string
+        file_formats:
+          type: array
+          items:
+            type: string
+        processing_time_estimate:
+          type: object
+          properties:
+            per_1000_chars:
+              type: integer
+            base_time:
+              type: integer
+          required: [per_1000_chars, base_time]
+        signed_url_ttl_seconds:
+          type: integer
+      required: [supported_styles, max_pages, max_text_length, max_characters, languages, file_formats, processing_time_estimate, signed_url_ttl_seconds]
+    SystemDashboardResponse:
+      type: object
+      properties:
+        system_overview:
+          type: object
+          properties:
+            projects_total:
+              type: integer
+            sessions_total:
+              type: integer
+            sessions_last_24h:
+              type: integer
+          required: [projects_total, sessions_total, sessions_last_24h]
+        quality_metrics:
+          type: object
+          properties:
+            avg_quality_score:
+              type: number
+              format: float
+          required: [avg_quality_score]
+      required: [system_overview, quality_metrics]
+    AcceptedResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: processed
+      required: [status]
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+      required: [detail]

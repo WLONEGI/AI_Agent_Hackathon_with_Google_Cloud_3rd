@@ -1,9 +1,8 @@
 /**
- * Backend API Schema Types - Full Compatibility with FastAPI Pydantic Models
- * AUTO-GENERATED: Keep in sync with backend/app/api/v1/
+ * Backend API schema types aligned with FastAPI responses.
  */
 
-// ===== GENERATION API TYPES =====
+// ===== Generation API =====
 
 export interface FeedbackModeSettings {
   enabled: boolean;
@@ -12,12 +11,12 @@ export interface FeedbackModeSettings {
 }
 
 export interface GenerationOptions {
-  priority: "normal" | "high";
+  priority: 'normal' | 'high';
   webhook_url?: string;
-  auto_publish: boolean;
+  auto_publish?: boolean | null;
 }
 
-export interface SessionCreateRequest {
+export interface GenerateRequest {
   title: string;
   text: string;
   ai_auto_settings: boolean;
@@ -25,231 +24,128 @@ export interface SessionCreateRequest {
   options: GenerationOptions;
 }
 
-export interface SessionResponse {
+export type SessionCreateRequest = GenerateRequest;
+
+export interface GenerateResponse {
   request_id: string;
   status: string;
-  estimated_completion_time?: string;
-  performance_mode: string;
-  expected_duration_minutes: number;
+  estimated_completion_time?: string | null;
+  expected_duration_minutes?: number | null;
   status_url: string;
-  sse_url: string;
+  websocket_channel?: string | null;
+  message?: string | null;
 }
 
-// ===== STATUS API TYPES =====
-
-export interface ModuleDetailResponse {
-  module_number: number;
-  module_name: string;
-  status: string;
-  started_at?: string;
-  estimated_completion?: string;
-  progress_percentage: number;
-  processing_mode: string;
-}
-
-export interface ModuleHistoryResponse {
-  module_number: number;
-  module_name: string;
-  status: string;
-  started_at: string;
-  completed_at: string;
-  duration_seconds: number;
-}
+export type SessionResponse = GenerateResponse;
 
 export interface SessionStatusResponse {
+  session_id: string;
   request_id: string;
   status: string;
-  current_module: number;
-  total_modules: number;
-  module_details: ModuleDetailResponse;
-  modules_history: ModuleHistoryResponse[];
-  overall_progress: number;
-  started_at?: string;
-  estimated_completion?: string;
-  result_url?: string;
+  current_phase?: number | null;
+  updated_at: string;
+  project_id?: string | null;
 }
 
-// ===== FEEDBACK API TYPES =====
+export interface SessionDetailResponse {
+  session_id: string;
+  request_id: string;
+  status: string;
+  current_phase?: number | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  retry_count: number;
+  phase_results: Array<Record<string, unknown>>;
+  preview_versions: Array<Record<string, unknown>>;
+  project_id?: string | null;
+}
 
-export interface FeedbackContent {
-  natural_language?: string;
-  quick_option?: "make_brighter" | "more_serious" | "add_detail" | "simplify";
-  intensity: number;
-  target_elements: string[];
+// ===== Feedback API =====
+
+export interface FeedbackPayload {
+  feedback_type: string;
+  content: Record<string, unknown>;
 }
 
 export interface FeedbackRequest {
   phase: number;
-  feedback_type: "natural_language" | "quick_option" | "skip";
-  content: FeedbackContent;
-}
-
-export interface ParsedModification {
-  type: string;
-  target: string;
-  direction?: string;
-  intensity: number;
-  addition?: string;
+  payload: FeedbackPayload;
 }
 
 export interface FeedbackResponse {
-  feedback_id: string;
-  request_id: string;
-  phase: number;
   status: string;
-  parsed_modifications: ParsedModification[];
-  estimated_modification_time: number;
-  modification_url: string;
-}
-
-export interface SceneContent {
-  scene_id: number;
-  title: string;
-  description: string;
-  emotion: string;
-  pages: number;
-}
-
-export interface StoryStructure {
-  theme: string;
-  genre: string;
-  target_pages: number;
-  main_scenes: SceneContent[];
-}
-
-export interface PreviewUrls {
-  thumbnail: string;
-  structure_diagram: string;
-}
-
-export interface QuickOption {
-  label: string;
-  value: string;
-}
-
-export interface ModificationOptions {
-  quick_options: QuickOption[];
-  modifiable_elements: string[];
-}
-
-export interface PhasePreviewResponse {
-  phase: number;
-  phase_name: string;
-  content: Record<string, any>;
-  preview_urls: PreviewUrls;
-  modification_options: ModificationOptions;
-  feedback_deadline: string;
-}
-
-export interface AppliedModification {
-  type: string;
-  status: string;
-  result_preview?: string;
-}
-
-export interface ModificationStatusResponse {
-  feedback_id: string;
-  status: "processing" | "completed" | "failed";
-  progress: number;
-  applied_modifications: AppliedModification[];
-  estimated_completion: string;
-  next_phase_available: boolean;
 }
 
 export interface SkipFeedbackRequest {
   phase: number;
-  skip_reason: "satisfied" | "time_constraint" | "default_acceptable";
+  skip_reason: 'satisfied' | 'time_constraint' | 'default_acceptable';
 }
 
 export interface SkipFeedbackResponse {
   skipped_phase: number;
   next_phase: number;
   processing_resumed: boolean;
-  estimated_completion: string;
+  estimated_completion?: string;
 }
 
-// ===== AUTHENTICATION API TYPES =====
+// ===== Authentication =====
 
 export interface FirebaseLoginRequest {
   id_token: string;
   device_info?: Record<string, string>;
 }
 
+export interface UserInfo {
+  id: string;
+  email: string;
+  display_name?: string | null;
+  account_type: string;
+  provider: string;
+  is_active: boolean;
+  photo_url?: string | null;
+  created_at?: string | null;
+  last_login?: string | null;
+  firebase_claims?: Record<string, unknown>;
+}
+
 export interface AuthResponse {
   access_token: string;
   refresh_token: string;
-  token_type: string;
+  token_type?: string;
   expires_in: number;
-  user: {
-    id: string;
-    email: string;
-    username: string;
-    display_name: string;
-    account_type: "free" | "premium" | "admin";
-    provider: "google" | "email";
-    is_active: boolean;
-    photo_url?: string;
-    created_at?: string;
-    last_login?: string;
-  };
+  user: UserInfo;
 }
 
 export interface RefreshTokenRequest {
   refresh_token: string;
 }
 
-export interface UserInfo {
-  id: string;
-  email: string;
-  username: string;
-  display_name: string;
-  account_type: "free" | "premium" | "admin";
-  provider: "google" | "email";
-  is_active: boolean;
-  photo_url?: string;
-  created_at?: string;
-  last_login?: string;
-  firebase_claims?: Record<string, any>;
-  permissions?: Record<string, any>;
+export interface AccessTokenResponse {
+  access_token: string;
+  token_type?: string;
+  expires_in: number;
 }
 
-// ===== COMMON API TYPES =====
+// ===== Common API Wrapper =====
 
-export interface ApiErrorDetails {
-  field?: string;
-  constraint?: string;
-  trace_id?: string;
-  context?: any;
-}
-
-export interface ApiErrorResponse {
-  error: {
-    code: string;
-    message: string;
-    details?: ApiErrorDetails;
-    timestamp: string;
-    path: string;
-  };
-}
-
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
 }
 
-// ===== MANGA WORKS API TYPES =====
+// ===== Manga project API =====
 
 export interface MangaWorkItem {
   manga_id: string;
   title: string;
   status: string;
-  pages: number;
-  style: string;
+  pages?: number | null;
+  style?: string | null;
   created_at: string;
   updated_at: string;
   thumbnail_url?: string | null;
-  size_bytes: number;
+  size_bytes?: number | null;
 }
 
 export interface PaginationResponse {
@@ -266,27 +162,14 @@ export interface MangaWorksListResponse {
   pagination: PaginationResponse;
 }
 
-export interface MangaWorkMetadata {
-  pages: number;
-  style: string;
-  characters_count: number;
-  word_count: number;
-  processing_time_seconds: number;
-}
-
-export interface MangaWorkFiles {
-  pdf_url: string;
-  webp_urls: string[];
-  thumbnail_url: string;
-}
-
 export interface MangaWorkDetailResponse {
   manga_id: string;
   title: string;
   status: string;
-  metadata: MangaWorkMetadata;
-  files: MangaWorkFiles;
+  metadata: Record<string, unknown>;
+  files: Record<string, unknown>;
   created_at: string;
   updated_at: string;
-  expires_at: string;
+  expires_at?: string | null;
 }
+

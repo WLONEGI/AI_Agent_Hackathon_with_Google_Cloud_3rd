@@ -1,13 +1,16 @@
 import { useRef, useCallback, useEffect } from 'react';
 import { checkSessionStatus } from '@/lib/api';
-import { type SessionStatusResponse } from '@/types/api-schema';
-import { NetworkError, reportError } from '@/components/ErrorBoundary';
+import type { SessionStatusResponse } from '@/types/api-schema';
+import { NetworkError, reportError } from '@/components/common/ErrorBoundary';
 
 interface UsePollingOptions {
   interval?: number;
   maxRetries?: number;
   onError?: (error: Error) => void;
   onSuccess?: (status: SessionStatusResponse) => void;
+  fetcher?: (sessionId: string) => Promise<SessionStatusResponse | null>;
+  enabled?: boolean;
+  stopWhen?: (status: SessionStatusResponse) => boolean;
 }
 
 export function usePolling(
@@ -17,65 +20,34 @@ export function usePolling(
   const {
     interval = 2000,
     maxRetries = 3,
-    onError,
-    onSuccess
+    fetcher,
+    enabled = true,
   } = options;
 
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryCountRef = useRef(0);
   const isPollingRef = useRef(false);
 
-  const startPolling = useCallback(() => {
-    if (!sessionId || isPollingRef.current) return;
+  const fetcherRef = useRef(fetcher);
+  const onSuccessRef = useRef(options.onSuccess);
+  const onErrorRef = useRef(options.onError);
+  const stopWhenRef = useRef(options.stopWhen);
 
-    isPollingRef.current = true;
-    retryCountRef.current = 0;
+  useEffect(() => {
+    fetcherRef.current = options.fetcher;
+  }, [options.fetcher]);
 
-    const poll = async () => {
-      try {
-        const status = await checkSessionStatus(sessionId);
-        
-        if (status) {
-          retryCountRef.current = 0; // Reset retry count on success
-          onSuccess?.(status);
-          
-          // Stop polling if generation is complete
-          if (status.status === 'completed' || status.status === 'failed') {
-            stopPolling();
-          }
-        }
-      } catch (error) {
-        retryCountRef.current++;
-        
-        const networkError = new NetworkError(
-          'Failed to check session status',
-          error instanceof Error && 'status' in error 
-            ? (error as any).status 
-            : undefined
-        );
-        
-        reportError(networkError, { 
-          sessionId, 
-          operation: 'polling',
-          retryCount: retryCountRef.current 
-        });
-        
-        onError?.(networkError);
-        
-        // Stop polling after max retries
-        if (retryCountRef.current >= maxRetries) {
-          console.error(`Polling stopped after ${maxRetries} failed attempts`);
-          stopPolling();
-        }
-      }
-    };
+  useEffect(() => {
+    onSuccessRef.current = options.onSuccess;
+  }, [options.onSuccess]);
 
-    // Initial poll
-    poll();
+  useEffect(() => {
+    onErrorRef.current = options.onError;
+  }, [options.onError]);
 
-    // Set up interval
-    pollingIntervalRef.current = setInterval(poll, interval);
-  }, [sessionId, interval, maxRetries, onError, onSuccess]);
+  useEffect(() => {
+    stopWhenRef.current = options.stopWhen;
+  }, [options.stopWhen]);
 
   const stopPolling = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -86,22 +58,77 @@ export function usePolling(
     retryCountRef.current = 0;
   }, []);
 
+  const poll = useCallback(async () => {
+    if (!sessionId) {
+      return;
+    }
+
+    const statusFetcher = fetcherRef.current ?? ((id: string) => checkSessionStatus(id));
+
+    try {
+      const status = await statusFetcher(sessionId);
+      if (!status) {
+        return;
+      }
+
+      retryCountRef.current = 0;
+
+      if (onSuccessRef.current) {
+        onSuccessRef.current(status);
+      }
+
+      if (stopWhenRef.current && stopWhenRef.current(status)) {
+        stopPolling();
+      }
+    } catch (error) {
+      retryCountRef.current += 1;
+
+      const networkError = new NetworkError(
+        'Failed to check session status',
+        error instanceof Error && 'status' in error ? (error as any).status : undefined
+      );
+
+      reportError(networkError, {
+        sessionId,
+        operation: 'polling',
+        retryCount: retryCountRef.current,
+      });
+
+      if (onErrorRef.current) {
+        onErrorRef.current(networkError);
+      }
+
+      if (retryCountRef.current >= maxRetries) {
+        stopPolling();
+      }
+    }
+  }, [maxRetries, sessionId, stopPolling]);
+
+  const startPolling = useCallback(() => {
+    if (!sessionId || isPollingRef.current || !enabled) {
+      return;
+    }
+
+    isPollingRef.current = true;
+    retryCountRef.current = 0;
+
+    void poll();
+    pollingIntervalRef.current = setInterval(() => {
+      void poll();
+    }, interval);
+  }, [enabled, interval, poll, sessionId]);
+
   const restartPolling = useCallback(() => {
     stopPolling();
     startPolling();
-  }, [stopPolling, startPolling]);
+  }, [startPolling, stopPolling]);
 
-  // Clean up on unmount
-  useEffect(() => {
-    return () => {
-      stopPolling();
-    };
-  }, [stopPolling]);
+  useEffect(() => stopPolling, [stopPolling]);
 
   return {
     startPolling,
     stopPolling,
     restartPolling,
-    isPolling: isPollingRef.current
+    isPolling: isPollingRef.current,
   };
 }

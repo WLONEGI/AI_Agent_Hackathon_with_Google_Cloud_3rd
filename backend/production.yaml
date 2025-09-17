@@ -1,6 +1,0 @@
-DATABASE_URL: "postgresql+asyncpg://manga_user:manga-db-password@10.47.240.3:5432/manga_service"
-REDIS_URL: "redis://10.47.240.4:6379/0"
-GOOGLE_CLOUD_PROJECT: "comic-ai-agent-470309"
-VERTEXAI_LOCATION: "asia-northeast1"
-CORS_ORIGINS: "https://comic-ai-agent-470309.web.app,http://localhost:3000"
-ENVIRONMENT: "production"
