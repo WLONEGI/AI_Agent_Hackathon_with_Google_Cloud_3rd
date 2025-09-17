@@ -1,0 +1,529 @@
+/* ===== ETHEREAL INTERACTIONS SYSTEM ===== */
+/* Consciousness-based interactions that transcend physical metaphors */
+
+@layer ethereal {
+  :root {
+    /* === TELEPATHIC FEEDBACK SYSTEM === */
+    /* Interface responds to intention before action */
+    --intention-sensitivity: 0.1;       /* How sensitive to pre-action signals */
+    --telepathy-threshold: 150ms;       /* Window for intention detection */
+    --precognitive-timing: 80ms;        /* Response before conscious action */
+
+    /* Intention detection states */
+    --intention-dormant: 0;             /* No detected intention */
+    --intention-emerging: 0.3;          /* Intention beginning to form */
+    --intention-forming: 0.6;           /* Intention becoming clear */
+    --intention-crystallized: 1;        /* Clear intention detected */
+
+    /* === QUANTUM ENTANGLEMENT VARIABLES === */
+    /* Related elements respond to each other instantaneously */
+    --entanglement-strength: 1;         /* Strength of quantum correlation */
+    --entanglement-range: 100vw;        /* Range of entanglement effect */
+    --entanglement-decay: 0.618;        /* Golden ratio decay over distance */
+
+    /* Entangled state synchronization */
+    --entangled-phase: 0deg;            /* Synchronized phase angle */
+    --entangled-frequency: 250ms;       /* Synchronized oscillation */
+    --entangled-amplitude: 0.01;        /* Amplitude of synchronized motion */
+
+    /* === MORPHIC RESONANCE PATTERNS === */
+    /* Repeated interactions create resonant patterns */
+    --resonance-memory: 1;              /* Strength of pattern memory */
+    --resonance-learning: 0.618;        /* Learning rate for new patterns */
+    --resonance-decay: 0.01;            /* Pattern decay over time */
+
+    /* Pattern recognition states */
+    --pattern-novel: 0;                 /* Completely new interaction */
+    --pattern-familiar: 0.382;          /* Recognized pattern */
+    --pattern-habitual: 0.618;          /* Well-established pattern */
+    --pattern-instinctive: 1;           /* Deeply ingrained pattern */
+
+    /* === CONSCIOUSNESS FIELD VARIABLES === */
+    /* Interface exists within consciousness field */
+    --consciousness-field-strength: 1;   /* Strength of consciousness field */
+    --awareness-radius: 200px;          /* Radius of conscious awareness */
+    --attention-focus: 100px;           /* Focal point of attention */
+    --peripheral-fade: 0.382;           /* Fade rate in periphery */
+
+    /* Field density based on attention */
+    --field-density-center: 1;          /* Maximum density at attention center */
+    --field-density-peripheral: 0.236;  /* Density at periphery */
+    --field-density-unconscious: 0;     /* No density outside awareness */
+
+    /* === TIME DILATION EFFECTS === */
+    /* Interface time slows for focused work states */
+    --time-dilation-factor: 1;          /* 1 = normal time, >1 = slowed */
+    --flow-time-factor: 2.618;          /* Time dilation in flow state */
+    --focus-time-factor: 1.618;         /* Time dilation when focused */
+    --distracted-time-factor: 0.618;    /* Time acceleration when distracted */
+
+    /* Dilated duration calculations */
+    --dilated-instant: calc(var(--micro-instant) * var(--time-dilation-factor));
+    --dilated-swift: calc(var(--micro-swift) * var(--time-dilation-factor));
+    --dilated-smooth: calc(var(--micro-smooth) * var(--time-dilation-factor));
+
+    /* === DIMENSIONAL INTERFACE LAYERS === */
+    /* Interface exists across multiple dimensions */
+    --dimension-surface: 0;             /* Surface interaction layer */
+    --dimension-depth: -10px;           /* Depth interaction layer */
+    --dimension-meta: -20px;            /* Meta interaction layer */
+    --dimension-transcendent: -30px;    /* Transcendent interaction layer */
+
+    /* Inter-dimensional permeability */
+    --layer-permeability: 0.1;          /* How much layers influence each other */
+    --dimensional-bleed: 2px;           /* Visual bleed between dimensions */
+  }
+}
+
+/* === TELEPATHIC FEEDBACK SYSTEM === */
+/* Responds to user intention before conscious action */
+
+.telepathic-element {
+  /* Base state - dormant but listening */
+  opacity: 1;
+  transform: scale(1) translateZ(var(--dimension-surface));
+  transition: all var(--telepathy-threshold) cubic-bezier(0.23, 1, 0.320, 1);
+
+  /* Consciousness field detection */
+  position: relative;
+  isolation: isolate;
+
+  /* Intention sensing field (invisible) */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: calc(var(--awareness-radius) * -1);
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      var(--affordance-invisible) 0%,
+      transparent 70%
+    );
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity var(--precognitive-timing) ease-out;
+  }
+}
+
+/* Intention emergence - before user is fully conscious of wanting to interact */
+.telepathic-element[data-intention="emerging"] {
+  opacity: 1.02; /* Imperceptible brightening */
+  transform: scale(1.001) translateZ(calc(var(--dimension-surface) + 1px));
+
+  &::before {
+    opacity: var(--intention-emerging);
+  }
+}
+
+/* Intention forming - user becoming aware of desire to interact */
+.telepathic-element[data-intention="forming"] {
+  opacity: 1.05;
+  transform: scale(1.003) translateZ(calc(var(--dimension-surface) + 2px));
+
+  &::before {
+    opacity: var(--intention-forming);
+  }
+}
+
+/* Intention crystallized - clear intention detected */
+.telepathic-element[data-intention="crystallized"] {
+  opacity: 1.1;
+  transform: scale(1.008) translateZ(calc(var(--dimension-surface) + 3px));
+  transition-duration: var(--dilated-swift);
+
+  &::before {
+    opacity: var(--intention-crystallized);
+  }
+}
+
+/* === QUANTUM ENTANGLEMENT SYSTEM === */
+/* Related elements respond to each other instantaneously */
+
+.quantum-entangled {
+  /* Synchronized base oscillation */
+  animation: quantumField var(--entangled-frequency) ease-in-out infinite;
+  animation-delay: calc(var(--element-index, 0) * var(--precognitive-timing));
+
+  /* Quantum correlation field */
+  position: relative;
+  will-change: transform, opacity;
+  contain: layout style paint;
+}
+
+/* When one entangled element is interacted with, all respond */
+.quantum-entangled[data-entangled-state="active"] {
+  animation-duration: calc(var(--entangled-frequency) * 0.5);
+  animation-timing-function: cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* Quantum tunneling effect */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent-whisper);
+    opacity: 0;
+    animation: quantumTunnel var(--dilated-smooth) ease-out;
+    pointer-events: none;
+    z-index: -1;
+  }
+}
+
+@keyframes quantumField {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(calc(1 + var(--entangled-amplitude))) rotate(0.1deg);
+    opacity: calc(1 - var(--entangled-amplitude));
+  }
+  50% {
+    transform: scale(calc(1 + var(--entangled-amplitude) * 2)) rotate(0deg);
+    opacity: calc(1 - var(--entangled-amplitude) * 2);
+  }
+  75% {
+    transform: scale(calc(1 + var(--entangled-amplitude))) rotate(-0.1deg);
+    opacity: calc(1 - var(--entangled-amplitude));
+  }
+}
+
+@keyframes quantumTunnel {
+  0% {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: var(--entangled-amplitude);
+    transform: scale(1.2);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+}
+
+/* === MORPHIC RESONANCE SYSTEM === */
+/* Interface learns and adapts to repeated patterns */
+
+.morphic-learning {
+  /* Pattern recognition memory */
+  transition-duration: calc(
+    var(--micro-smooth) *
+    (1 + var(--pattern-familiarity, 0))
+  );
+
+  /* Adaptation based on usage patterns */
+  transform: scale(calc(1 + var(--pattern-optimization, 0) * 0.01));
+  opacity: calc(1 + var(--pattern-confidence, 0) * 0.1);
+}
+
+/* Novel pattern - longer transitions, more exploration */
+.morphic-learning[data-pattern="novel"] {
+  --pattern-familiarity: var(--pattern-novel);
+  transition-duration: calc(var(--micro-smooth) * 2);
+  transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Familiar pattern - optimized transitions */
+.morphic-learning[data-pattern="familiar"] {
+  --pattern-familiarity: var(--pattern-familiar);
+  --pattern-confidence: 0.3;
+  transition-duration: var(--micro-smooth);
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Habitual pattern - highly optimized */
+.morphic-learning[data-pattern="habitual"] {
+  --pattern-familiarity: var(--pattern-habitual);
+  --pattern-confidence: 0.6;
+  --pattern-optimization: 0.2;
+  transition-duration: var(--micro-swift);
+  transition-timing-function: cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* Instinctive pattern - nearly instantaneous */
+.morphic-learning[data-pattern="instinctive"] {
+  --pattern-familiarity: var(--pattern-instinctive);
+  --pattern-confidence: 1;
+  --pattern-optimization: 0.5;
+  transition-duration: var(--micro-instant);
+  transition-timing-function: steps(1);
+}
+
+/* === CONSCIOUSNESS FIELD INTERACTIONS === */
+/* Interface elements exist within consciousness field */
+
+.consciousness-field {
+  position: relative;
+  border-radius: 50%;
+
+  /* Consciousness field visualization (invisible) */
+  &::before {
+    content: '';
+    position: absolute;
+    inset: calc(var(--awareness-radius) * -1);
+    background: radial-gradient(
+      circle,
+      var(--affordance-subliminal) 0%,
+      var(--affordance-quantum) 30%,
+      var(--affordance-invisible) 70%,
+      transparent 100%
+    );
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: -2;
+    opacity: var(--consciousness-field-strength);
+    animation: consciousnessBreathing var(--quantum-flow) ease-in-out infinite;
+  }
+}
+
+@keyframes consciousnessBreathing {
+  0%, 100% {
+    transform: scale(1);
+    opacity: var(--consciousness-field-strength);
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: calc(var(--consciousness-field-strength) * 0.8);
+  }
+}
+
+/* Elements within consciousness field respond to attention */
+.consciousness-aware {
+  /* Attention-based scaling */
+  transform: scale(calc(
+    1 + (var(--attention-proximity, 0) * 0.01)
+  ));
+
+  /* Consciousness-based opacity */
+  opacity: calc(
+    var(--peripheral-fade) +
+    (var(--attention-proximity, 0) * (1 - var(--peripheral-fade)))
+  );
+
+  /* Smooth consciousness transitions */
+  transition:
+    transform var(--dilated-smooth) ease-out,
+    opacity var(--dilated-smooth) ease-out;
+}
+
+/* === TIME DILATION EFFECTS === */
+/* Interface time slows during focused work states */
+
+.time-dilated {
+  /* All animations use dilated time */
+  animation-duration: calc(var(--base-duration, 1s) * var(--time-dilation-factor));
+  transition-duration: calc(var(--base-transition, var(--micro-smooth)) * var(--time-dilation-factor));
+}
+
+/* Flow state - time slows significantly */
+.time-dilated[data-flow-state="active"] {
+  --time-dilation-factor: var(--flow-time-factor);
+}
+
+/* Focus state - moderate time dilation */
+.time-dilated[data-focus-level="high"] {
+  --time-dilation-factor: var(--focus-time-factor);
+}
+
+/* Distracted state - time accelerates */
+.time-dilated[data-attention="scattered"] {
+  --time-dilation-factor: var(--distracted-time-factor);
+}
+
+/* === DIMENSIONAL INTERFACE LAYERS === */
+/* Interface exists across multiple dimensional layers */
+
+.dimensional-interface {
+  position: relative;
+  transform-style: preserve-3d;
+  perspective: 1000px;
+}
+
+/* Surface layer - direct interaction */
+.dimension-surface {
+  transform: translateZ(var(--dimension-surface));
+  z-index: 3;
+}
+
+/* Depth layer - contextual information */
+.dimension-depth {
+  transform: translateZ(var(--dimension-depth));
+  z-index: 2;
+  opacity: calc(1 - var(--layer-permeability));
+}
+
+/* Meta layer - system information */
+.dimension-meta {
+  transform: translateZ(var(--dimension-meta));
+  z-index: 1;
+  opacity: calc(1 - var(--layer-permeability) * 2);
+}
+
+/* Transcendent layer - pure consciousness */
+.dimension-transcendent {
+  transform: translateZ(var(--dimension-transcendent));
+  z-index: 0;
+  opacity: calc(1 - var(--layer-permeability) * 3);
+}
+
+/* Inter-dimensional bleed effects */
+.dimensional-interface:hover {
+  .dimension-surface {
+    box-shadow:
+      0 0 var(--dimensional-bleed) var(--affordance-quantum),
+      0 0 calc(var(--dimensional-bleed) * 2) var(--affordance-invisible);
+  }
+
+  .dimension-depth {
+    opacity: calc(1 - var(--layer-permeability) * 0.5);
+  }
+
+  .dimension-meta {
+    opacity: calc(1 - var(--layer-permeability) * 1);
+  }
+}
+
+/* === PRECOGNITIVE INTERFACE ELEMENTS === */
+/* Interface that prepares for future actions */
+
+.precognitive-element {
+  /* Future state preparation */
+  position: relative;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--bg-hover);
+    opacity: 0;
+    transform: scale(0.95);
+    transition:
+      opacity var(--precognitive-timing) ease-out,
+      transform var(--precognitive-timing) ease-out;
+    pointer-events: none;
+    z-index: -1;
+  }
+}
+
+/* Future state visualization */
+.precognitive-element[data-future-action="probable"] {
+  &::after {
+    opacity: 0.1;
+    transform: scale(0.98);
+  }
+}
+
+.precognitive-element[data-future-action="likely"] {
+  &::after {
+    opacity: 0.2;
+    transform: scale(1);
+  }
+}
+
+.precognitive-element[data-future-action="imminent"] {
+  &::after {
+    opacity: 0.3;
+    transform: scale(1.02);
+  }
+}
+
+/* === ETHEREAL ANIMATIONS === */
+/* Animations that transcend physical metaphors */
+
+@keyframes etherealFloat {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  33% {
+    transform: translateY(-2px) scale(1.001);
+    opacity: 0.995;
+  }
+  66% {
+    transform: translateY(-1px) scale(1.002);
+    opacity: 0.998;
+  }
+}
+
+@keyframes consciousnessRipple {
+  0% {
+    box-shadow:
+      0 0 0 0 var(--accent-whisper),
+      0 0 0 0 var(--accent-ghost);
+  }
+  50% {
+    box-shadow:
+      0 0 0 var(--awareness-radius) var(--affordance-invisible),
+      0 0 0 calc(var(--awareness-radius) * 0.5) var(--affordance-quantum);
+  }
+  100% {
+    box-shadow:
+      0 0 0 calc(var(--awareness-radius) * 2) var(--affordance-invisible),
+      0 0 0 var(--awareness-radius) var(--affordance-invisible);
+  }
+}
+
+@keyframes thoughtTransmission {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(10px);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.02) translateY(-2px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* === CONSCIOUSNESS STATE UTILITIES === */
+/* Utilities for different consciousness states */
+
+.ethereal-container {
+  /* Consciousness field container */
+  position: relative;
+  isolation: isolate;
+
+  /* Enable ethereal interactions */
+  &[data-consciousness="active"] {
+    --consciousness-field-strength: 1;
+  }
+
+  &[data-consciousness="dormant"] {
+    --consciousness-field-strength: 0.1;
+  }
+
+  &[data-flow-state="active"] {
+    --time-dilation-factor: var(--flow-time-factor);
+
+    * {
+      animation-play-state: running;
+    }
+  }
+
+  &[data-focus-level="high"] {
+    --time-dilation-factor: var(--focus-time-factor);
+    --attention-focus: 50px;
+  }
+}
+
+/* Ethereal interaction modifiers */
+.ethereal-subtle {
+  --entangled-amplitude: 0.005;
+  --intention-sensitivity: 0.05;
+}
+
+.ethereal-pronounced {
+  --entangled-amplitude: 0.02;
+  --intention-sensitivity: 0.2;
+}
+
+.ethereal-transcendent {
+  --entangled-amplitude: 0.05;
+  --intention-sensitivity: 0.5;
+  --consciousness-field-strength: 2;
+}

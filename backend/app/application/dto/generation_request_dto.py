@@ -17,6 +17,7 @@ class GenerationRequestDTO(BaseDTO):
     input_text: str
     request_settings: Dict[str, Any]
     status: str  # queued, processing, completed, failed
+    created_at: datetime
     current_module: int = 0
     priority: str = "normal"
     webhook_url: Optional[str] = None
@@ -24,7 +25,6 @@ class GenerationRequestDTO(BaseDTO):
     completed_at: Optional[datetime] = None
     retry_count: int = 0
     error_message: Optional[str] = None
-    created_at: datetime
     
     # Related data (populated when requested)
     phases: Optional[List['PhaseExecutionDTO']] = None
@@ -165,9 +165,9 @@ class GenerationRequestProgressDTO(BaseDTO):
     
     request_id: str
     current_phase: int
+    status: str
     total_phases: int = 7
     progress_percentage: float = 0.0
-    status: str
     
     # Phase details
     phase_statuses: Dict[int, str] = field(default_factory=dict)
@@ -261,13 +261,13 @@ class FeedbackRequestDTO(BaseDTO):
     request_id: str
     phase_number: int
     feedback_type: str  # natural_language, quick_option, skip
+    created_at: datetime
     natural_language_input: Optional[str] = None
     quick_option: Optional[str] = None
     intensity: Optional[float] = None
     target_elements: Optional[Dict[str, Any]] = None
     status: str = "pending"  # pending, processing, completed, failed
     estimated_modification_time: Optional[int] = None
-    created_at: datetime
     timeout_at: Optional[datetime] = None
     processed_at: Optional[datetime] = None
     
@@ -315,11 +315,11 @@ class ModificationHistoryDTO(BaseDTO):
     feedback_id: str
     modification_type: str
     target_element: str
+    applied_at: datetime
     original_value: Optional[Dict[str, Any]] = None
     modified_value: Optional[Dict[str, Any]] = None
     confidence_score: Optional[float] = None
     llm_reasoning: Optional[str] = None
-    applied_at: datetime
     
     def validate(self) -> None:
         """Validate modification history DTO."""

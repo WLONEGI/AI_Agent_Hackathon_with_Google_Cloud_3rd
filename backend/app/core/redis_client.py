@@ -175,7 +175,7 @@ class RedisManager:
         except Exception as e:
             logger.error(f"Error getting hash {name}: {e}")
             return {}
-    
+
     # List operations
     async def lpush(self, key: str, value: Any) -> int:
         """Push value to list head."""
@@ -218,6 +218,19 @@ class RedisManager:
         except Exception as e:
             logger.error(f"Error getting set members {key}: {e}")
             return set()
+
+    async def scan_keys(self, pattern: str) -> list[str]:
+        """Retrieve keys matching a pattern."""
+        if not self.redis:
+            return []
+
+        results: list[str] = []
+        try:
+            async for key in self.redis.scan_iter(match=pattern):
+                results.append(key)
+        except Exception as e:  # noqa: BLE001
+            logger.error(f"Error scanning keys with pattern {pattern}: {e}")
+        return results
     
     @property
     def is_healthy(self) -> bool:
@@ -229,51 +242,34 @@ class RedisManager:
         try:
             if not self.redis:
                 return {
-                    "l1_memory": {"hit_rate": "0%", "used_memory": "0"},
-                    "error": "Redis not connected"
+                    "connected": False,
+                    "used_memory_bytes": 0,
+                    "used_memory_human": "0B",
+                    "hit_rate_percent": 0.0,
                 }
-            
-            # Get Redis info
+
             info = await self.redis.info()
-            
-            # Calculate hit rate
-            hits = info.get('keyspace_hits', 0)
-            misses = info.get('keyspace_misses', 0)
+            hits = info.get("keyspace_hits", 0)
+            misses = info.get("keyspace_misses", 0)
             total_ops = hits + misses
-            hit_rate = (hits / total_ops * 100) if total_ops > 0 else 0
-            
+            hit_rate = float(hits) / total_ops * 100 if total_ops else 0.0
+
             return {
-                "l1_memory": {
-                    "hit_rate": f"{hit_rate:.1f}%",
-                    "used_memory": info.get("used_memory_human", "0")
-                },
-                "memory": {
-                    "used_memory": info.get("used_memory_human", "0"),
-                    "used_memory_peak": info.get("used_memory_peak_human", "0"),
-                    "used_memory_rss": info.get("used_memory_rss_human", "0"),
-                    "mem_fragmentation_ratio": info.get("mem_fragmentation_ratio", 1.0)
-                },
-                "stats": {
-                    "total_connections_received": info.get("total_connections_received", 0),
-                    "total_commands_processed": info.get("total_commands_processed", 0),
-                    "instantaneous_ops_per_sec": info.get("instantaneous_ops_per_sec", 0),
-                    "keyspace_hits": hits,
-                    "keyspace_misses": misses,
-                    "hit_rate_percentage": hit_rate
-                },
-                "keyspace": {
-                    "total_keys": sum(
-                        int(db_info.split(',')[0].split('=')[1]) 
-                        for key, db_info in info.items() 
-                        if key.startswith('db')
-                    ) if any(key.startswith('db') for key in info.keys()) else 0
-                }
+                "connected": True,
+                "used_memory_bytes": int(info.get("used_memory", 0)),
+                "used_memory_human": info.get("used_memory_human", "0B"),
+                "connected_clients": info.get("connected_clients", 0),
+                "hit_rate_percent": hit_rate,
+                "raw": info,
             }
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001
             logger.error(f"Error getting Redis info: {e}")
             return {
-                "l1_memory": {"hit_rate": "0%", "used_memory": "0"},
-                "error": str(e)
+                "connected": False,
+                "used_memory_bytes": 0,
+                "used_memory_human": "0B",
+                "hit_rate_percent": 0.0,
+                "error": str(e),
             }
 
 

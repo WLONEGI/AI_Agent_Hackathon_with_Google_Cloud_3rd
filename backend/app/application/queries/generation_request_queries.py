@@ -8,7 +8,7 @@ from .base_query import Query, RequireUserMixin, RequireIdMixin, QueryValidation
 from ..dto.generation_request_dto import GenerationRequestDTO, GenerationRequestStatsDTO, GenerationRequestProgressDTO
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetGenerationRequestQuery(Query[GenerationRequestDTO], RequireUserMixin, RequireIdMixin):
     """Query to get a single generation request by ID."""
     
@@ -23,7 +23,7 @@ class GetGenerationRequestQuery(Query[GenerationRequestDTO], RequireUserMixin, R
         self.validate_id_required("request_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ListGenerationRequestsQuery(Query[List[GenerationRequestDTO]], RequireUserMixin):
     """Query to list generation requests with filtering."""
     
@@ -54,7 +54,7 @@ class ListGenerationRequestsQuery(Query[List[GenerationRequestDTO]], RequireUser
                 raise QueryValidationError("Created after date must be before created before date")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetGenerationRequestsByUserQuery(Query[List[GenerationRequestDTO]], RequireUserMixin, RequireIdMixin):
     """Query to get generation requests for a specific user."""
     
@@ -81,7 +81,7 @@ class GetGenerationRequestsByUserQuery(Query[List[GenerationRequestDTO]], Requir
             raise QueryValidationError("Limit days cannot exceed 365")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetGenerationRequestsByProjectQuery(Query[List[GenerationRequestDTO]], RequireUserMixin, RequireIdMixin):
     """Query to get generation requests for a specific project."""
     
@@ -101,7 +101,7 @@ class GetGenerationRequestsByProjectQuery(Query[List[GenerationRequestDTO]], Req
                 raise QueryValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetGenerationRequestStatsQuery(Query[GenerationRequestStatsDTO], RequireUserMixin):
     """Query to get generation request statistics."""
     
@@ -127,7 +127,7 @@ class GetGenerationRequestStatsQuery(Query[GenerationRequestStatsDTO], RequireUs
                 raise QueryValidationError(f"Group by must be one of: {', '.join(valid_groups)}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetGenerationQueueQuery(Query[List[GenerationRequestDTO]], RequireUserMixin):
     """Query to get generation request queue (admin only)."""
     
@@ -150,7 +150,7 @@ class GetGenerationQueueQuery(Query[List[GenerationRequestDTO]], RequireUserMixi
             raise QueryValidationError("Max age hours cannot exceed 168 (7 days)")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetGenerationProgressQuery(Query[GenerationRequestProgressDTO], RequireUserMixin, RequireIdMixin):
     """Query to get detailed progress for a generation request."""
     
@@ -165,7 +165,7 @@ class GetGenerationProgressQuery(Query[GenerationRequestProgressDTO], RequireUse
         self.validate_id_required("request_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetFailedGenerationRequestsQuery(Query[List[GenerationRequestDTO]], RequireUserMixin):
     """Query to get failed generation requests."""
     
@@ -188,7 +188,7 @@ class GetFailedGenerationRequestsQuery(Query[List[GenerationRequestDTO]], Requir
                 raise QueryValidationError(f"Error type must be one of: {', '.join(valid_types)}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetGenerationFeedbackQuery(Query[List[dict]], RequireUserMixin, RequireIdMixin):
     """Query to get feedback requests for a generation."""
     
@@ -212,7 +212,7 @@ class GetGenerationFeedbackQuery(Query[List[dict]], RequireUserMixin, RequireIdM
                 raise QueryValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetGenerationPhaseExecutionsQuery(Query[List[dict]], RequireUserMixin, RequireIdMixin):
     """Query to get phase executions for a generation request."""
     
@@ -236,7 +236,7 @@ class GetGenerationPhaseExecutionsQuery(Query[List[dict]], RequireUserMixin, Req
                 raise QueryValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetGenerationPerformanceQuery(Query[dict], RequireUserMixin):
     """Query to get generation performance metrics."""
     
@@ -265,7 +265,7 @@ class GetGenerationPerformanceQuery(Query[dict], RequireUserMixin):
                     raise QueryValidationError(f"Invalid metric type: {metric_type}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetPendingFeedbackQuery(Query[List[dict]], RequireUserMixin):
     """Query to get pending feedback requests for user."""
     
@@ -281,7 +281,7 @@ class GetPendingFeedbackQuery(Query[List[dict]], RequireUserMixin):
                 raise QueryValidationError("Phase number must be between 1 and 7")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetGenerationHistoryQuery(Query[List[dict]], RequireUserMixin, RequireIdMixin):
     """Query to get generation request history/audit trail."""
     

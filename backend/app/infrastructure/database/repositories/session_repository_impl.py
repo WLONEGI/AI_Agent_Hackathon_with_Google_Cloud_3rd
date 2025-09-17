@@ -8,22 +8,16 @@ from sqlalchemy.orm import selectinload
 
 from app.domain.manga.entities.session import MangaSession, SessionId, SessionStatus
 from app.domain.manga.repositories.session_repository import SessionRepository
-from app.infrastructure.database.models.manga_session_model import MangaSessionModel
-from app.core.database import get_db
+from app.models.manga import MangaSession as MangaSessionModel
 
 
 class SessionRepositoryImpl(SessionRepository):
     """SQLAlchemy implementation of SessionRepository."""
     
-    def __init__(self, db_session: Optional[AsyncSession] = None):
-        """Initialize with optional database session."""
+    def __init__(self, db_session: AsyncSession):
+        if db_session is None:
+            raise ValueError("db_session is required for SessionRepositoryImpl")
         self.db_session = db_session
-    
-    async def _get_session(self) -> AsyncSession:
-        """Get database session."""
-        if self.db_session:
-            return self.db_session
-        return next(get_db())
     
     def _model_to_entity(self, model: MangaSessionModel) -> MangaSession:
         """Convert database model to domain entity."""
@@ -82,7 +76,7 @@ class SessionRepositoryImpl(SessionRepository):
     
     async def save(self, session: MangaSession) -> None:
         """Save or update a manga session."""
-        db = await self._get_session()
+        db = self.db_session
         
         # Check if exists
         stmt = select(MangaSessionModel).where(MangaSessionModel.id == str(session.id))
@@ -106,7 +100,7 @@ class SessionRepositoryImpl(SessionRepository):
     
     async def find_by_id(self, session_id: SessionId) -> Optional[MangaSession]:
         """Find session by ID."""
-        db = await self._get_session()
+        db = self.db_session
         
         stmt = select(MangaSessionModel).where(MangaSessionModel.id == str(session_id))
         result = await db.execute(stmt)
@@ -116,7 +110,7 @@ class SessionRepositoryImpl(SessionRepository):
     
     async def find_by_user_id(self, user_id: str) -> List[MangaSession]:
         """Find all sessions for a user."""
-        db = await self._get_session()
+        db = self.db_session
         
         stmt = select(MangaSessionModel).where(
             MangaSessionModel.user_id == user_id
@@ -129,7 +123,7 @@ class SessionRepositoryImpl(SessionRepository):
     
     async def find_by_status(self, status: SessionStatus) -> List[MangaSession]:
         """Find sessions by status."""
-        db = await self._get_session()
+        db = self.db_session
         
         stmt = select(MangaSessionModel).where(
             MangaSessionModel.status == status.value
@@ -142,7 +136,7 @@ class SessionRepositoryImpl(SessionRepository):
     
     async def find_active_sessions(self) -> List[MangaSession]:
         """Find all active sessions."""
-        db = await self._get_session()
+        db = self.db_session
         
         active_statuses = [
             SessionStatus.IN_PROGRESS.value,
@@ -164,7 +158,7 @@ class SessionRepositoryImpl(SessionRepository):
         status: SessionStatus
     ) -> List[MangaSession]:
         """Find sessions by user ID and status."""
-        db = await self._get_session()
+        db = self.db_session
         
         stmt = select(MangaSessionModel).where(
             and_(

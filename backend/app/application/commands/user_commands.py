@@ -7,7 +7,7 @@ from datetime import datetime
 from .base_command import Command, RequireUserMixin, RequireIdMixin, CommandValidationError
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CreateUserCommand(Command[str]):
     """Command to create a new user."""
     
@@ -34,7 +34,7 @@ class CreateUserCommand(Command[str]):
             raise CommandValidationError("Account type must be 'free', 'premium', or 'admin'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdateUserCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to update user information."""
     
@@ -58,7 +58,7 @@ class UpdateUserCommand(Command[bool], RequireUserMixin, RequireIdMixin):
                 raise CommandValidationError("Account type must be 'free', 'premium', or 'admin'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class DeleteUserCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to delete a user."""
     
@@ -70,7 +70,7 @@ class DeleteUserCommand(Command[bool], RequireUserMixin, RequireIdMixin):
         self.validate_id_required("user_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class VerifyUserEmailCommand(Command[bool], RequireIdMixin):
     """Command to verify user email address."""
     
@@ -85,7 +85,7 @@ class VerifyUserEmailCommand(Command[bool], RequireIdMixin):
             raise CommandValidationError("Verification code is required")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdateUserPreferencesCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to update user preferences."""
     
@@ -112,7 +112,7 @@ class UpdateUserPreferencesCommand(Command[bool], RequireUserMixin, RequireIdMix
                 raise CommandValidationError("Preferred quality must be between 1 and 5")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdateUserQuotaCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to update user quota."""
     
@@ -155,7 +155,7 @@ class ResetUserPasswordCommand(Command[bool], RequireIdMixin):
             raise CommandValidationError("New password must be at least 8 characters")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class DeactivateUserCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to deactivate a user account."""
     
@@ -168,7 +168,7 @@ class DeactivateUserCommand(Command[bool], RequireUserMixin, RequireIdMixin):
         self.validate_id_required("user_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ReactivateUserCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to reactivate a user account."""
     

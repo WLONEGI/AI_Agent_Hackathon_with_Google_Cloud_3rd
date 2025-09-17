@@ -30,6 +30,14 @@ from .processing_module_dto import (
     ProcessingModuleResultDTO
 )
 
+from .preview_dto import (
+    PreviewVersionCreateDTO,
+    PreviewVersionUpdateDTO,
+    PreviewInteractionCreateDTO,
+    PreviewQualitySettingsCreateDTO,
+    PreviewQualitySettingsUpdateDTO
+)
+
 __all__ = [
     # Base
     "BaseDTO",
@@ -62,4 +70,9 @@ __all__ = [
     "ProcessingModuleUpdateDTO",
     "ProcessingModuleStatsDTO",
     "ProcessingModuleResultDTO",
+    "PreviewVersionCreateDTO",
+    "PreviewVersionUpdateDTO",
+    "PreviewInteractionCreateDTO",
+    "PreviewQualitySettingsCreateDTO",
+    "PreviewQualitySettingsUpdateDTO",
 ]

@@ -5,7 +5,7 @@
 ### ✅ Completed Tasks
 
 1. **Environment Configuration**: Development environment configured with proper settings
-2. **Database Setup**: SQLite database working locally, PostgreSQL configuration ready for production  
+2. **Database Setup**: PostgreSQL database configured for both development and production  
 3. **API Testing**: Core API endpoints tested and working
 4. **GCP Integration**: Project `comic-ai-agent-470309` configured and active
 5. **Test Organization**: Tests moved to dedicated `test/` directory
@@ -14,14 +14,14 @@
 
 #### Local Development
 ```bash
-# Use SQLite for local development
-DATABASE_URL=sqlite+aiosqlite:///./manga_service.db
+# Use PostgreSQL for local development (Docker Compose default)
+DATABASE_URL=postgresql+asyncpg://manga_user:manga_password@localhost:5432/manga_db
 GOOGLE_CLOUD_PROJECT=comic-ai-agent-470309
 ```
 
 #### Production Environment
 ```bash
-# Use PostgreSQL for production
+# Use PostgreSQL for production (Cloud SQL)
 DATABASE_URL=postgresql+asyncpg://manga_user:${DB_PASSWORD}@${DB_HOST}:5432/manga_db
 GOOGLE_CLOUD_PROJECT=comic-ai-agent-470309
 ```

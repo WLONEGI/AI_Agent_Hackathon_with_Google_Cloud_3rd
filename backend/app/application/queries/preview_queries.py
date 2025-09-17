@@ -17,7 +17,7 @@ from app.application.queries.base_query import AbstractQuery
 
 # ===== Preview Version Queries =====
 
-@dataclass
+@dataclass(kw_only=True)
 class GetPreviewVersionByIdQuery(AbstractQuery):
     """
     Query to retrieve a preview version by its ID.
@@ -37,7 +37,7 @@ class GetPreviewVersionByIdQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetPreviewVersionsByRequestQuery(AbstractQuery):
     """
     Query to retrieve preview versions for a generation request.
@@ -70,7 +70,7 @@ class GetPreviewVersionsByRequestQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetVersionTreeQuery(AbstractQuery):
     """
     Query to retrieve complete version tree for a request and phase.
@@ -94,7 +94,7 @@ class GetVersionTreeQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetFinalVersionsQuery(AbstractQuery):
     """
     Query to retrieve all final versions for a generation request.
@@ -114,7 +114,7 @@ class GetFinalVersionsQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetActiveVersionsQuery(AbstractQuery):
     """
     Query to retrieve all active preview versions.
@@ -149,7 +149,7 @@ class GetActiveVersionsQuery(AbstractQuery):
 
 # ===== Preview Interaction Queries =====
 
-@dataclass
+@dataclass(kw_only=True)
 class GetPreviewInteractionByIdQuery(AbstractQuery):
     """
     Query to retrieve a preview interaction by its ID.
@@ -169,7 +169,7 @@ class GetPreviewInteractionByIdQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetInteractionsByVersionQuery(AbstractQuery):
     """
     Query to retrieve interactions for a specific version.
@@ -207,7 +207,7 @@ class GetInteractionsByVersionQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetInteractionsByUserQuery(AbstractQuery):
     """
     Query to retrieve interactions by a specific user.
@@ -245,7 +245,7 @@ class GetInteractionsByUserQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetPendingInteractionsQuery(AbstractQuery):
     """
     Query to retrieve pending interactions that need processing.
@@ -270,7 +270,7 @@ class GetPendingInteractionsQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetInteractionStatisticsQuery(AbstractQuery):
     """
     Query to retrieve interaction statistics.
@@ -295,7 +295,7 @@ class GetInteractionStatisticsQuery(AbstractQuery):
 
 # ===== Preview Quality Settings Queries =====
 
-@dataclass
+@dataclass(kw_only=True)
 class GetQualitySettingsByUserQuery(AbstractQuery):
     """
     Query to retrieve quality settings for a specific user.
@@ -315,7 +315,7 @@ class GetQualitySettingsByUserQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetQualityRecommendationsQuery(AbstractQuery):
     """
     Query to get quality recommendations based on user settings and system load.
@@ -341,7 +341,7 @@ class GetQualityRecommendationsQuery(AbstractQuery):
 
 # ===== Analytics and Reporting Queries =====
 
-@dataclass
+@dataclass(kw_only=True)
 class GetStorageUsageQuery(AbstractQuery):
     """
     Query to retrieve storage usage statistics.
@@ -360,7 +360,7 @@ class GetStorageUsageQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetVersionPerformanceStatsQuery(AbstractQuery):
     """
     Query to retrieve version generation performance statistics.
@@ -386,7 +386,7 @@ class GetVersionPerformanceStatsQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetUserEngagementStatsQuery(AbstractQuery):
     """
     Query to retrieve user engagement statistics.
@@ -408,7 +408,7 @@ class GetUserEngagementStatsQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetQualityTrendsQuery(AbstractQuery):
     """
     Query to retrieve quality trend analysis.
@@ -440,7 +440,7 @@ class GetQualityTrendsQuery(AbstractQuery):
 
 # ===== Advanced Queries =====
 
-@dataclass
+@dataclass(kw_only=True)
 class GetVersionComparisonQuery(AbstractQuery):
     """
     Query to compare multiple preview versions.
@@ -468,7 +468,7 @@ class GetVersionComparisonQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetFeedbackHeatmapQuery(AbstractQuery):
     """
     Query to generate feedback heatmap for a preview version.
@@ -498,7 +498,7 @@ class GetFeedbackHeatmapQuery(AbstractQuery):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetRecommendedVersionsQuery(AbstractQuery):
     """
     Query to get recommended versions based on user preferences and history.

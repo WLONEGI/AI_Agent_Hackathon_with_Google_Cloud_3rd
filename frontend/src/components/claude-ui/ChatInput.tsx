@@ -79,32 +79,34 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
-          className="w-full bg-transparent text-white placeholder-gray-400 text-lg leading-relaxed resize-none outline-none pr-14"
-          style={{ 
+          className="w-full bg-transparent text-white placeholder-gray-400 text-lg leading-relaxed resize-none outline-none pr-14 input-micro"
+          style={{
             minHeight: '28px',
             maxHeight: '120px',
             overflow: 'hidden',
             color: '#ffffff',
             fontSize: '18px',
-            paddingRight: '56px'
+            paddingRight: '56px',
+            border: 'none'
           }}
           rows={1}
         />
-        
+
         {/* Submit button - positioned in bottom right of input */}
         <button
           onClick={handleSubmit}
           disabled={disabled || !value.trim()}
-          className={`absolute bottom-1 right-1 transition-all duration-200 flex items-center justify-center ${
+          className={`absolute bottom-1 right-1 flex items-center justify-center button-micro micro-glow ${
             disabled || !value.trim()
-              ? 'text-gray-500 cursor-not-allowed'
-              : 'text-white hover:bg-gray-600'
+              ? 'text-gray-500 cursor-not-allowed opacity-50'
+              : 'text-white'
           }`}
           style={{
-            backgroundColor: disabled || !value.trim() ? '#4a4a4a' : '#555555',
+            backgroundColor: disabled || !value.trim() ? 'transparent' : 'color-mix(in srgb, var(--bg-surface) 80%, transparent)',
             width: '36px',
             height: '36px',
-            borderRadius: '8px'
+            borderRadius: '8px',
+            border: '1px solid color-mix(in srgb, var(--text-primary) 10%, transparent)'
           }}
           title="送信"
         >

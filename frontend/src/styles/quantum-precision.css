@@ -1,0 +1,269 @@
+/* ===== QUANTUM UX PRECISION SYSTEM ===== */
+/* Subatomic-level interaction refinements for consciousness-level design */
+
+@layer quantum {
+  :root {
+    /* === CONSCIOUSNESS-SYNCHRONIZED TIMING === */
+    /* Human attention rhythm: 250ms cycles, eye saccade: 30-80ms */
+    --quantum-saccade: 33ms;           /* Eye movement completion */
+    --quantum-attention: 83ms;         /* Attention shift window */
+    --quantum-recognition: 150ms;      /* Object recognition */
+    --quantum-flow: 250ms;             /* Attention rhythm cycle */
+    --quantum-context: 400ms;          /* Context switching */
+
+    /* Neural synchronization frequencies */
+    --brainwave-gamma: 40ms;           /* 40Hz - focused attention */
+    --brainwave-beta: 66ms;            /* 15Hz - active thinking */
+    --brainwave-alpha: 100ms;          /* 10Hz - relaxed awareness */
+    --brainwave-theta: 143ms;          /* 7Hz - creative flow */
+
+    /* === SUB-PIXEL OPTICAL PERFECTION === */
+    /* Rendering precision beyond device pixel boundaries */
+    --subpixel-shift-r: 0.33px;       /* Red channel offset */
+    --subpixel-shift-g: 0px;           /* Green channel baseline */
+    --subpixel-shift-b: -0.33px;      /* Blue channel offset */
+
+    /* Optical correction for different viewing distances */
+    --optical-near: 0.2px;             /* <60cm viewing */
+    --optical-standard: 0px;           /* 60-80cm viewing */
+    --optical-far: -0.2px;            /* >80cm viewing */
+
+    /* Anti-aliasing perfection */
+    --font-smooth-webkit: antialiased;
+    --font-smooth-moz: grayscale;
+    --text-rendering: optimizeLegibility;
+
+    /* === TEMPORAL MICRO-ANIMATIONS === */
+    /* Animations that exist below conscious awareness threshold */
+    --micro-settle: cubic-bezier(0.16, 1, 0.3, 1);      /* Settle into position */
+    --micro-anticipate: cubic-bezier(0.34, 1.56, 0.64, 1); /* Anticipatory spring */
+    --micro-breathe: cubic-bezier(0.37, 0, 0.63, 1);     /* Breathing rhythm */
+    --micro-flow: cubic-bezier(0.25, 0.46, 0.45, 0.94);  /* Flow state curve */
+
+    /* Micro-duration precision (below awareness threshold) */
+    --micro-instant: 16ms;             /* Single frame */
+    --micro-swift: 33ms;               /* Saccade duration */
+    --micro-quick: 50ms;               /* Below awareness */
+    --micro-smooth: 83ms;              /* Attention window */
+
+    /* === CONSCIOUSNESS-RESPONSIVE VARIABLES === */
+    /* Values that adapt to user's mental state indicators */
+    --focus-intensity: 1;              /* 0-2 scale, detected from interaction rhythm */
+    --cognitive-load: 0.5;             /* 0-1 scale, detected from pause patterns */
+    --flow-state: 0;                   /* 0-1 scale, detected from interaction consistency */
+
+    /* Adaptive spacing based on cognitive load */
+    --adaptive-spacing: calc(
+      var(--space-phi-3) *
+      (1 + (var(--cognitive-load) * 0.3))  /* More space when cognitively loaded */
+    );
+
+    /* Adaptive contrast based on focus intensity */
+    --adaptive-contrast: calc(
+      1 + (var(--focus-intensity) * 0.1)   /* Higher contrast when focused */
+    );
+  }
+}
+
+/* === SUBPIXEL PERFECT RENDERING === */
+/* Typography rendered with subpixel precision */
+
+.quantum-text {
+  -webkit-font-smoothing: var(--font-smooth-webkit);
+  -moz-osx-font-smoothing: var(--font-smooth-moz);
+  text-rendering: var(--text-rendering);
+  transform: translateZ(0); /* Force hardware acceleration */
+  will-change: transform;
+
+  /* Subpixel positioning for optical perfection */
+  transform: translate3d(var(--optical-standard), 0, 0);
+}
+
+.quantum-text--near {
+  transform: translate3d(var(--optical-near), 0, 0);
+}
+
+.quantum-text--far {
+  transform: translate3d(var(--optical-far), 0, 0);
+}
+
+/* === CONSCIOUSNESS-LEVEL MICRO-INTERACTIONS === */
+/* Interactions synchronized with human consciousness patterns */
+
+.quantum-button {
+  transition:
+    transform var(--micro-swift) var(--micro-anticipate),
+    background-color var(--micro-smooth) var(--micro-flow),
+    box-shadow var(--quantum-recognition) var(--micro-settle);
+
+  will-change: transform, background-color, box-shadow;
+  contain: layout style paint;
+}
+
+.quantum-button:hover {
+  /* Micro-lift synchronized with eye saccade timing */
+  transform: translate3d(0, -0.5px, 0);
+  transition-duration: var(--quantum-saccade);
+  animation: microAnticipate var(--quantum-attention) var(--micro-anticipate);
+}
+
+.quantum-button:active {
+  /* Immediate feedback within neural processing window */
+  transform: translate3d(0, 0.25px, 0);
+  transition-duration: var(--micro-instant);
+}
+
+/* === TEMPORAL MICRO-ANIMATIONS === */
+/* Animations below consciousness threshold that affect perception */
+
+@keyframes microAnticipate {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(0, -0.75px, 0) scale(1.002); }
+  100% { transform: translate3d(0, -0.5px, 0) scale(1.001); }
+}
+
+@keyframes neuralSync {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.995; } /* Imperceptible but neurally detectable */
+}
+
+@keyframes subconscious {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.001); }
+  100% { transform: scale(1); }
+}
+
+/* === COGNITIVE LOAD RESPONSIVE DESIGN === */
+/* Interface adapts to user's mental state */
+
+.quantum-adaptive {
+  --local-spacing: var(--adaptive-spacing);
+  --local-contrast: var(--adaptive-contrast);
+
+  padding: var(--local-spacing);
+  filter: contrast(var(--local-contrast));
+  transition: all var(--quantum-context) var(--micro-flow);
+}
+
+/* High cognitive load state - more breathing room */
+.quantum-adaptive[data-cognitive-load="high"] {
+  --cognitive-load: 1;
+}
+
+/* Flow state - tighter, more efficient */
+.quantum-adaptive[data-flow-state="active"] {
+  --flow-state: 1;
+  --cognitive-load: 0.2;
+}
+
+/* === ATTENTION RHYTHM SYNCHRONIZATION === */
+/* Elements pulse at 4Hz (250ms) - human attention rhythm */
+
+.quantum-rhythm {
+  animation: attentionSync var(--quantum-flow) var(--micro-breathe) infinite;
+}
+
+@keyframes attentionSync {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.98; } /* Subtle enough to be subconscious */
+}
+
+/* === MORPHIC RESONANCE SYSTEM === */
+/* Related elements synchronize unconsciously */
+
+.quantum-resonance {
+  animation: morphicField calc(var(--quantum-flow) * 3.14159) var(--micro-breathe) infinite;
+  animation-delay: calc(var(--element-index, 0) * var(--micro-swift));
+}
+
+@keyframes morphicField {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  25% {
+    transform: scale(1.001) rotate(0.1deg);
+    opacity: 0.999;
+  }
+  50% {
+    transform: scale(1.002) rotate(0deg);
+    opacity: 0.998;
+  }
+  75% {
+    transform: scale(1.001) rotate(-0.1deg);
+    opacity: 0.999;
+  }
+}
+
+/* === QUANTUM FOCUS STATES === */
+/* Focus visualization that exists at perception threshold */
+
+.quantum-focus {
+  position: relative;
+  isolation: isolate;
+}
+
+.quantum-focus::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(
+    45deg,
+    transparent 25%,
+    rgba(99, 179, 237, 0.01) 25%,
+    rgba(99, 179, 237, 0.01) 75%,
+    transparent 75%
+  );
+  opacity: 0;
+  transition: opacity var(--quantum-attention) var(--micro-flow);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.quantum-focus:focus-visible::before {
+  opacity: 1;
+  animation: quantumFocus var(--quantum-context) var(--micro-anticipate) infinite alternate;
+}
+
+@keyframes quantumFocus {
+  0% {
+    background-size: 4px 4px;
+    transform: scale(1);
+  }
+  100% {
+    background-size: 8px 8px;
+    transform: scale(1.001);
+  }
+}
+
+/* === TEMPORAL DISPLACEMENT EFFECTS === */
+/* Future-aware interfaces that prepare for user actions */
+
+.quantum-predictive {
+  transition: all var(--quantum-flow) var(--micro-flow);
+}
+
+/* Pre-emptive hover states based on cursor trajectory */
+.quantum-predictive[data-cursor-approaching="true"] {
+  transform: translate3d(0, -0.25px, 0);
+  transition-duration: var(--quantum-context);
+}
+
+/* === CONSCIOUSNESS DETECTION UTILITIES === */
+/* JavaScript hooks for consciousness-level adaptation */
+
+.quantum-container[data-attention-level="focused"] {
+  --focus-intensity: 2;
+}
+
+.quantum-container[data-attention-level="relaxed"] {
+  --focus-intensity: 0.5;
+}
+
+.quantum-container[data-interaction-rhythm="consistent"] {
+  --flow-state: 1;
+}
+
+.quantum-container[data-interaction-rhythm="erratic"] {
+  --cognitive-load: 1;
+}

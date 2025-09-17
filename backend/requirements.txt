@@ -5,6 +5,8 @@ pydantic==2.5.3
 pydantic-settings==2.1.0
 python-multipart==0.0.6
 
+PyJWT==2.9.0
+
 # Database
 sqlalchemy==2.0.25
 alembic==1.13.1

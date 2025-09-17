@@ -144,7 +144,7 @@ async def get_quality_gate_status(
         phases=phases,
         quality_report_url=f"/api/v1/manga/{request_id}/quality-report",
         overall_quality_score=overall_quality,
-        total_processing_time=session_status.get("total_processing_time", 0.0),
+        total_processing_time=session_status.get("total_processing_time_ms", 0.0),
         created_at=datetime.fromisoformat(session_status["created_at"]),
         updated_at=datetime.utcnow()
     )

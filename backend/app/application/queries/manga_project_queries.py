@@ -8,7 +8,7 @@ from .base_query import Query, RequireUserMixin, RequireIdMixin, QueryValidation
 from ..dto.manga_project_dto import MangaProjectDTO, MangaProjectStatsDTO, MangaProjectSummaryDTO
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetMangaProjectQuery(Query[MangaProjectDTO], RequireUserMixin, RequireIdMixin):
     """Query to get a single manga project by ID."""
     
@@ -23,7 +23,7 @@ class GetMangaProjectQuery(Query[MangaProjectDTO], RequireUserMixin, RequireIdMi
         self.validate_id_required("project_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ListMangaProjectsQuery(Query[List[MangaProjectDTO]], RequireUserMixin):
     """Query to list manga projects with filtering."""
     
@@ -52,7 +52,7 @@ class ListMangaProjectsQuery(Query[List[MangaProjectDTO]], RequireUserMixin):
                 raise QueryValidationError("Created after date must be before created before date")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SearchMangaProjectsQuery(Query[List[MangaProjectDTO]], RequireUserMixin):
     """Query to search manga projects by various criteria."""
     
@@ -92,7 +92,7 @@ class SearchMangaProjectsQuery(Query[List[MangaProjectDTO]], RequireUserMixin):
                 raise QueryValidationError("Visibility must be 'private', 'public', or 'unlisted'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetMangaProjectsByUserQuery(Query[List[MangaProjectDTO]], RequireUserMixin, RequireIdMixin):
     """Query to get manga projects for a specific user."""
     
@@ -117,7 +117,7 @@ class GetMangaProjectsByUserQuery(Query[List[MangaProjectDTO]], RequireUserMixin
                 raise QueryValidationError("Visibility must be 'private', 'public', or 'unlisted'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetMangaProjectStatsQuery(Query[MangaProjectStatsDTO], RequireUserMixin):
     """Query to get manga project statistics."""
     
@@ -137,7 +137,7 @@ class GetMangaProjectStatsQuery(Query[MangaProjectStatsDTO], RequireUserMixin):
             raise QueryValidationError("Period days cannot exceed 365")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetMangaProjectFilesQuery(Query[List[dict]], RequireUserMixin, RequireIdMixin):
     """Query to get files for a manga project."""
     
@@ -158,7 +158,7 @@ class GetMangaProjectFilesQuery(Query[List[dict]], RequireUserMixin, RequireIdMi
             raise QueryValidationError("Page number must be positive")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetMangaProjectTagsQuery(Query[List[dict]], RequireUserMixin, RequireIdMixin):
     """Query to get tags for a manga project."""
     
@@ -175,7 +175,7 @@ class GetMangaProjectTagsQuery(Query[List[dict]], RequireUserMixin, RequireIdMix
                 raise QueryValidationError("Tag type must be 'user', 'system', or 'genre'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetPublicMangaProjectsQuery(Query[List[MangaProjectSummaryDTO]]):
     """Query to get public manga projects for browsing."""
     
@@ -190,7 +190,7 @@ class GetPublicMangaProjectsQuery(Query[List[MangaProjectSummaryDTO]]):
             raise QueryValidationError("Status must be 'completed' or 'processing'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetTrendingMangaProjectsQuery(Query[List[MangaProjectSummaryDTO]]):
     """Query to get trending manga projects."""
     
@@ -209,7 +209,7 @@ class GetTrendingMangaProjectsQuery(Query[List[MangaProjectSummaryDTO]]):
             raise QueryValidationError("Minimum interactions must be at least 1")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetMangaProjectHistoryQuery(Query[List[dict]], RequireUserMixin, RequireIdMixin):
     """Query to get manga project history/audit trail."""
     
@@ -237,7 +237,7 @@ class GetMangaProjectHistoryQuery(Query[List[dict]], RequireUserMixin, RequireId
                     raise QueryValidationError(f"Invalid action type: {action_type}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetExpiredMangaProjectsQuery(Query[List[MangaProjectDTO]], RequireUserMixin):
     """Query to get expired manga projects (admin only)."""
     
@@ -256,7 +256,7 @@ class GetExpiredMangaProjectsQuery(Query[List[MangaProjectDTO]], RequireUserMixi
             raise QueryValidationError("Grace period hours cannot exceed 168 (7 days)")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetMangaProjectAnalyticsQuery(Query[dict], RequireUserMixin, RequireIdMixin):
     """Query to get analytics for a manga project."""
     
@@ -285,7 +285,7 @@ class GetMangaProjectAnalyticsQuery(Query[dict], RequireUserMixin, RequireIdMixi
                     raise QueryValidationError(f"Invalid metric type: {metric_type}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ValidateProjectAccessQuery(Query[bool], RequireUserMixin, RequireIdMixin):
     """Query to validate user access to a manga project."""
     

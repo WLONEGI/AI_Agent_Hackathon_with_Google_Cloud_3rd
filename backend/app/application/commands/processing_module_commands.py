@@ -7,7 +7,7 @@ from datetime import datetime
 from .base_command import Command, RequireUserMixin, RequireIdMixin, CommandValidationError
 
 
-@dataclass
+@dataclass(kw_only=True)
 class StartProcessingModuleCommand(Command[str], RequireUserMixin, RequireIdMixin):
     """Command to start a processing module."""
     
@@ -43,7 +43,7 @@ class StartProcessingModuleCommand(Command[str], RequireUserMixin, RequireIdMixi
             raise CommandValidationError(f"Module {self.module_number} must be named '{expected_name}'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CompleteProcessingModuleCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to complete a processing module."""
     
@@ -76,7 +76,7 @@ class CompleteProcessingModuleCommand(Command[bool], RequireUserMixin, RequireId
             raise CommandValidationError("Completion time cannot be in the future")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class FailProcessingModuleCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to fail a processing module."""
     
@@ -98,7 +98,7 @@ class FailProcessingModuleCommand(Command[bool], RequireUserMixin, RequireIdMixi
             raise CommandValidationError("Failed time cannot be in the future")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class RetryProcessingModuleCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to retry a failed processing module."""
     
@@ -113,7 +113,7 @@ class RetryProcessingModuleCommand(Command[bool], RequireUserMixin, RequireIdMix
         self.validate_id_required("module_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdateProcessingModuleCheckpointCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to update processing module checkpoint."""
     
@@ -133,7 +133,7 @@ class UpdateProcessingModuleCheckpointCommand(Command[bool], RequireUserMixin, R
             raise CommandValidationError("Checkpoint timestamp cannot be in the future")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class RecordModuleMetricsCommand(Command[str], RequireUserMixin, RequireIdMixin):
     """Command to record processing module metrics."""
     
@@ -161,7 +161,7 @@ class RecordModuleMetricsCommand(Command[str], RequireUserMixin, RequireIdMixin)
             raise CommandValidationError("Metric timestamp cannot be in the future")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CreatePhaseExecutionCommand(Command[str], RequireUserMixin, RequireIdMixin):
     """Command to create a phase execution record."""
     

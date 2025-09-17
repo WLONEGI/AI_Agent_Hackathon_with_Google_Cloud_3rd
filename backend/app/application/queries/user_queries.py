@@ -8,7 +8,7 @@ from .base_query import Query, RequireUserMixin, RequireIdMixin, QueryValidation
 from ..dto.user_dto import UserDTO, UserStatsDTO
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetUserQuery(Query[UserDTO], RequireIdMixin):
     """Query to get a single user by ID."""
     
@@ -21,7 +21,7 @@ class GetUserQuery(Query[UserDTO], RequireIdMixin):
         self.validate_id_required("user_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetUserByEmailQuery(Query[UserDTO]):
     """Query to get a user by email address."""
     
@@ -38,7 +38,7 @@ class GetUserByEmailQuery(Query[UserDTO]):
             raise QueryValidationError("Valid email address is required")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ListUsersQuery(Query[List[UserDTO]], RequireUserMixin):
     """Query to list users with filtering and pagination."""
     
@@ -62,7 +62,7 @@ class ListUsersQuery(Query[List[UserDTO]], RequireUserMixin):
                 raise QueryValidationError("Created after date must be before created before date")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SearchUsersQuery(Query[List[UserDTO]], RequireUserMixin):
     """Query to search users by various criteria."""
     
@@ -96,7 +96,7 @@ class SearchUsersQuery(Query[List[UserDTO]], RequireUserMixin):
                 raise QueryValidationError("Account type must be 'free', 'premium', or 'admin'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetUserStatsQuery(Query[UserStatsDTO], RequireUserMixin, RequireIdMixin):
     """Query to get user statistics."""
     
@@ -118,7 +118,7 @@ class GetUserStatsQuery(Query[UserStatsDTO], RequireUserMixin, RequireIdMixin):
             raise QueryValidationError("Period days cannot exceed 365")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetUserQuotaQuery(Query[dict], RequireUserMixin, RequireIdMixin):
     """Query to get user quota information."""
     
@@ -135,7 +135,7 @@ class GetUserQuotaQuery(Query[dict], RequireUserMixin, RequireIdMixin):
                 raise QueryValidationError("Quota type must be 'daily' or 'monthly'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetUserPreferencesQuery(Query[dict], RequireUserMixin, RequireIdMixin):
     """Query to get user preferences."""
     
@@ -147,7 +147,7 @@ class GetUserPreferencesQuery(Query[dict], RequireUserMixin, RequireIdMixin):
         self.validate_id_required("user_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetUserActivityQuery(Query[List[dict]], RequireUserMixin, RequireIdMixin):
     """Query to get user activity history."""
     
@@ -175,7 +175,7 @@ class GetUserActivityQuery(Query[List[dict]], RequireUserMixin, RequireIdMixin):
                     raise QueryValidationError(f"Invalid activity type: {activity_type}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetUsersWithExpiredQuotaQuery(Query[List[UserDTO]], RequireUserMixin):
     """Query to get users with expired quotas (admin only)."""
     
@@ -190,7 +190,7 @@ class GetUsersWithExpiredQuotaQuery(Query[List[UserDTO]], RequireUserMixin):
             raise QueryValidationError("Quota type must be 'daily' or 'monthly'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ValidateUserPermissionQuery(Query[bool], RequireUserMixin, RequireIdMixin):
     """Query to validate user permission for an action."""
     
@@ -223,7 +223,7 @@ class ValidateUserPermissionQuery(Query[bool], RequireUserMixin, RequireIdMixin)
                 raise QueryValidationError(f"Resource ID is required for action: {self.action}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetUserGenerationLimitsQuery(Query[dict], RequireUserMixin, RequireIdMixin):
     """Query to get user generation limits and current usage."""
     

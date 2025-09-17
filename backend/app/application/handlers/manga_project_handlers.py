@@ -18,9 +18,9 @@ from app.application.commands.manga_project_commands import (
     CreateMangaProjectCommand,
     UpdateMangaProjectCommand,
     DeleteMangaProjectCommand,
-    AddFileCommand,
-    AddTagCommand,
-    ArchiveProjectCommand
+    AddMangaFileCommand,
+    AddProjectTagCommand,
+    ArchiveMangaProjectCommand
 )
 from app.application.queries.manga_project_queries import (
     GetMangaProjectQuery,
@@ -199,14 +199,14 @@ class DeleteMangaProjectCommandHandler(AbstractCommandHandler[DeleteMangaProject
             return error_result
 
 
-class AddFileCommandHandler(AbstractCommandHandler[AddFileCommand, bool], BaseHandler):
+class AddMangaFileCommandHandler(AbstractCommandHandler[AddMangaFileCommand, bool], BaseHandler):
     """Handler for adding files to projects."""
     
     def __init__(self, project_repository: MangaProjectsRepository):
         super().__init__()
         self.project_repository = project_repository
     
-    async def handle(self, command: AddFileCommand) -> CommandResult[bool]:
+    async def handle(self, command: AddMangaFileCommand) -> CommandResult[bool]:
         """Handle add file command."""
         try:
             await self.validate_command(command)
@@ -240,14 +240,14 @@ class AddFileCommandHandler(AbstractCommandHandler[AddFileCommand, bool], BaseHa
             return error_result
 
 
-class AddTagCommandHandler(AbstractCommandHandler[AddTagCommand, bool], BaseHandler):
+class AddProjectTagCommandHandler(AbstractCommandHandler[AddProjectTagCommand, bool], BaseHandler):
     """Handler for adding tags to projects."""
     
     def __init__(self, project_repository: MangaProjectsRepository):
         super().__init__()
         self.project_repository = project_repository
     
-    async def handle(self, command: AddTagCommand) -> CommandResult[bool]:
+    async def handle(self, command: AddProjectTagCommand) -> CommandResult[bool]:
         """Handle add tag command."""
         try:
             await self.validate_command(command)

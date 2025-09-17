@@ -175,9 +175,9 @@ class ProcessingModuleResultDTO(BaseDTO):
     module_number: int
     module_name: str
     execution_status: str  # completed, failed
+    processing_time_ms: int
     output_data: Optional[Dict[str, Any]] = None
     quality_score: Optional[float] = None
-    processing_time_ms: int
     
     # Validation results
     validation_passed: bool = True
@@ -229,8 +229,8 @@ class ModuleMetricDTO(BaseDTO):
     module_id: str
     metric_name: str
     metric_value: float
-    unit: Optional[str] = None
     created_at: datetime
+    unit: Optional[str] = None
     
     def validate(self) -> None:
         """Validate module metric DTO."""

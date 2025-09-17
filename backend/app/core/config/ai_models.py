@@ -12,7 +12,7 @@ class AIModelSettings(BaseSettings):
     """AI models and Google Cloud configuration."""
     
     # Google Cloud Configuration
-    google_cloud_project: str = Field(..., env="GOOGLE_CLOUD_PROJECT")
+    google_cloud_project: str = Field("local-dev-0001", env="GOOGLE_CLOUD_PROJECT")
     google_application_credentials: Optional[str] = Field(None, env="GOOGLE_APPLICATION_CREDENTIALS")
     vertexai_location: str = Field("asia-northeast1", env="VERTEXAI_LOCATION")
     

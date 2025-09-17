@@ -28,6 +28,7 @@ from app.services.cache_service import CacheService
 from app.services.websocket_service import WebSocketService
 from fastapi.exceptions import RequestValidationError
 from sqlalchemy.exc import SQLAlchemyError
+from app import models  # noqa: F401  Ensures SQLAlchemy models are registered
 
 
 # Setup logging

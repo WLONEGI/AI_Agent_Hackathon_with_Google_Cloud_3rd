@@ -1,0 +1,481 @@
+/* ===== INVISIBLE INTERFACE EVOLUTION ===== */
+/* Complete interface disappearance - pure content experience */
+
+@layer invisible {
+  :root {
+    /* === INFORMATION HIERARCHY MATHEMATICS === */
+    /* Perfect hierarchy that guides without being seen */
+    --hierarchy-primary: 1.0;          /* Most important content */
+    --hierarchy-secondary: 0.618;      /* φ⁻¹ for supporting content */
+    --hierarchy-tertiary: 0.382;       /* φ⁻² for background content */
+    --hierarchy-quaternary: 0.236;     /* φ⁻³ for decorative content */
+    --hierarchy-ghost: 0.146;          /* φ⁻⁴ for structural elements */
+
+    /* Contextual importance multipliers */
+    --context-reading: 1.2;            /* Higher hierarchy when reading */
+    --context-scanning: 0.8;           /* Lower hierarchy when scanning */
+    --context-interacting: 1.0;        /* Standard hierarchy when interacting */
+
+    /* === PROGRESSIVE DISCLOSURE TIMING === */
+    /* Information appears exactly when needed */
+    --disclosure-anticipation: 150ms;   /* Before user realizes they need it */
+    --disclosure-immediate: 0ms;        /* User consciously requests it */
+    --disclosure-contextual: 300ms;     /* Context provides hints */
+    --disclosure-background: 2000ms;    /* Background progressive loading */
+
+    /* === INVISIBLE AFFORDANCE SYSTEM === */
+    /* Interface elements that guide without visual presence */
+    --affordance-invisible: rgba(255, 255, 255, 0.00); /* Completely invisible */
+    --affordance-quantum: rgba(255, 255, 255, 0.01);   /* Quantum presence */
+    --affordance-subliminal: rgba(255, 255, 255, 0.02); /* Subliminal hint */
+    --affordance-emerging: rgba(255, 255, 255, 0.03);  /* Emergence threshold */
+
+    /* Invisible interaction zones - larger than visible elements */
+    --zone-micro: 4px;                 /* Invisible padding around tiny elements */
+    --zone-small: 8px;                 /* Invisible padding around small elements */
+    --zone-medium: 16px;               /* Invisible padding around medium elements */
+    --zone-large: 24px;                /* Invisible padding around large elements */
+    --zone-hero: 32px;                 /* Invisible padding around hero elements */
+
+    /* === CONTENT-FIRST VARIABLES === */
+    /* Everything serves the content */
+    --content-weight: 100%;            /* Content gets 100% attention */
+    --chrome-weight: 0%;               /* Chrome gets 0% attention */
+
+    /* Content breathing space - golden ratio derived */
+    --content-breath-micro: calc(var(--space-phi-1) * var(--hierarchy-primary));
+    --content-breath-small: calc(var(--space-phi-2) * var(--hierarchy-primary));
+    --content-breath-medium: calc(var(--space-phi-3) * var(--hierarchy-primary));
+    --content-breath-large: calc(var(--space-phi-4) * var(--hierarchy-primary));
+    --content-breath-hero: calc(var(--space-phi-5) * var(--hierarchy-primary));
+
+    /* === ZERO-INTERFACE MEASUREMENTS === */
+    /* Measurements for interface that doesn't exist */
+    --interface-presence: 0;           /* Interface presence score */
+    --content-purity: 1;               /* Content purity score */
+    --cognitive-friction: 0;           /* Mental effort to use interface */
+    --flow-preservation: 1;            /* Ability to maintain flow state */
+  }
+}
+
+/* === CONTENT-FIRST FOUNDATION === */
+/* Everything serves the content, chrome disappears */
+
+.invisible-foundation {
+  /* Remove all visual chrome */
+  background: transparent;
+  border: none;
+  outline: none;
+  box-shadow: none;
+
+  /* Pure content focus */
+  color: var(--text-primary);
+  font-family: inherit;
+
+  /* Invisible but accessible interaction zones */
+  position: relative;
+  isolation: isolate;
+}
+
+.invisible-foundation::before {
+  content: '';
+  position: absolute;
+  inset: calc(var(--zone-medium) * -1);
+  background: var(--affordance-invisible);
+  border-radius: var(--radius-large);
+  pointer-events: none;
+  z-index: -1;
+  transition: background-color var(--disclosure-anticipation) ease-out;
+}
+
+/* Invisible affordance emergence - only when needed */
+.invisible-foundation:hover::before,
+.invisible-foundation:focus-within::before {
+  background: var(--affordance-quantum);
+  transition-delay: var(--disclosure-contextual);
+}
+
+/* === INFORMATION HIERARCHY AUTOMATION === */
+/* Perfect hierarchy without visible styling */
+
+.hierarchy-auto {
+  /* Automatic importance detection based on content */
+  opacity: calc(var(--hierarchy-primary) * var(--importance-factor, 1));
+  font-weight: calc(var(--font-regular) + (var(--importance-factor, 0) * 200));
+  letter-spacing: calc(var(--tracking-normal) - (var(--importance-factor, 0) * 0.01em));
+
+  /* Invisible hierarchy indicators */
+  position: relative;
+  z-index: calc(var(--importance-factor, 0) * 10);
+}
+
+/* Primary content - highest hierarchy */
+.hierarchy-primary {
+  --importance-factor: var(--hierarchy-primary);
+  --breath-multiplier: var(--breath-comfortable);
+}
+
+/* Secondary content - reduced hierarchy */
+.hierarchy-secondary {
+  --importance-factor: var(--hierarchy-secondary);
+  --breath-multiplier: var(--breath-standard);
+}
+
+/* Tertiary content - background hierarchy */
+.hierarchy-tertiary {
+  --importance-factor: var(--hierarchy-tertiary);
+  --breath-multiplier: var(--breath-minimal);
+}
+
+/* Ghost elements - structural only */
+.hierarchy-ghost {
+  --importance-factor: var(--hierarchy-ghost);
+  --breath-multiplier: 0.5;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* === PROGRESSIVE DISCLOSURE SYSTEM === */
+/* Information appears exactly when consciousness needs it */
+
+.progressive-disclosure {
+  opacity: 0;
+  transform: translateY(var(--space-tiny));
+  transition:
+    opacity var(--disclosure-immediate) ease-out,
+    transform var(--disclosure-immediate) ease-out;
+  pointer-events: none;
+}
+
+/* Anticipatory disclosure - appears before user realizes they need it */
+.progressive-disclosure[data-needed="anticipatory"] {
+  opacity: 0.5;
+  transform: translateY(calc(var(--space-tiny) * 0.5));
+  transition-delay: var(--disclosure-anticipation);
+  pointer-events: auto;
+}
+
+/* Contextual disclosure - appears when context suggests relevance */
+.progressive-disclosure[data-needed="contextual"] {
+  opacity: 0.8;
+  transform: translateY(0);
+  transition-delay: var(--disclosure-contextual);
+  pointer-events: auto;
+}
+
+/* Immediate disclosure - appears when explicitly requested */
+.progressive-disclosure[data-needed="immediate"] {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0ms;
+  pointer-events: auto;
+}
+
+/* === ZERO-CHROME INPUTS === */
+/* Inputs that feel like pure thought capture */
+
+.zero-chrome-input {
+  /* Remove all visual chrome */
+  background: transparent;
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+
+  /* Pure typography */
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  color: inherit;
+
+  /* Invisible interaction state */
+  transition: opacity var(--disclosure-immediate) ease-out;
+  width: 100%;
+  resize: none;
+}
+
+.zero-chrome-input::placeholder {
+  color: var(--text-ghost);
+  font-weight: var(--font-ultralight);
+  opacity: var(--hierarchy-ghost);
+}
+
+/* Cursor becomes the only interface element */
+.zero-chrome-input:focus {
+  caret-color: var(--accent-primary);
+}
+
+/* === CONTEXTUAL INTERFACE EMERGENCE === */
+/* Interface elements appear only when contextually relevant */
+
+.contextual-emergence {
+  /* Default invisible state */
+  opacity: 0;
+  transform: scale(0.95);
+  transition:
+    opacity var(--disclosure-contextual) ease-out,
+    transform var(--disclosure-contextual) ease-out;
+  pointer-events: none;
+}
+
+/* Context triggers emergence */
+.contextual-emergence[data-context="relevant"] {
+  opacity: var(--hierarchy-secondary);
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.contextual-emergence[data-context="critical"] {
+  opacity: var(--hierarchy-primary);
+  transform: scale(1.002); /* Imperceptible emphasis */
+  pointer-events: auto;
+}
+
+/* === INVISIBLE NAVIGATION === */
+/* Navigation that doesn't look like navigation */
+
+.invisible-nav {
+  display: flex;
+  gap: var(--content-breath-large);
+  align-items: baseline;
+
+  /* Remove navigation appearance */
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.invisible-nav-item {
+  position: relative;
+  display: inline-block;
+}
+
+.invisible-nav-link {
+  /* Pure text appearance */
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: var(--font-regular);
+
+  /* Invisible interaction zones */
+  padding: var(--zone-small) var(--zone-medium);
+  margin: calc(var(--zone-small) * -1) calc(var(--zone-medium) * -1);
+  border-radius: var(--radius-medium);
+
+  /* Subtle state transitions */
+  transition: color var(--disclosure-immediate) ease-out;
+}
+
+.invisible-nav-link:hover {
+  color: var(--text-primary);
+}
+
+.invisible-nav-link[aria-current="page"] {
+  color: var(--text-primary);
+  font-weight: var(--font-medium);
+
+  /* Invisible active indicator */
+  position: relative;
+}
+
+.invisible-nav-link[aria-current="page"]::after {
+  content: '';
+  position: absolute;
+  bottom: calc(var(--zone-small) * -1);
+  left: var(--zone-medium);
+  right: var(--zone-medium);
+  height: 1px;
+  background: var(--text-primary);
+  opacity: var(--hierarchy-tertiary);
+}
+
+/* === CONTENT-ADAPTIVE SPACING === */
+/* Spacing that adapts to content importance */
+
+.adaptive-spacing {
+  --local-importance: var(--importance-factor, var(--hierarchy-secondary));
+
+  padding: calc(
+    var(--content-breath-medium) *
+    var(--local-importance) *
+    var(--context-multiplier, 1)
+  );
+
+  margin-bottom: calc(
+    var(--content-breath-large) *
+    var(--local-importance) *
+    var(--breath-multiplier, 1)
+  );
+}
+
+/* === INVISIBLE FEEDBACK SYSTEM === */
+/* Feedback that doesn't interrupt flow */
+
+.invisible-feedback {
+  position: fixed;
+  top: var(--space-phi-3);
+  right: var(--space-phi-3);
+  z-index: 1000;
+
+  /* Nearly invisible visual presence */
+  background: var(--affordance-subliminal);
+  border: 1px solid var(--affordance-quantum);
+  border-radius: var(--radius-full);
+  padding: var(--space-small) var(--space-medium);
+
+  /* Appears and disappears without interruption */
+  opacity: 0;
+  transform: translateY(-100%);
+  transition:
+    opacity var(--disclosure-immediate) ease-out,
+    transform var(--disclosure-immediate) ease-out;
+  pointer-events: none;
+}
+
+.invisible-feedback[data-active="true"] {
+  opacity: 0.8;
+  transform: translateY(0);
+  transition-delay: var(--disclosure-anticipation);
+}
+
+/* === FLOW-STATE PRESERVATION === */
+/* Interface that never breaks concentration */
+
+.flow-preserved {
+  /* No sudden visual changes */
+  transition: all var(--quantum-context) var(--ease-gentle);
+
+  /* No jarring interactions */
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+
+  /* Smooth as thought */
+  will-change: transform, opacity;
+  contain: layout style paint;
+}
+
+.flow-preserved:focus {
+  /* Focus without visual disruption */
+  outline: none;
+}
+
+.flow-preserved:active {
+  /* Minimal active feedback */
+  transform: scale(0.998);
+  transition-duration: var(--micro-instant);
+}
+
+/* === CONSCIOUSNESS-LEVEL COMPONENTS === */
+/* Components that exist at the edge of perception */
+
+.consciousness-component {
+  /* Exists below awareness threshold */
+  opacity: 0.97;
+
+  /* Imperceptible but present */
+  transform: scale(0.999);
+
+  /* Responds to consciousness */
+  transition:
+    opacity var(--quantum-attention) ease-out,
+    transform var(--quantum-attention) ease-out;
+}
+
+.consciousness-component[data-conscious="true"] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* === PURE CONTENT DISPLAY === */
+/* Content presentation without interface artifacts */
+
+.pure-content {
+  /* Remove all interface artifacts */
+  background: none;
+  border: none;
+  outline: none;
+  margin: 0;
+  padding: 0;
+
+  /* Pure content typography */
+  font-family: inherit;
+  font-size: var(--text-base);
+  line-height: var(--leading-relaxed);
+  color: var(--text-primary);
+
+  /* Natural reading flow */
+  max-width: 65ch; /* Optimal reading measure */
+  margin-inline: auto;
+}
+
+.pure-content > * + * {
+  margin-top: var(--content-breath-medium);
+}
+
+.pure-content h1,
+.pure-content h2,
+.pure-content h3 {
+  margin-top: var(--content-breath-large);
+  line-height: var(--leading-tight);
+}
+
+/* === TEMPORAL INTERFACE LAYERS === */
+/* Interface that exists in past, present, and future */
+
+.temporal-layer {
+  position: relative;
+  z-index: 0;
+}
+
+/* Past layer - fading context */
+.temporal-layer::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--affordance-invisible);
+  opacity: var(--hierarchy-ghost);
+  z-index: -2;
+  transition: opacity var(--disclosure-background) ease-out;
+}
+
+/* Future layer - emerging possibility */
+.temporal-layer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--affordance-quantum);
+  opacity: 0;
+  z-index: -1;
+  transition: opacity var(--disclosure-anticipation) ease-out;
+}
+
+.temporal-layer:hover::after {
+  opacity: var(--hierarchy-quaternary);
+}
+
+/* === INVISIBLE ACCESSIBILITY === */
+/* Accessibility that doesn't compromise invisibility */
+
+.invisible-a11y {
+  /* Screen reader content that's visually invisible */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.invisible-a11y:focus {
+  /* Appears only when focused by screen reader */
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 0;
+  overflow: visible;
+  clip: auto;
+  white-space: normal;
+}

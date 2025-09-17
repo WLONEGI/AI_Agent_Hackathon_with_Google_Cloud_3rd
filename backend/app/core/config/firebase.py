@@ -12,7 +12,7 @@ class FirebaseSettings(BaseSettings):
     """Firebase configuration settings."""
     
     # Firebase Authentication
-    firebase_project_id: str = Field(..., env="FIREBASE_PROJECT_ID")
+    firebase_project_id: str = Field("local-dev-0001", env="FIREBASE_PROJECT_ID")
     firebase_credentials_path: Optional[str] = Field(None, env="FIREBASE_CREDENTIALS_PATH")
     firebase_credentials_json: Optional[str] = Field(None, env="FIREBASE_CREDENTIALS_JSON")
     

@@ -15,12 +15,12 @@ class MangaProjectDTO(BaseDTO):
     user_id: str
     title: str
     status: str  # completed, processing, failed
+    created_at: datetime
+    updated_at: datetime
     metadata: Optional[Dict[str, Any]] = None
     settings: Optional[Dict[str, Any]] = None
     total_pages: Optional[int] = None
     visibility: str = "private"
-    created_at: datetime
-    updated_at: datetime
     expires_at: Optional[datetime] = None
     
     # Related data (populated when requested)
@@ -146,9 +146,9 @@ class MangaProjectSummaryDTO(BaseDTO):
     title: str
     status: str
     visibility: str
-    total_pages: Optional[int] = None
     created_at: datetime
     updated_at: datetime
+    total_pages: Optional[int] = None
     
     # Thumbnail/preview info
     thumbnail_url: Optional[str] = None
@@ -172,9 +172,9 @@ class MangaFileDTO(BaseDTO):
     file_path: str
     file_size: int
     mime_type: str
+    created_at: datetime
     page_number: Optional[int] = None
     metadata: Optional[Dict[str, Any]] = None
-    created_at: datetime
     
     # Derived fields
     file_url: Optional[str] = None
@@ -204,8 +204,8 @@ class ProjectTagDTO(BaseDTO):
     tag_id: str
     project_id: str
     tag_name: str
-    tag_type: str = "user"  # user, system, genre
     created_at: datetime
+    tag_type: str = "user"  # user, system, genre
     
     def validate(self) -> None:
         """Validate project tag DTO."""

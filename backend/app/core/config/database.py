@@ -12,7 +12,7 @@ class DatabaseSettings(BaseSettings):
     """Database configuration settings."""
     
     # Primary database configuration
-    url: str = Field(..., env="DATABASE_URL")
+    url: str = Field("sqlite+aiosqlite:///./tmp/dev.sqlite3", env="DATABASE_URL")
     pool_size: int = Field(20, env="DATABASE_POOL_SIZE")
     max_overflow: int = Field(10, env="DATABASE_MAX_OVERFLOW")
     pool_timeout: int = Field(30, env="DATABASE_POOL_TIMEOUT")

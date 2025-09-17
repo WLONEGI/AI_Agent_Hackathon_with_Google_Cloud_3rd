@@ -110,3 +110,6 @@ coverage/
 crash.log
 crash.*.log
 .terraform.lock.hcl
+
+.serena/
+.playwright/

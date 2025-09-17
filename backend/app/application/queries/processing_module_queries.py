@@ -8,7 +8,7 @@ from .base_query import Query, RequireUserMixin, RequireIdMixin, QueryValidation
 from ..dto.processing_module_dto import ProcessingModuleDTO, ProcessingModuleStatsDTO
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetProcessingModuleQuery(Query[ProcessingModuleDTO], RequireUserMixin, RequireIdMixin):
     """Query to get a single processing module by ID."""
     
@@ -22,7 +22,7 @@ class GetProcessingModuleQuery(Query[ProcessingModuleDTO], RequireUserMixin, Req
         self.validate_id_required("module_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ListProcessingModulesQuery(Query[List[ProcessingModuleDTO]], RequireUserMixin):
     """Query to list processing modules with filtering."""
     
@@ -61,7 +61,7 @@ class ListProcessingModulesQuery(Query[List[ProcessingModuleDTO]], RequireUserMi
                 raise QueryValidationError("Started after date must be before started before date")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetProcessingModulesByRequestQuery(Query[List[ProcessingModuleDTO]], RequireUserMixin, RequireIdMixin):
     """Query to get processing modules for a specific generation request."""
     
@@ -87,7 +87,7 @@ class GetProcessingModulesByRequestQuery(Query[List[ProcessingModuleDTO]], Requi
                 raise QueryValidationError(f"Status must be one of: {', '.join(valid_statuses)}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetProcessingModuleStatsQuery(Query[ProcessingModuleStatsDTO], RequireUserMixin):
     """Query to get processing module statistics."""
     
@@ -122,7 +122,7 @@ class GetProcessingModuleStatsQuery(Query[ProcessingModuleStatsDTO], RequireUser
             raise QueryValidationError("Period days cannot exceed 365")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetActiveProcessingModulesQuery(Query[List[ProcessingModuleDTO]], RequireUserMixin):
     """Query to get currently active processing modules."""
     
@@ -146,7 +146,7 @@ class GetActiveProcessingModulesQuery(Query[List[ProcessingModuleDTO]], RequireU
             raise QueryValidationError("Max age minutes cannot exceed 1440 (24 hours)")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetFailedProcessingModulesQuery(Query[List[ProcessingModuleDTO]], RequireUserMixin):
     """Query to get failed processing modules."""
     
@@ -174,7 +174,7 @@ class GetFailedProcessingModulesQuery(Query[List[ProcessingModuleDTO]], RequireU
                 raise QueryValidationError(f"Error type must be one of: {', '.join(valid_types)}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetProcessingModuleMetricsQuery(Query[List[dict]], RequireUserMixin, RequireIdMixin):
     """Query to get metrics for processing modules."""
     
@@ -198,7 +198,7 @@ class GetProcessingModuleMetricsQuery(Query[List[dict]], RequireUserMixin, Requi
                 raise QueryValidationError(f"Group by must be one of: {', '.join(valid_groups)}")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetProcessingModulePerformanceQuery(Query[dict], RequireUserMixin):
     """Query to get processing module performance analysis."""
     
@@ -229,7 +229,7 @@ class GetProcessingModulePerformanceQuery(Query[dict], RequireUserMixin):
                 raise QueryValidationError("Comparison period days cannot exceed 90")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetProcessingBottlenecksQuery(Query[List[dict]], RequireUserMixin):
     """Query to identify processing bottlenecks."""
     
@@ -252,7 +252,7 @@ class GetProcessingBottlenecksQuery(Query[List[dict]], RequireUserMixin):
             raise QueryValidationError("Duration threshold must be at least 1000ms")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetModuleCheckpointQuery(Query[dict], RequireUserMixin, RequireIdMixin):
     """Query to get checkpoint data for a processing module."""
     
@@ -265,7 +265,7 @@ class GetModuleCheckpointQuery(Query[dict], RequireUserMixin, RequireIdMixin):
         self.validate_id_required("module_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetProcessingPipelineStatusQuery(Query[dict], RequireUserMixin, RequireIdMixin):
     """Query to get overall pipeline status for a request."""
     
@@ -279,7 +279,7 @@ class GetProcessingPipelineStatusQuery(Query[dict], RequireUserMixin, RequireIdM
         self.validate_id_required("request_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class GetModuleResourceUsageQuery(Query[List[dict]], RequireUserMixin):
     """Query to get resource usage metrics for modules."""
     

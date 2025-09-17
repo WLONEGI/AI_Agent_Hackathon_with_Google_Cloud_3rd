@@ -7,7 +7,7 @@ from datetime import datetime
 from .base_command import Command, RequireUserMixin, RequireIdMixin, CommandValidationError
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CreateMangaProjectCommand(Command[str], RequireUserMixin):
     """Command to create a new manga project."""
     
@@ -34,7 +34,7 @@ class CreateMangaProjectCommand(Command[str], RequireUserMixin):
             raise CommandValidationError("Expiration date must be in the future")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdateMangaProjectCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to update manga project information."""
     
@@ -65,7 +65,7 @@ class UpdateMangaProjectCommand(Command[bool], RequireUserMixin, RequireIdMixin)
                 raise CommandValidationError("Total pages cannot be negative")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class DeleteMangaProjectCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to delete a manga project."""
     
@@ -78,7 +78,7 @@ class DeleteMangaProjectCommand(Command[bool], RequireUserMixin, RequireIdMixin)
         self.validate_id_required("project_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ArchiveMangaProjectCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to archive a manga project."""
     
@@ -91,7 +91,7 @@ class ArchiveMangaProjectCommand(Command[bool], RequireUserMixin, RequireIdMixin
         self.validate_id_required("project_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class PublishMangaProjectCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to publish a manga project."""
     
@@ -108,7 +108,7 @@ class PublishMangaProjectCommand(Command[bool], RequireUserMixin, RequireIdMixin
             raise CommandValidationError("Publish visibility must be 'public' or 'unlisted'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdateMangaProjectStatusCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to update manga project status."""
     
@@ -128,7 +128,7 @@ class UpdateMangaProjectStatusCommand(Command[bool], RequireUserMixin, RequireId
             raise CommandValidationError("Error message is required when status is 'failed'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class AddMangaFileCommand(Command[str], RequireUserMixin, RequireIdMixin):
     """Command to add a file to manga project."""
     
@@ -164,7 +164,7 @@ class AddMangaFileCommand(Command[str], RequireUserMixin, RequireIdMixin):
             raise CommandValidationError("Page number must be positive")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class RemoveMangaFileCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to remove a file from manga project."""
     
@@ -179,7 +179,7 @@ class RemoveMangaFileCommand(Command[bool], RequireUserMixin, RequireIdMixin):
         self.validate_id_required("file_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class AddProjectTagCommand(Command[str], RequireUserMixin, RequireIdMixin):
     """Command to add a tag to manga project."""
     
@@ -202,7 +202,7 @@ class AddProjectTagCommand(Command[str], RequireUserMixin, RequireIdMixin):
             raise CommandValidationError("Tag type must be 'user', 'system', or 'genre'")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class RemoveProjectTagCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to remove a tag from manga project."""
     

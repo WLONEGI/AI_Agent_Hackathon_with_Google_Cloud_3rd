@@ -24,7 +24,7 @@ from app.application.dto.preview_dto import (
 
 # ===== Preview Version Commands =====
 
-@dataclass
+@dataclass(kw_only=True)
 class CreatePreviewVersionCommand(AbstractCommand):
     """
     Command to create a new preview version.
@@ -69,7 +69,7 @@ class CreatePreviewVersionCommand(AbstractCommand):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdatePreviewVersionCommand(AbstractCommand):
     """
     Command to update an existing preview version.
@@ -116,7 +116,7 @@ class UpdatePreviewVersionCommand(AbstractCommand):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class SetFinalVersionCommand(AbstractCommand):
     """
     Command to set a version as the final version for its phase.
@@ -136,7 +136,7 @@ class SetFinalVersionCommand(AbstractCommand):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class IncrementViewCountCommand(AbstractCommand):
     """
     Command to increment the view count for a preview version.
@@ -156,7 +156,7 @@ class IncrementViewCountCommand(AbstractCommand):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class DeletePreviewVersionCommand(AbstractCommand):
     """
     Command to delete a preview version and all its interactions.
@@ -178,7 +178,7 @@ class DeletePreviewVersionCommand(AbstractCommand):
 
 # ===== Preview Interaction Commands =====
 
-@dataclass
+@dataclass(kw_only=True)
 class CreatePreviewInteractionCommand(AbstractCommand):
     """
     Command to create a new preview interaction.
@@ -237,7 +237,7 @@ class CreatePreviewInteractionCommand(AbstractCommand):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdateInteractionStatusCommand(AbstractCommand):
     """
     Command to update the status of a preview interaction.
@@ -265,7 +265,7 @@ class UpdateInteractionStatusCommand(AbstractCommand):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ApplyInteractionsToVersionCommand(AbstractCommand):
     """
     Command to apply multiple interactions to create a new version.
@@ -295,7 +295,7 @@ class ApplyInteractionsToVersionCommand(AbstractCommand):
 
 # ===== Preview Quality Settings Commands =====
 
-@dataclass
+@dataclass(kw_only=True)
 class CreateQualitySettingsCommand(AbstractCommand):
     """
     Command to create quality settings for a user.
@@ -359,7 +359,7 @@ class CreateQualitySettingsCommand(AbstractCommand):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdateQualitySettingsCommand(AbstractCommand):
     """
     Command to update quality settings for a user.
@@ -426,7 +426,7 @@ class UpdateQualitySettingsCommand(AbstractCommand):
         return self._create_validation_result(errors)
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdatePerformanceMetricsCommand(AbstractCommand):
     """
     Command to update performance metrics for quality settings.
@@ -456,7 +456,7 @@ class UpdatePerformanceMetricsCommand(AbstractCommand):
 
 # ===== Cleanup Commands =====
 
-@dataclass
+@dataclass(kw_only=True)
 class CleanupOldVersionsCommand(AbstractCommand):
     """
     Command to clean up old preview versions to save storage space.

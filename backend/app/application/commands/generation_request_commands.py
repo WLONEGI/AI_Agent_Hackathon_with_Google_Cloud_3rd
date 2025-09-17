@@ -7,7 +7,7 @@ from datetime import datetime
 from .base_command import Command, RequireUserMixin, RequireIdMixin, CommandValidationError
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CreateGenerationRequestCommand(Command[str], RequireUserMixin):
     """Command to create a new generation request."""
     
@@ -41,7 +41,7 @@ class CreateGenerationRequestCommand(Command[str], RequireUserMixin):
                 raise CommandValidationError("Webhook URL must be a valid HTTP/HTTPS URL")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdateGenerationRequestStatusCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to update generation request status."""
     
@@ -73,7 +73,7 @@ class UpdateGenerationRequestStatusCommand(Command[bool], RequireUserMixin, Requ
                 raise CommandValidationError("Completed time must be after started time")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class RetryGenerationRequestCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to retry a failed generation request."""
     
@@ -91,7 +91,7 @@ class RetryGenerationRequestCommand(Command[bool], RequireUserMixin, RequireIdMi
                 raise CommandValidationError("Reset module must be between 0 and 7")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CancelGenerationRequestCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to cancel a generation request."""
     
@@ -104,7 +104,7 @@ class CancelGenerationRequestCommand(Command[bool], RequireUserMixin, RequireIdM
         self.validate_id_required("request_id")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class ProcessFeedbackCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to process user feedback for a generation request."""
     
@@ -150,7 +150,7 @@ class ProcessFeedbackCommand(Command[bool], RequireUserMixin, RequireIdMixin):
                 raise CommandValidationError("Timeout must be in the future")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class UpdateGenerationProgressCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to update generation progress."""
     
@@ -181,7 +181,7 @@ class UpdateGenerationProgressCommand(Command[bool], RequireUserMixin, RequireId
                 raise CommandValidationError("Estimated completion must be in the future")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CreateFeedbackRequestCommand(Command[str], RequireUserMixin, RequireIdMixin):
     """Command to create a feedback request."""
     
@@ -216,7 +216,7 @@ class CreateFeedbackRequestCommand(Command[str], RequireUserMixin, RequireIdMixi
                 raise CommandValidationError("Estimated modification time cannot be negative")
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CompleteFeedbackRequestCommand(Command[bool], RequireUserMixin, RequireIdMixin):
     """Command to complete a feedback request."""
     

@@ -1,30 +1,22 @@
 """Optimized Manga Sessions API v1 - RESTful design with WebSocket integration."""
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query, status
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, status
 from fastapi.responses import StreamingResponse
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Dict, Any, List, Optional, AsyncIterator
+from typing import Dict, Any, List, Optional
 from uuid import UUID
 from datetime import datetime, timedelta
 from pydantic import BaseModel, Field
 import json
 import asyncio
-import uuid
 
+from app.core.config import settings
 from app.core.database import get_db, AsyncSessionLocal
 from app.models.user import User
-from app.models.manga import MangaSession, GenerationStatus
-from app.domain.manga.services.manga_generation_service import MangaGenerationService
-from app.domain.manga.value_objects.generation_params import GenerationParameters
+from app.models.manga import MangaSession, GenerationStatus, PhaseResult
 from app.services.integrated_ai_service import IntegratedAIService
 from app.services.websocket_service import WebSocketService
-from app.api.v1.security import (
-    get_current_active_user, 
-    check_generation_limit, 
-    check_api_limit,
-    Permissions,
-    require_permissions
-)
 
 # Development helper function
 # Development authentication bypass function
@@ -63,18 +55,38 @@ def get_optional_user() -> Optional[User]:
 
 router = APIRouter()
 
-# Dependency injection for services
-async def get_manga_service() -> MangaGenerationService:
-    """Get manga generation service instance."""
-    # TODO: Implement proper DI container
-    from app.infrastructure.database.repositories.session_repository_impl import SessionRepositoryImpl
-    from app.infrastructure.database.repositories.phase_result_repository_impl import PhaseResultRepositoryImpl
-    from app.infrastructure.database.repositories.generated_content_repository_impl import GeneratedContentRepositoryImpl
-    
-    return MangaGenerationService(
-        SessionRepositoryImpl(),
-        PhaseResultRepositoryImpl(),
-        GeneratedContentRepositoryImpl()
+
+async def _ensure_active_user(
+    db: AsyncSession,
+    current_user: Optional[User]
+) -> User:
+    """Return an authenticated user or provision a development user."""
+
+    if current_user:
+        return current_user
+
+    if settings.debug and settings.env.lower() in {"development", "dev", "local"}:
+        from sqlalchemy import select
+
+        stmt = select(User).where(User.email == "dev@example.com")
+        result = await db.execute(stmt)
+        dev_user = result.scalar_one_or_none()
+        if not dev_user:
+            dev_user = User(
+                id="00000000-0000-0000-0000-000000000123",
+                email="dev@example.com",
+                username="dev-user",
+                display_name="Development User",
+                is_active=True,
+            )
+            db.add(dev_user)
+            await db.commit()
+            await db.refresh(dev_user)
+        return dev_user
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication required",
     )
 
 # Request/Response Models (Design Document Compliant)
@@ -190,7 +202,7 @@ async def generate_manga(
     request: SessionCreateRequest,
     background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_optional_user_for_dev)
+    current_user: Optional[User] = Depends(get_optional_user_for_dev)
 ) -> SessionResponse:
     """Start manga generation request (POST /api/v1/manga/generate).
 
@@ -201,17 +213,16 @@ async def generate_manga(
     Rate limit: 10 generations per hour per user
     """
 
-    import uuid
     from uuid import UUID
-    from datetime import datetime, timedelta
-    from app.core.config import settings
-    
-    # Create MangaSession in database with auto-generated ID
+
+    resolved_user = await _ensure_active_user(db, current_user)
+    try:
+        user_uuid = UUID(str(resolved_user.id))
+    except ValueError as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail="Invalid user identifier") from exc
+
     session = MangaSession(
-        user_id=current_user.id if current_user else (
-            UUID("00000000-0000-0000-0000-000000000123") if settings.env.lower() == "development"
-            else None  # Production requires authentication
-        ),
+        user_id=user_uuid,
         title=request.title,
         input_text=request.text,
         status=GenerationStatus.PENDING.value,
@@ -257,8 +268,7 @@ async def generate_manga(
 async def get_generation_status(
     request_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(check_api_limit),
-    manga_service: MangaGenerationService = Depends(get_manga_service)
+    current_user: Optional[User] = Depends(get_optional_user_for_dev)
 ) -> SessionStatusResponse:
     """Get generation status (GET /api/v1/manga/{request_id}/status).
     
@@ -268,23 +278,24 @@ async def get_generation_status(
     Requires: manga:read permission + ownership
     """
     
-    session = await manga_service.session_repository.find_by_id(str(request_id))
-    
+    resolved_user = await _ensure_active_user(db, current_user)
+
+    session_stmt = select(MangaSession).where(MangaSession.id == str(request_id))
+    result = await db.execute(session_stmt)
+    session = result.scalar_one_or_none()
+
     if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found"
-        )
-    
-    # Check ownership
-    if session.user_id != str(current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied - not session owner"
-        )
-    
-    # Get phase/module results for detailed status
-    phase_results = await manga_service.phase_result_repository.find_by_session_id(str(session.id))
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    if str(session.user_id) != str(resolved_user.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+
+    phase_stmt = (
+        select(PhaseResult)
+        .where(PhaseResult.session_id == str(session.id))
+        .order_by(PhaseResult.phase_number)
+    )
+    phase_result_rows = (await db.execute(phase_stmt)).scalars().all()
     
     # Convert phase-based system to module-based (design document compliance)
     current_module = min(session.current_phase, 8) if session.current_phase else 1
@@ -307,17 +318,19 @@ async def get_generation_status(
     
     # Create modules history
     modules_history = []
-    for i in range(1, current_module):
-        if i <= len(phase_results):
-            phase_result = phase_results[i-1]
-            modules_history.append(ModuleHistoryResponse(
-                module_number=i,
-                module_name=module_names[i-1],
+    for idx, phase_row in enumerate(phase_result_rows, start=1):
+        if idx >= current_module:
+            break
+        modules_history.append(
+            ModuleHistoryResponse(
+                module_number=idx,
+                module_name=module_names[idx - 1],
                 status="completed",
-                started_at=phase_result.created_at.isoformat() + "Z" if phase_result.created_at else session.created_at.isoformat() + "Z",
-                completed_at=phase_result.updated_at.isoformat() + "Z" if phase_result.updated_at else session.updated_at.isoformat() + "Z",
-                duration_seconds=30.0  # Approximate duration
-            ))
+                started_at=phase_row.created_at.isoformat() + "Z" if phase_row.created_at else session.created_at.isoformat() + "Z",
+                completed_at=phase_row.completed_at.isoformat() + "Z" if phase_row.completed_at else session.updated_at.isoformat() + "Z",
+                duration_seconds=float(phase_row.processing_time_ms or 30_000) / 1000.0,
+            )
+        )
     
     # Create design document compliant response
     return SessionStatusResponse(
@@ -327,7 +340,7 @@ async def get_generation_status(
         total_modules=8,
         module_details=module_details,
         modules_history=modules_history,
-        overall_progress=(current_module - 1) / 8 * 100,
+        overall_progress=float(current_module - 1) / 8 * 100,
         started_at=session.created_at.isoformat() + "Z" if session.created_at else None,
         estimated_completion=(session.created_at + timedelta(minutes=8)).isoformat() + "Z" if session.created_at else None,
         result_url=f"/api/v1/manga/{session.id}" if session.status == "completed" else None
@@ -338,8 +351,7 @@ async def get_generation_status(
 async def stream_generation_events(
     request_id: UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(check_api_limit),
-    manga_service: MangaGenerationService = Depends(get_manga_service)
+    current_user: Optional[User] = Depends(get_optional_user_for_dev)
 ):
     """Server-Sent Events stream (GET /api/v1/manga/{request_id}/stream).
     
@@ -350,18 +362,16 @@ async def stream_generation_events(
     """
     
     # Verify session exists and ownership
-    session = await manga_service.session_repository.find_by_id(str(request_id))
+    resolved_user = await _ensure_active_user(db, current_user)
+
+    session_stmt = select(MangaSession).where(MangaSession.id == str(request_id))
+    result = await db.execute(session_stmt)
+    session = result.scalar_one_or_none()
     if not session:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Session not found"
-        )
-    
-    if session.user_id != str(current_user.id):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Session not found")
+
+    if str(session.user_id) != str(resolved_user.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     
     async def event_stream():
         """Generate SSE stream for manga generation progress."""
@@ -372,7 +382,7 @@ async def stream_generation_events(
             # Start streaming generation events
             async for event in ai_service.generate_manga(
                 user_input=session.input_text,
-                user_id=session.user_id,
+                user_id=str(session.user_id),
                 db=db,
                 session_id=str(request_id),
                 enable_hitl=True

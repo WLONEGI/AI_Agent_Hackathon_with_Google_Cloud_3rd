@@ -16,7 +16,7 @@ class SortDirection(str, Enum):
     DESC = "desc"
 
 
-@dataclass
+@dataclass(kw_only=True)
 class PaginationInfo:
     """Pagination information for queries."""
     
@@ -45,7 +45,7 @@ class PaginationInfo:
         return self.page_size
 
 
-@dataclass
+@dataclass(kw_only=True)
 class FilterInfo:
     """Filter information for queries."""
     
@@ -75,7 +75,7 @@ class FilterInfo:
             del self.filters[key]
 
 
-@dataclass
+@dataclass(kw_only=True)
 class AbstractQuery(ABC):
     """Abstract base class for all queries in the CQRS pattern.
     
@@ -84,12 +84,10 @@ class AbstractQuery(ABC):
     """
     
     # Query metadata
-    query_id: str = field(default_factory=lambda: str(uuid4()))
-    timestamp: datetime = field(default_factory=datetime.utcnow)
-    user_id: Optional[str] = field(default=None)
-    correlation_id: Optional[str] = field(default=None)
-    
-    # Common query parameters
+    query_id: str = field(default_factory=lambda: str(uuid4()), init=False)
+    timestamp: datetime = field(default_factory=datetime.utcnow, init=False)
+    user_id: Optional[str] = None
+    correlation_id: Optional[str] = None
     pagination: PaginationInfo = field(default_factory=PaginationInfo)
     filters: FilterInfo = field(default_factory=FilterInfo)
     
@@ -131,7 +129,6 @@ class AbstractQuery(ABC):
     
     def _get_data_dict(self) -> Dict[str, Any]:
         """Get query-specific data as dictionary."""
-        # Remove metadata fields and return only business data
         exclude_fields = {
             'query_id', 'timestamp', 'user_id', 'correlation_id',
             'pagination', 'filters'
@@ -141,8 +138,13 @@ class AbstractQuery(ABC):
             if key not in exclude_fields and not key.startswith('_')
         }
 
+    def _create_validation_result(self, errors: List[str]) -> None:
+        """Raise ValueError if validation errors exist."""
+        if errors:
+            raise ValueError('; '.join(errors))
 
-@dataclass
+
+@dataclass(kw_only=True)
 class Query(AbstractQuery, Generic[T]):
     """Generic query base class with typed result.
     
@@ -153,6 +155,7 @@ class Query(AbstractQuery, Generic[T]):
     
     def __post_init__(self):
         """Set expected result type from generic parameter."""
+        super().__post_init__()
         # Extract T from Generic[T] if possible
         if hasattr(self.__class__, '__orig_bases__'):
             for base in self.__class__.__orig_bases__:
@@ -161,7 +164,7 @@ class Query(AbstractQuery, Generic[T]):
                     break
 
 
-@dataclass
+@dataclass(kw_only=True)
 class PaginatedResult(Generic[T]):
     """Paginated result wrapper."""
     
@@ -196,7 +199,7 @@ class PaginatedResult(Generic[T]):
         )
 
 
-@dataclass
+@dataclass(kw_only=True)
 class QueryResult(Generic[T]):
     """Result wrapper for query execution.
     

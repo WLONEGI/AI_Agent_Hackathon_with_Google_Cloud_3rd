@@ -24,7 +24,7 @@ from app.models.manga import (
     GeneratedImage,
     GenerationStatus
 )
-from app.infrastructure.database.models.phase_result_model import PhaseResultModel
+from app.models.manga import PhaseResult as PhaseResultModel
 from app.models.quality_gates import (
     PhaseQualityGate,
     QualityOverrideRequest,
@@ -296,7 +296,7 @@ class IntegratedAIService(LoggerMixin):
             )
             
             # セッション完了
-            manga_session.status = GenerationStatus.COMPLETED
+            manga_session.status = GenerationStatus.COMPLETED.value
             manga_session.completed_at = datetime.utcnow()
             manga_session.total_processing_time_ms = int((time.time() - start_time) * 1000)
             manga_session.quality_score = final_quality
@@ -321,7 +321,7 @@ class IntegratedAIService(LoggerMixin):
             
             # エラー状態の更新
             if manga_session:
-                manga_session.status = GenerationStatus.FAILED
+                manga_session.status = GenerationStatus.FAILED.value
                 manga_session.error_message = str(e)
                 await db.commit()
             
@@ -621,8 +621,8 @@ class IntegratedAIService(LoggerMixin):
             "session_id": str(manga_session.id),
             "user_id": str(manga_session.user_id),
             "created_at": manga_session.created_at.isoformat(),
-            "processing_time": manga_session.total_processing_time_ms,
-            "quality_score": manga_session.quality_score,
+            "processing_time": manga_session.total_processing_time_ms,  # Fixed: was total_processing_time
+            "quality_score": manga_session.quality_score,  # Fixed: was final_quality_score
             "phases_completed": len(pipeline_state.phase_results),
             "title": pipeline_state.phase_results.get(1, {}).get("title", "Untitled"),
             "genre": pipeline_state.phase_results.get(1, {}).get("genre", "Unknown"),
@@ -825,7 +825,7 @@ class IntegratedAIService(LoggerMixin):
         manga_session = MangaSession(
             user_id=user_uuid,
             input_text=user_input,
-            status=GenerationStatus.PROCESSING,
+            status=GenerationStatus.PROCESSING.value,
             created_at=datetime.utcnow()
         )
         
@@ -918,7 +918,7 @@ class IntegratedAIService(LoggerMixin):
             update(MangaSession)
             .where(MangaSession.id == session_id)
             .values(
-                status=GenerationStatus.CANCELLED,
+                status=GenerationStatus.CANCELLED.value,
                 completed_at=datetime.utcnow()
             )
         )

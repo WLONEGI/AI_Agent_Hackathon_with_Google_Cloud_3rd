@@ -13,7 +13,7 @@ class SecuritySettings(BaseSettings):
     """Security configuration settings."""
     
     # JWT Configuration
-    secret_key: str = Field(..., env="SECRET_KEY")
+    secret_key: str = Field(default_factory=lambda: secrets.token_urlsafe(64), env="SECRET_KEY")
     jwt_algorithm: str = Field("HS256", env="JWT_ALGORITHM")
     access_token_expire_minutes: int = Field(60, env="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(7, env="REFRESH_TOKEN_EXPIRE_DAYS")

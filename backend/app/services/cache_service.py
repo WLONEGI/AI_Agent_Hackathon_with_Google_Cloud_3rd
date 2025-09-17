@@ -290,7 +290,6 @@ class CacheService(LoggerMixin):
         # Redis統計
         redis_info = await self.redis_client.get_info()
         
-        # 全体統計
         total_requests = self.stats["l1_requests"]
         l1_hit_rate = (self.stats["l1_hits"] / total_requests * 100) if total_requests > 0 else 0
         l2_hit_rate = (self.stats["l2_hits"] / self.stats["l2_requests"] * 100) if self.stats["l2_requests"] > 0 else 0
@@ -338,13 +337,11 @@ class CacheService(LoggerMixin):
         
         # Redis最適化（メモリ使用量チェック）
         redis_info = await self.redis_client.get_info()
-        used_memory = int(redis_info.get("used_memory", 0))
-        max_memory = 512 * 1024 * 1024  # 512MB上限
+        used_memory = int(redis_info.get("used_memory_bytes", 0))
+        max_memory = 512 * 1024 * 1024
         
         if used_memory > max_memory * 0.8:
-            # 80%を超えたら古いキーを削除
-            await self.redis_client.execute_command("MEMORY", "DOCTOR")
-            optimization_results["redis_optimized"] = True
+            optimization_results["redis_warning"] = "memory_usage_high"
         
         self.logger.info("Cache optimization completed", results=optimization_results)
         return optimization_results

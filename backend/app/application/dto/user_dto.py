@@ -15,9 +15,9 @@ class UserDTO(BaseDTO):
     email: str
     display_name: str
     account_type: str
-    firebase_claims: Optional[Dict[str, Any]] = None
     created_at: datetime
     updated_at: datetime
+    firebase_claims: Optional[Dict[str, Any]] = None
     
     # Optional fields
     is_active: Optional[bool] = None
@@ -198,10 +198,10 @@ class UserQuotaDTO(BaseDTO):
     user_id: str
     quota_type: str  # daily, monthly
     limit_value: int
-    used_value: int = 0
     reset_at: datetime
     created_at: datetime
     updated_at: datetime
+    used_value: int = 0
     
     # Calculated fields
     remaining_value: int = field(init=False)

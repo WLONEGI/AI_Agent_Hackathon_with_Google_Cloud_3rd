@@ -1,7 +1,7 @@
 """Base command classes for CQRS pattern."""
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Generic, TypeVar, Optional
+from typing import Any, Dict, Generic, TypeVar, Optional, List
 from datetime import datetime
 from uuid import uuid4
 from dataclasses import dataclass, field
@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 T = TypeVar('T')
 
 
-@dataclass
+@dataclass(kw_only=True)
 class AbstractCommand(ABC):
     """Abstract base class for all commands in the CQRS pattern.
     
@@ -18,10 +18,17 @@ class AbstractCommand(ABC):
     """
     
     # Command metadata
-    command_id: str = field(default_factory=lambda: str(uuid4()))
-    timestamp: datetime = field(default_factory=datetime.utcnow)
-    user_id: Optional[str] = field(default=None)
-    correlation_id: Optional[str] = field(default=None)
+    command_id: str = field(default_factory=lambda: str(uuid4()), init=False)
+    timestamp: datetime = field(default_factory=datetime.utcnow, init=False)
+    user_id: Optional[str] = field(default=None, kw_only=True)
+    correlation_id: Optional[str] = field(default=None, kw_only=True)
+
+    def __post_init__(self) -> None:
+        """Initialise optional metadata attributes for downstream use."""
+        if not hasattr(self, 'user_id'):
+            self.user_id: Optional[str] = None
+        if not hasattr(self, 'correlation_id'):
+            self.correlation_id: Optional[str] = None
     
     @abstractmethod
     def validate(self) -> None:
@@ -42,22 +49,24 @@ class AbstractCommand(ABC):
             'command_id': self.command_id,
             'command_type': self.get_command_type(),
             'timestamp': self.timestamp.isoformat(),
-            'user_id': self.user_id,
-            'correlation_id': self.correlation_id,
             'data': self._get_data_dict()
         }
     
     def _get_data_dict(self) -> Dict[str, Any]:
         """Get command-specific data as dictionary."""
-        # Remove metadata fields and return only business data
-        exclude_fields = {'command_id', 'timestamp', 'user_id', 'correlation_id'}
+        exclude_fields = {'command_id', 'timestamp'}
         return {
             key: value for key, value in self.__dict__.items()
             if key not in exclude_fields and not key.startswith('_')
         }
 
+    def _create_validation_result(self, errors: List[str]) -> None:
+        """Raise ValueError if validation errors exist."""
+        if errors:
+            raise ValueError('; '.join(errors))
 
-@dataclass 
+
+@dataclass(kw_only=True)
 class Command(AbstractCommand, Generic[T]):
     """Generic command base class with typed result.
     
@@ -68,6 +77,7 @@ class Command(AbstractCommand, Generic[T]):
     
     def __post_init__(self):
         """Set expected result type from generic parameter."""
+        super().__post_init__()
         # Extract T from Generic[T] if possible
         if hasattr(self.__class__, '__orig_bases__'):
             for base in self.__class__.__orig_bases__:
@@ -76,7 +86,7 @@ class Command(AbstractCommand, Generic[T]):
                     break
 
 
-@dataclass
+@dataclass(kw_only=True)
 class CommandResult(Generic[T]):
     """Result wrapper for command execution.
     
