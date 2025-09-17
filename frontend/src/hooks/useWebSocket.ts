@@ -31,7 +31,7 @@ export function useWebSocket() {
     });
 
     client.on('sessionStart', (data: WebSocketEventData['sessionStart']) => {
-      logger.debug('Session started:', data.requestId);
+      logger.debug('Session started:', data.sessionId);
       store.setSessionId(data.sessionId);
     });
 

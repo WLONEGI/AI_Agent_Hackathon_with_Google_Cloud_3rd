@@ -190,9 +190,8 @@ export const PhaseBlock: React.FC<PhaseBlockProps> = ({ phase, isActive = false 
                 <span>プレビュー</span>
               </div>
               <div className={styles.previewContent}>
-                {/* TODO: Implement preview rendering based on phase type */}
                 <pre className={styles.previewData}>
-                  {JSON.stringify(phase.preview, null, 2)}
+                  {JSON.stringify(phase.preview?.raw ?? phase.preview, null, 2)}
                 </pre>
               </div>
             </div>

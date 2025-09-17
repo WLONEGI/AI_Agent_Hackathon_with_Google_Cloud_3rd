@@ -7,6 +7,7 @@ export interface ProcessingPhase {
   name: string;
   description: string;
   status: PhaseStatus;
+  preview?: PhasePreviewSummary | null;
   result?: PhaseResult;
   startTime?: Date;
   endTime?: Date;
@@ -56,7 +57,7 @@ export interface PanelLayoutData {
 
 export interface SceneImageData {
   images: {
-    url?: string;
+    url?: string | null;
     prompt: string;
     panelId: number;
     status: 'generating' | 'completed' | 'error';
@@ -97,16 +98,36 @@ export type PhaseData =
   | DialogueLayoutData
   | FinalIntegrationData;
 
+export interface PhaseResultMetadata extends Record<string, unknown> {
+  processingTimeMs?: number;
+  quality?: number;
+  confidence?: number;
+  attempt?: number;
+}
+
+export type PhasePreviewPayload = PhaseData | Record<string, unknown> | null;
+
+export interface PhasePreviewSummary {
+  type: 'text' | 'image' | 'gallery' | 'json';
+  content?: string;
+  imageUrl?: string | null;
+  images?: {
+    url?: string | null;
+    prompt?: string;
+    status?: string;
+    panelId?: number;
+  }[];
+  metadata?: PhaseResultMetadata;
+  raw: PhasePreviewPayload;
+}
+
 export interface PhaseResult {
   phaseId: PhaseId;
+  phaseKey?: string;
+  phaseName?: string;
   data: PhaseData;
-  preview?: string;
-  metadata?: {
-    processingTime: number;
-    quality: number;
-    confidence: number;
-    [key: string]: string | number | boolean;
-  };
+  preview?: PhasePreviewPayload;
+  metadata?: PhaseResultMetadata;
 }
 
 export interface LogEntry {
@@ -143,7 +164,7 @@ export interface WebSocketEventData {
   phaseStart: { phaseId: PhaseId; phaseName: string };
   phaseComplete: { phaseId: PhaseId; result: PhaseResult };
   phaseError: { phaseId: PhaseId; error: { code: string; message: string; details?: string } };
-  feedbackRequest: { phaseId: PhaseId; preview: PhaseData };
+  feedbackRequest: { phaseId: PhaseId; preview: PhasePreviewPayload };
   sessionStart: { requestId: string; sessionId: string };
   sessionComplete: { results: PhaseResult[]; sessionId: string };
   log: LogEntry;

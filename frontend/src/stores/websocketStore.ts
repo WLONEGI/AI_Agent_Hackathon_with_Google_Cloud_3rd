@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
 import { WebSocketClient, getWebSocketClient, type WebSocketMessage } from '@/lib/websocket';
 import { useProcessingStore, type LogEntry } from './processingStore';
+import type { PhaseId, PhaseResult } from '@/types/processing';
 
 // WebSocket-specific store for connection management
 export interface WebSocketState {
@@ -197,7 +198,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handlePhaseStart = (data: { phaseId: number; phaseName: string }) => {
+        const handlePhaseStart = (data: { phaseId: PhaseId; phaseName: string }) => {
           processingStore.updatePhaseStatus(data.phaseId, 'processing');
           processingStore.advanceToPhase(data.phaseId);
           processingStore.recordPhaseStart(data.phaseId);
@@ -210,11 +211,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handlePhaseProgress = (data: { phaseId: number; progress?: number; status?: string | null; preview?: any | null }) => {
-          if (typeof data.phaseId !== 'number') {
-            return;
-          }
-
+        const handlePhaseProgress = (data: { phaseId: PhaseId; progress?: number; status?: string | null; preview?: any | null }) => {
           if (typeof data.progress === 'number') {
             processingStore.updatePhaseProgress(data.phaseId, data.progress);
           }
@@ -240,13 +237,10 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           }
         };
 
-        const handlePhaseComplete = (data: { phaseId: number; result: any }) => {
+        const handlePhaseComplete = (data: { phaseId: PhaseId; result: PhaseResult }) => {
           processingStore.updatePhaseStatus(data.phaseId, 'completed');
           processingStore.updatePhaseProgress(data.phaseId, 100);
-          
-          if (data.result) {
-            processingStore.setPhasePreview(data.phaseId, data.result);
-          }
+          processingStore.setPhaseResult(data.phaseId, data.result);
 
           processingStore.addLog({
             level: 'info',
@@ -256,7 +250,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handlePhaseError = (data: { phaseId: number; error: string }) => {
+        const handlePhaseError = (data: { phaseId: PhaseId; error: string }) => {
           processingStore.setPhaseError(data.phaseId, data.error);
           
           processingStore.addLog({
@@ -267,7 +261,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handleFeedbackWaiting = (data: { phaseId: number; preview?: any; timeout?: number | null }) => {
+        const handleFeedbackWaiting = (data: { phaseId: PhaseId; preview?: any; timeout?: number | null }) => {
           processingStore.requestFeedback(data.phaseId, data.timeout ?? undefined);
 
           if (data.preview) {
@@ -282,7 +276,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handleFeedbackRequest = (data: { phaseId: number; preview: any; timeout?: number }) => {
+        const handleFeedbackRequest = (data: { phaseId: PhaseId; preview: any; timeout?: number }) => {
           handleFeedbackWaiting({
             phaseId: data.phaseId,
             preview: data.preview,
@@ -290,7 +284,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handleFeedbackApplied = (data: { phaseId: number; updatedPreview: any }) => {
+        const handleFeedbackApplied = (data: { phaseId: PhaseId; updatedPreview: any }) => {
           if (data.updatedPreview) {
             processingStore.setPhasePreview(data.phaseId, data.updatedPreview);
           }
@@ -303,7 +297,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handlePreviewReady = (data: { phaseId: number; preview: any }) => {
+        const handlePreviewReady = (data: { phaseId: PhaseId; preview: any }) => {
           processingStore.setPhasePreview(data.phaseId, data.preview);
           
           processingStore.addLog({
@@ -314,7 +308,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handleChatMessage = (data: { message: string; type: 'user' | 'assistant' | 'system'; phaseId?: number }) => {
+        const handleChatMessage = (data: { message: string; type: 'user' | 'assistant' | 'system'; phaseId?: PhaseId }) => {
           const logLevel = data.type === 'system' ? 'info' : 'debug';
           
           processingStore.addLog({

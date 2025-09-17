@@ -72,6 +72,7 @@ Refer to `.env.example`. Important values:
 - `ACCESS_TOKEN_EXPIRES_MINUTES` / `REFRESH_TOKEN_EXPIRES_DAYS` – 認証トークンの有効期限を制御します（省略時は既定値）。
 - `VERTEX_PROJECT_ID` / `VERTEX_LOCATION` – Vertex AIを呼び出す際のプロジェクト・リージョン。
 - `VERTEX_TEXT_MODEL` / `VERTEX_IMAGE_MODEL` – 使用するGeminiテキストモデル/Imagenモデルの指定。
+- `VERTEX_CREDENTIALS_JSON` – Vertex AI用サービスアカウント資格情報。JSON全文（またはそのBase64エンコード）を環境変数に設定します。Cloud Run等でデフォルト認証情報を使用しない方針のため、本番・ローカルともに必須です。
 
 ### Secret Manager integration
 
@@ -80,6 +81,8 @@ Refer to `.env.example`. Important values:
 ```bash
 PROJECT_ID=my-gcp-project SECRET_PREFIX=spell-backend ./deploy/fetch-secrets.sh .env.gcp
 ```
+
+Vertex AI専用のサービスアカウントキーを利用する場合は、`VERTEX_CREDENTIALS_JSON` を同じ接頭辞で登録しておくと自動的に書き出されます。JSONはBase64化してSecret Managerへ登録すると安全に扱えます。キーをリポジトリへコミットしないよう注意してください。
 
 ### OpenAPI client generation
 

@@ -5,6 +5,14 @@ import { useShallow } from 'zustand/react/shallow';
 import type { WebSocketClient } from '@/lib/websocket';
 import { apiClient } from '@/lib/api';
 import { PHASE_DEFINITIONS } from '@/types/phases';
+import type {
+  PhaseData,
+  PhaseId,
+  PhasePreviewPayload,
+  PhasePreviewSummary,
+  PhaseResult,
+  PhaseResultMetadata,
+} from '@/types/processing';
 
 // Type definitions for the processing store
 export interface LogEntry {
@@ -27,19 +35,21 @@ export interface FeedbackEntry {
 }
 
 export interface PhaseState {
-  id: number;
+  id: PhaseId;
   name: string;
   description: string;
   status: 'pending' | 'processing' | 'waiting_feedback' | 'completed' | 'error';
   progress: number;
   startTime: Date | null;
   endTime: Date | null;
-  preview: any | null;
+  preview: PhasePreviewSummary | null;
   logs: LogEntry[];
   feedbackHistory: FeedbackEntry[];
   errorMessage?: string;
   estimatedDuration?: number; // in seconds
   actualDuration?: number; // in seconds
+  resultData?: PhaseData | null;
+  resultMetadata?: PhaseResultMetadata | null;
 }
 
 export interface ProcessingState {
@@ -51,7 +61,7 @@ export interface ProcessingState {
   
   // 7-Phase System
   phases: PhaseState[];
-  currentPhase: number;
+  currentPhase: PhaseId | 0;
   overallProgress: number;
   completedSessionId: string | null;
   
@@ -96,11 +106,12 @@ export interface ProcessingActions {
   cancelSession: () => void;
   
   // Phase Actions
-  updatePhaseStatus: (phaseId: number, status: PhaseState['status']) => void;
-  updatePhaseProgress: (phaseId: number, progress: number) => void;
-  setPhasePreview: (phaseId: number, preview: any) => void;
-  setPhaseError: (phaseId: number, error: string) => void;
-  advanceToPhase: (phaseId: number) => void;
+  updatePhaseStatus: (phaseId: PhaseId, status: PhaseState['status']) => void;
+  updatePhaseProgress: (phaseId: PhaseId, progress: number) => void;
+  setPhasePreview: (phaseId: PhaseId, preview: PhasePreviewPayload | null, metadata?: PhaseResultMetadata | null) => void;
+  setPhaseResult: (phaseId: PhaseId, result: PhaseResult) => void;
+  setPhaseError: (phaseId: PhaseId, error: string) => void;
+  advanceToPhase: (phaseId: PhaseId) => void;
   
   // WebSocket Actions
   setWebSocketClient: (client: WebSocketClient | null) => void;
@@ -109,7 +120,7 @@ export interface ProcessingActions {
   setConnectionError: (error: string | null) => void;
   
   // HITL Feedback Actions
-  requestFeedback: (phaseId: number, timeout?: number) => void;
+  requestFeedback: (phaseId: PhaseId, timeout?: number) => void;
   updateFeedbackInput: (input: string) => void;
   submitFeedback: (feedback: string, type?: FeedbackEntry['type']) => Promise<void>;
   skipFeedback: (reason: 'satisfied' | 'time_constraint' | 'default_acceptable') => Promise<void>;
@@ -135,13 +146,177 @@ export interface ProcessingActions {
   isPhaseActive: (phaseId: number) => boolean;
   
   // Performance Actions
-  recordPhaseStart: (phaseId: number) => void;
-  recordFeedbackResponse: (phaseId: number, responseTime: number) => void;
+  recordPhaseStart: (phaseId: PhaseId) => void;
+  recordFeedbackResponse: (phaseId: PhaseId, responseTime: number) => void;
   getSessionDuration: () => number;
 
   // Session Completion Actions
   setCompletedSessionId: (sessionId: string | null) => void;
 }
+
+type PreviewRecord = Record<string, unknown>;
+
+type PreviewImage = {
+  url?: string | null;
+  imageUrl?: string | null;
+  prompt?: string;
+  status?: string;
+  panelId?: number;
+};
+
+type PreviewDialogue = {
+  character?: string;
+  text?: string;
+};
+
+const createPreviewSummary = (
+  phaseId: PhaseId,
+  preview: PhasePreviewPayload,
+  metadata?: PhaseResultMetadata | null,
+): PhasePreviewSummary | null => {
+  const hasMetadata = metadata && Object.keys(metadata).length > 0 ? metadata : undefined;
+
+  if (!preview) {
+    if (hasMetadata) {
+      return {
+        type: 'json',
+        raw: null,
+        metadata: hasMetadata,
+      };
+    }
+    return null;
+  }
+
+  if (typeof preview === 'string') {
+    const summary: PhasePreviewSummary = {
+      type: 'text',
+      content: preview,
+      raw: preview,
+    };
+    if (hasMetadata) summary.metadata = hasMetadata;
+    return summary;
+  }
+
+  if (Array.isArray(preview)) {
+    const summary: PhasePreviewSummary = {
+      type: 'json',
+      raw: preview,
+    };
+    if (hasMetadata) summary.metadata = hasMetadata;
+    return summary;
+  }
+
+  if (typeof preview === 'object') {
+    const record = preview as PreviewRecord;
+
+    const imageCandidate = (record as { images?: unknown }).images;
+    if (Array.isArray(imageCandidate) && imageCandidate.length > 0) {
+      const images = imageCandidate as PreviewImage[];
+      const firstWithUrl = images.find((img) => img && (img.url || img.imageUrl));
+      const summary: PhasePreviewSummary = {
+        type: images.length > 1 ? 'gallery' : 'image',
+        imageUrl: firstWithUrl?.url ?? firstWithUrl?.imageUrl ?? null,
+        images,
+        raw: preview,
+      };
+      if (hasMetadata) summary.metadata = hasMetadata;
+      return summary;
+    }
+
+    if (typeof (record as { synopsis?: unknown }).synopsis === 'string') {
+      const synopsis = (record as { synopsis?: string }).synopsis ?? '';
+      const summary: PhasePreviewSummary = {
+        type: 'text',
+        content: synopsis,
+        raw: preview,
+      };
+      if (hasMetadata) summary.metadata = hasMetadata;
+      return summary;
+    }
+
+    const themeCandidate = (record as { themes?: unknown }).themes;
+    if (Array.isArray(themeCandidate) && themeCandidate.length > 0) {
+      const joined = themeCandidate
+        .filter((item: unknown): item is string => typeof item === 'string')
+        .slice(0, 3)
+        .join(' / ');
+      const summary: PhasePreviewSummary = {
+        type: 'text',
+        content: joined || undefined,
+        raw: preview,
+      };
+      if (hasMetadata) summary.metadata = hasMetadata;
+      return summary;
+    }
+
+    if (typeof (record as { overallArc?: unknown }).overallArc === 'string') {
+      const overallArc = (record as { overallArc?: string }).overallArc ?? '';
+      const summary: PhasePreviewSummary = {
+        type: 'text',
+        content: overallArc,
+        raw: preview,
+      };
+      if (hasMetadata) summary.metadata = hasMetadata;
+      return summary;
+    }
+
+    if (typeof (record as { overallQuality?: unknown }).overallQuality === 'number') {
+      const overallQuality = (record as { overallQuality?: number }).overallQuality ?? 0;
+      const summary: PhasePreviewSummary = {
+        type: 'text',
+        content: `品質スコア: ${overallQuality}`,
+        raw: preview,
+      };
+      if (hasMetadata) summary.metadata = hasMetadata;
+      return summary;
+    }
+
+    const dialoguesCandidate = (record as { dialogues?: unknown }).dialogues;
+    if (Array.isArray(dialoguesCandidate) && dialoguesCandidate.length > 0) {
+      const first = dialoguesCandidate[0];
+      let snippet: string | undefined;
+      if (typeof first === 'string') {
+        snippet = first;
+      } else if (first && typeof first === 'object') {
+        const dialogue = first as PreviewDialogue;
+        const speaker = dialogue.character ?? '登場人物';
+        const text = dialogue.text ?? '';
+        snippet = `${speaker}: ${text}`.trim();
+      }
+      const summary: PhasePreviewSummary = {
+        type: 'text',
+        content: snippet,
+        raw: preview,
+      };
+      if (hasMetadata) summary.metadata = hasMetadata;
+      return summary;
+    }
+
+    if (typeof record.summary === 'string') {
+      const summary: PhasePreviewSummary = {
+        type: 'text',
+        content: record.summary,
+        raw: preview,
+      };
+      if (hasMetadata) summary.metadata = hasMetadata;
+      return summary;
+    }
+
+    const summary: PhasePreviewSummary = {
+      type: 'json',
+      raw: preview,
+    };
+    if (hasMetadata) summary.metadata = hasMetadata;
+    return summary;
+  }
+
+  const summary: PhasePreviewSummary = {
+    type: 'json',
+    raw: preview,
+  };
+  if (hasMetadata) summary.metadata = hasMetadata;
+  return summary;
+};
 
 // Initial phases configuration based on the 7-phase AI system
 const initialPhases: PhaseState[] = Object.values(PHASE_DEFINITIONS).map((definition) => ({
@@ -155,7 +330,9 @@ const initialPhases: PhaseState[] = Object.values(PHASE_DEFINITIONS).map((defini
   preview: null,
   logs: [],
   feedbackHistory: [],
-  estimatedDuration: Math.ceil(definition.estimated_duration_seconds ?? 0)
+  estimatedDuration: Math.ceil(definition.estimated_duration_seconds ?? 0),
+  resultData: null,
+  resultMetadata: null,
 }));
 
 const initialState: ProcessingState = {
@@ -279,7 +456,7 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
         },
 
         // Phase Actions
-        updatePhaseStatus: (phaseId: number, status: PhaseState['status']) => {
+        updatePhaseStatus: (phaseId: PhaseId, status: PhaseState['status']) => {
           set((state) => {
             const phase = state.phases.find(p => p.id === phaseId);
             if (phase) {
@@ -301,7 +478,7 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
           });
         },
 
-        updatePhaseProgress: (phaseId: number, progress: number) => {
+        updatePhaseProgress: (phaseId: PhaseId, progress: number) => {
           set((state) => {
             const phase = state.phases.find(p => p.id === phaseId);
             if (phase) {
@@ -311,16 +488,51 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
           get().calculateOverallProgress();
         },
 
-        setPhasePreview: (phaseId: number, preview: any) => {
+        setPhasePreview: (
+          phaseId: PhaseId,
+          preview: PhasePreviewPayload | null,
+          metadata?: PhaseResultMetadata | null,
+        ) => {
           set((state) => {
             const phase = state.phases.find(p => p.id === phaseId);
             if (phase) {
-              phase.preview = preview;
+              phase.preview = createPreviewSummary(phaseId, preview, metadata);
             }
           });
         },
 
-        setPhaseError: (phaseId: number, error: string) => {
+        setPhaseResult: (phaseId: PhaseId, result: PhaseResult) => {
+          set((state) => {
+            const phase = state.phases.find(p => p.id === phaseId);
+            if (!phase) {
+              return;
+            }
+
+            phase.resultData = (result?.data ?? null) as PhaseData | null;
+            phase.resultMetadata = result?.metadata ?? null;
+            phase.preview = createPreviewSummary(
+              phaseId,
+              result?.preview ?? result?.data ?? null,
+              result?.metadata,
+            );
+
+            if (typeof result?.metadata?.processingTimeMs === 'number') {
+              phase.actualDuration = Math.max(1, Math.round(result.metadata.processingTimeMs / 1000));
+            }
+
+            if (!phase.endTime) {
+              phase.endTime = new Date();
+            }
+
+            if (phase.progress < 100) {
+              phase.progress = 100;
+            }
+          });
+
+          get().calculateOverallProgress();
+        },
+
+        setPhaseError: (phaseId: PhaseId, error: string) => {
           set((state) => {
             const phase = state.phases.find(p => p.id === phaseId);
             if (phase) {
@@ -331,7 +543,7 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
           });
         },
 
-        advanceToPhase: (phaseId: number) => {
+        advanceToPhase: (phaseId: PhaseId) => {
           set((state) => {
             if (phaseId >= 1 && phaseId <= state.phases.length) {
               state.currentPhase = phaseId;
@@ -372,7 +584,7 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
         },
 
         // HITL Feedback Actions
-        requestFeedback: (phaseId: number, timeout?: number) => {
+        requestFeedback: (phaseId: PhaseId, timeout?: number) => {
           set((state) => {
             state.feedbackRequired = true;
             state.feedbackPhase = phaseId;
@@ -597,13 +809,13 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
         },
 
         // Performance Actions
-        recordPhaseStart: (phaseId: number) => {
+        recordPhaseStart: (phaseId: PhaseId) => {
           set((state) => {
             state.performanceMetrics.phaseStartTimes[phaseId] = new Date();
           });
         },
 
-        recordFeedbackResponse: (phaseId: number, responseTime: number) => {
+        recordFeedbackResponse: (phaseId: PhaseId, responseTime: number) => {
           set((state) => {
             state.performanceMetrics.feedbackResponseTimes[phaseId] = responseTime;
           });

@@ -39,10 +39,21 @@ class Settings(BaseSettings):
     vertex_location: str = Field(default="asia-northeast1")
     vertex_text_model: str = Field(default="gemini-1.5-flash")
     vertex_image_model: str = Field(default="imagen-3.0-generate-image")
+    vertex_credentials_json: str = Field(
+        ...,
+        description="Raw or base64-encoded JSON service account credentials for Vertex AI",
+    )
 
     @validator("firebase_private_key")
     def _normalize_private_key(cls, value: str) -> str:
         return value.replace("\\n", "\n") if value else value
+
+    @validator("vertex_credentials_json")
+    def _validate_vertex_credentials(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("VERTEX_CREDENTIALS_JSON must not be empty")
+        return stripped
 
 
 @lru_cache

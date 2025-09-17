@@ -3,105 +3,73 @@
 import React, { useState } from 'react';
 import type { PhaseState } from '@/stores/processingStore';
 import type { PhaseDefinition } from '@/types/phases';
+import type { PhasePreviewSummary } from '@/types/processing';
 import styles from './PhasePreview.module.css';
 
 interface PhasePreviewProps {
   phase: PhaseState & { definition: PhaseDefinition };
-  preview: any;
+  preview: PhasePreviewSummary | null;
 }
 
-export const PhasePreview: React.FC<PhasePreviewProps> = ({
-  phase,
-  preview
-}) => {
+export const PhasePreview: React.FC<PhasePreviewProps> = ({ phase, preview }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-
-  // Determine preview type based on content
-  const getPreviewType = () => {
-    if (!preview) return 'none';
-    
-    if (typeof preview === 'string') {
-      // Check if it's a URL to an image
-      if (/\.(jpg|jpeg|png|gif|webp|svg)$/i.test(preview)) {
-        return 'image';
-      }
-      return 'text';
-    }
-    
-    if (Array.isArray(preview)) {
-      // Check if it's an array of images
-      if (preview.length > 0 && typeof preview[0] === 'string' && 
-          /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(preview[0])) {
-        return 'images';
-      }
-      return 'array';
-    }
-    
-    if (typeof preview === 'object') {
-      // Check if it's structured data with specific fields
-      if (preview.images && Array.isArray(preview.images)) {
-        return 'structured';
-      }
-      if (preview.text || preview.content) {
-        return 'structured';
-      }
-      return 'object';
-    }
-    
-    return 'unknown';
-  };
-
-  const previewType = getPreviewType();
-
-  // Render different preview types
   const renderPreviewContent = () => {
-    switch (previewType) {
-      case 'text':
+    if (!preview) {
+      return (
+        <div className={styles.unknownPreview}>
+          <span className="material-symbols-outlined genspark-icon">visibility_off</span>
+          <div className="genspark-text genspark-text-muted">プレビューはまだ生成されていません</div>
+        </div>
+      );
+    }
+
+    switch (preview.type) {
+      case 'text': {
+        const content = preview.content ?? (preview.raw ? JSON.stringify(preview.raw, null, 2) : '');
         return (
           <div className={styles.textPreview}>
-            <pre className={styles.previewText}>
-              {typeof preview === 'string' ? preview : JSON.stringify(preview, null, 2)}
-            </pre>
+            <pre className={styles.previewText}>{content}</pre>
           </div>
         );
+      }
 
       case 'image':
-        return (
-          <div className={styles.imagePreview}>
-            <img
-              src={preview}
-              alt={`${phase.definition.name} プレビュー`}
-              className={styles.previewImage}
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = 'none';
-              }}
-            />
-          </div>
-        );
+      case 'gallery': {
+        const images = preview.images ?? [];
+        const resolvedImages = images.length > 0 ? images : preview.imageUrl ? [{ url: preview.imageUrl }] : [];
+        if (resolvedImages.length === 0) {
+          return (
+            <div className={styles.unknownPreview}>
+              <span className="material-symbols-outlined genspark-icon">image_not_supported</span>
+              <div className="genspark-text genspark-text-muted">画像プレビューが見つかりません</div>
+            </div>
+          );
+        }
 
-      case 'images':
+        const activeImage = resolvedImages[Math.min(activeImageIndex, resolvedImages.length - 1)];
+
         return (
           <div className={styles.imagesPreview}>
             <div className={styles.imageGallery}>
               <div className={styles.mainImage}>
                 <img
-                  src={preview[activeImageIndex]}
+                  src={activeImage?.url ?? ''}
                   alt={`${phase.definition.name} プレビュー ${activeImageIndex + 1}`}
                   className={styles.previewImage}
                 />
               </div>
-              
-              {preview.length > 1 && (
+
+              {resolvedImages.length > 1 && (
                 <div className={styles.imageThumbnails}>
-                  {preview.map((imageUrl: string, index: number) => (
+                  {resolvedImages.map((image, index) => (
                     <button
                       key={index}
                       className={`${styles.thumbnail} ${index === activeImageIndex ? styles.active : ''}`}
                       onClick={() => setActiveImageIndex(index)}
                     >
                       <img
-                        src={imageUrl}
+                        src={image?.url ?? ''}
                         alt={`サムネイル ${index + 1}`}
                         className={styles.thumbnailImage}
                       />
@@ -109,79 +77,24 @@ export const PhasePreview: React.FC<PhasePreviewProps> = ({
                   ))}
                 </div>
               )}
-              
+
               <div className={styles.imageCounter}>
                 <span className="genspark-text-mono genspark-text-muted">
-                  {activeImageIndex + 1} / {preview.length}
+                  {activeImageIndex + 1} / {resolvedImages.length}
                 </span>
               </div>
             </div>
           </div>
         );
+      }
 
-      case 'structured':
-        return (
-          <div className={styles.structuredPreview}>
-            {preview.title && (
-              <h4 className="genspark-heading-sm">{preview.title}</h4>
-            )}
-            
-            {preview.text && (
-              <div className={styles.textContent}>
-                <pre className={styles.previewText}>{preview.text}</pre>
-              </div>
-            )}
-            
-            {preview.content && typeof preview.content === 'string' && (
-              <div className={styles.textContent}>
-                <pre className={styles.previewText}>{preview.content}</pre>
-              </div>
-            )}
-            
-            {preview.images && Array.isArray(preview.images) && (
-              <div className={styles.previewImages}>
-                {preview.images.map((imageUrl: string, index: number) => (
-                  <div key={index} className={styles.imageItem}>
-                    <img
-                      src={imageUrl}
-                      alt={`プレビュー画像 ${index + 1}`}
-                      className={styles.previewImage}
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-            
-            {preview.metadata && (
-              <div className={styles.metadata}>
-                <h5 className="genspark-heading-sm">メタデータ</h5>
-                <pre className={styles.metadataText}>
-                  {JSON.stringify(preview.metadata, null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
-        );
-
-      case 'array':
-      case 'object':
+      case 'json':
+      default:
         return (
           <div className={styles.jsonPreview}>
             <pre className={styles.previewJson}>
-              {JSON.stringify(preview, null, 2)}
+              {JSON.stringify(preview.raw, null, 2)}
             </pre>
-          </div>
-        );
-
-      default:
-        return (
-          <div className={styles.unknownPreview}>
-            <span className="material-symbols-outlined genspark-icon">
-              help
-            </span>
-            <div className="genspark-text genspark-text-muted">
-              プレビューデータの形式が不明です
-            </div>
           </div>
         );
     }
@@ -192,22 +105,27 @@ export const PhasePreview: React.FC<PhasePreviewProps> = ({
     setIsExpanded(!isExpanded);
   };
 
+  const handleCopy = () => {
+    if (!preview) {
+      return;
+    }
+    const payload = typeof preview.raw === 'string'
+      ? preview.raw
+      : JSON.stringify(preview.raw ?? preview.content ?? '', null, 2);
+    void navigator.clipboard.writeText(payload);
+  };
+
+  const previewTypeLabel = preview ? preview.type : 'none';
+
   return (
     <div className={`${styles.phasePreview} ${isExpanded ? styles.expanded : ''}`}>
-      {/* Header */}
       <div className={styles.previewHeader}>
         <div className={styles.headerContent}>
           <div className={styles.headerInfo}>
-            <span className="material-symbols-outlined genspark-icon accent">
-              preview
-            </span>
+            <span className="material-symbols-outlined genspark-icon accent">preview</span>
             <div className={styles.headerText}>
-              <h3 className="genspark-heading-sm">
-                {phase.definition.name} - プレビュー
-              </h3>
-              <p className="genspark-text genspark-text-muted">
-                フェーズの実行結果
-              </p>
+              <h3 className="genspark-heading-sm">{phase.definition.name} - プレビュー</h3>
+              <p className="genspark-text genspark-text-muted">フェーズの実行結果</p>
             </div>
           </div>
 
@@ -224,41 +142,37 @@ export const PhasePreview: React.FC<PhasePreviewProps> = ({
           </div>
         </div>
 
-        {/* Preview Type Badge */}
         <div className={styles.typeBadge}>
-          <span className="genspark-text-mono genspark-text-muted">
-            {previewType}
-          </span>
+          <span className="genspark-text-mono genspark-text-muted">{previewTypeLabel}</span>
         </div>
       </div>
 
-      {/* Content */}
-      <div className={styles.previewContent}>
-        {renderPreviewContent()}
-      </div>
+      <div className={styles.previewContent}>{renderPreviewContent()}</div>
 
-      {/* Footer */}
+      {preview?.metadata && (
+        <div className={styles.metadata}>
+          <h5 className="genspark-heading-sm">メタデータ</h5>
+          <pre className={styles.metadataText}>{JSON.stringify(preview.metadata, null, 2)}</pre>
+        </div>
+      )}
+
+      {preview && preview.type !== 'json' && preview.raw && (
+        <div className={styles.metadata}>
+          <h5 className="genspark-heading-sm">詳細データ</h5>
+          <pre className={styles.metadataText}>{JSON.stringify(preview.raw, null, 2)}</pre>
+        </div>
+      )}
+
       <div className={styles.previewFooter}>
         <div className={styles.footerInfo}>
           <span className="genspark-text-mono genspark-text-muted">
-            生成時刻: {phase.endTime ? 
-              new Date(phase.endTime).toLocaleString('ja-JP') : 
-              '実行中'}
+            生成時刻: {phase.endTime ? new Date(phase.endTime).toLocaleString('ja-JP') : '実行中'}
           </span>
         </div>
-        
+
         <div className={styles.footerActions}>
-          <button 
-            className="genspark-button ghost"
-            onClick={() => {
-              const data = typeof preview === 'string' ? preview : JSON.stringify(preview, null, 2);
-              navigator.clipboard.writeText(data);
-            }}
-            title="クリップボードにコピー"
-          >
-            <span className="material-symbols-outlined genspark-icon">
-              content_copy
-            </span>
+          <button className="genspark-button ghost" onClick={handleCopy} title="クリップボードにコピー">
+            <span className="material-symbols-outlined genspark-icon">content_copy</span>
           </button>
         </div>
       </div>
