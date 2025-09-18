@@ -1,9 +1,20 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { shallow } from 'zustand/shallow';
-import { WebSocketClient, getWebSocketClient, type WebSocketMessage } from '@/lib/websocket';
+import { WebSocketClient, getWebSocketClient } from '@/lib/websocket';
 import { useProcessingStore, type LogEntry } from './processingStore';
-import type { PhaseId, PhaseResult } from '@/types/processing';
+import type { PhaseId, PhasePreviewPayload, PhaseResult } from '@/types/processing';
+
+type EventHandler = (payload: unknown) => void;
+
+interface ReconnectingEvent {
+  attempt: number;
+  delay: number;
+}
+
+interface ErrorEvent {
+  message?: string;
+}
 
 // WebSocket-specific store for connection management
 export interface WebSocketState {
@@ -13,8 +24,8 @@ export interface WebSocketState {
   maxReconnectAttempts: number;
   reconnectDelay: number;
   lastPingTime: number | null;
-  messageQueue: any[];
-  eventHandlers: Map<string, Set<Function>>;
+  messageQueue: unknown[];
+  eventHandlers: Map<string, Set<EventHandler>>;
 }
 
 export interface WebSocketActions {
@@ -24,8 +35,8 @@ export interface WebSocketActions {
   reconnect: () => void;
   
   // Message Handling
-  sendMessage: (message: any) => void;
-  queueMessage: (message: any) => void;
+  sendMessage: (message: unknown) => void;
+  queueMessage: (message: unknown) => void;
   flushMessageQueue: () => void;
   
   // Event Handlers
@@ -46,7 +57,7 @@ const initialState: WebSocketState = {
   reconnectDelay: 1000,
   lastPingTime: null,
   messageQueue: [],
-  eventHandlers: new Map()
+  eventHandlers: new Map<string, Set<EventHandler>>()
 };
 
 export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
@@ -107,7 +118,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
         }
       },
 
-      sendMessage: (message: any) => {
+      sendMessage: (message: unknown) => {
         const { client, queueMessage } = get();
         
         if (client && client.isConnected()) {
@@ -117,7 +128,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
         }
       },
 
-      queueMessage: (message: any) => {
+      queueMessage: (message: unknown) => {
         set((state) => ({
           ...state,
           messageQueue: [...state.messageQueue, message]
@@ -142,6 +153,10 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
         
         if (!client) return;
 
+        const wrapHandler = <T,>(fn: (payload: T) => void): EventHandler => {
+          return (payload) => fn(payload as T);
+        };
+
         // Connection events
         const handleConnected = (isConnected: boolean) => {
           if (isConnected) {
@@ -159,7 +174,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           }
         };
 
-        const handleReconnecting = (data: any) => {
+        const handleReconnecting = (data: ReconnectingEvent) => {
           processingStore.updateConnectionStatus('reconnecting');
           processingStore.addLog({
             level: 'warning',
@@ -168,7 +183,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handleError = (error: any) => {
+        const handleError = (error: ErrorEvent) => {
           processingStore.updateConnectionStatus('error');
           processingStore.setConnectionError(error.message || 'WebSocket error');
           processingStore.addLog({
@@ -211,7 +226,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handlePhaseProgress = (data: { phaseId: PhaseId; progress?: number; status?: string | null; preview?: any | null }) => {
+        const handlePhaseProgress = (data: { phaseId: PhaseId; progress?: number; status?: string | null; preview?: PhasePreviewPayload | null }) => {
           if (typeof data.progress === 'number') {
             processingStore.updatePhaseProgress(data.phaseId, data.progress);
           }
@@ -261,7 +276,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handleFeedbackWaiting = (data: { phaseId: PhaseId; preview?: any; timeout?: number | null }) => {
+        const handleFeedbackWaiting = (data: { phaseId: PhaseId; preview?: PhasePreviewPayload; timeout?: number | null }) => {
           processingStore.requestFeedback(data.phaseId, data.timeout ?? undefined);
 
           if (data.preview) {
@@ -276,7 +291,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handleFeedbackRequest = (data: { phaseId: PhaseId; preview: any; timeout?: number }) => {
+        const handleFeedbackRequest = (data: { phaseId: PhaseId; preview: PhasePreviewPayload; timeout?: number }) => {
           handleFeedbackWaiting({
             phaseId: data.phaseId,
             preview: data.preview,
@@ -284,7 +299,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handleFeedbackApplied = (data: { phaseId: PhaseId; updatedPreview: any }) => {
+        const handleFeedbackApplied = (data: { phaseId: PhaseId; updatedPreview: PhasePreviewPayload }) => {
           if (data.updatedPreview) {
             processingStore.setPhasePreview(data.phaseId, data.updatedPreview);
           }
@@ -297,7 +312,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handlePreviewReady = (data: { phaseId: PhaseId; preview: any }) => {
+        const handlePreviewReady = (data: { phaseId: PhaseId; preview: PhasePreviewPayload }) => {
           processingStore.setPhasePreview(data.phaseId, data.preview);
           
           processingStore.addLog({
@@ -328,7 +343,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
           });
         };
 
-        const handleSessionComplete = (data: { results: any; sessionId?: string | null }) => {
+        const handleSessionComplete = (data: { results: PhaseResult[]; sessionId?: string | null }) => {
           processingStore.updateSessionStatus('completed');
           const currentSessionId = useProcessingStore.getState().sessionId;
           processingStore.setCompletedSessionId(data.sessionId ?? currentSessionId ?? null);
@@ -342,40 +357,38 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
 
         // Register all event handlers
         client.on('connected', handleConnected);
-        client.on('reconnecting', handleReconnecting);
-        client.on('error', handleError);
-        client.on('maxReconnectAttemptsReached', handleMaxReconnectAttemptsReached);
-        client.on('sessionStart', handleSessionStart);
-        client.on('phaseStart', handlePhaseStart);
-        client.on('phaseProgress', handlePhaseProgress);
-        client.on('phaseComplete', handlePhaseComplete);
-        client.on('phaseError', handlePhaseError);
-        client.on('feedbackRequest', handleFeedbackRequest);
-        client.on('feedbackWaiting', handleFeedbackWaiting);
-        client.on('feedbackApplied', handleFeedbackApplied);
-        client.on('previewReady', handlePreviewReady);
-        client.on('chatMessage', handleChatMessage);
-        client.on('log', handleLog);
-        client.on('sessionComplete', handleSessionComplete);
+        const handlerMap = new Map<string, EventHandler>();
 
-        // Store handlers for cleanup
-        const handlers = new Map<string, Set<Function>>();
-        handlers.set('connected', new Set([handleConnected]));
-        handlers.set('reconnecting', new Set([handleReconnecting]));
-        handlers.set('error', new Set([handleError]));
-        handlers.set('maxReconnectAttemptsReached', new Set([handleMaxReconnectAttemptsReached]));
-        handlers.set('sessionStart', new Set([handleSessionStart]));
-        handlers.set('phaseStart', new Set([handlePhaseStart]));
-        handlers.set('phaseProgress', new Set([handlePhaseProgress]));
-        handlers.set('phaseComplete', new Set([handlePhaseComplete]));
-        handlers.set('phaseError', new Set([handlePhaseError]));
-        handlers.set('feedbackRequest', new Set([handleFeedbackRequest]));
-        handlers.set('feedbackWaiting', new Set([handleFeedbackWaiting]));
-        handlers.set('feedbackApplied', new Set([handleFeedbackApplied]));
-        handlers.set('previewReady', new Set([handlePreviewReady]));
-        handlers.set('chatMessage', new Set([handleChatMessage]));
-        handlers.set('log', new Set([handleLog]));
-        handlers.set('sessionComplete', new Set([handleSessionComplete]));
+        const register = <T,>(event: string, fn: (payload: T) => void) => {
+          const wrapped = wrapHandler(fn);
+          client.on(event, wrapped);
+          handlerMap.set(event, wrapped);
+        };
+
+        register<boolean>('connected', handleConnected);
+        register<ReconnectingEvent>('reconnecting', handleReconnecting);
+        register<ErrorEvent>('error', handleError);
+        register<void>('maxReconnectAttemptsReached', handleMaxReconnectAttemptsReached);
+        register<{ sessionId: string }>('sessionStart', handleSessionStart);
+        register<{ phaseId: PhaseId; phaseName: string }>('phaseStart', handlePhaseStart);
+        register<{ phaseId: PhaseId; progress?: number; status?: string | null; preview?: PhasePreviewPayload | null }>(
+          'phaseProgress',
+          handlePhaseProgress,
+        );
+        register<{ phaseId: PhaseId; result: PhaseResult }>('phaseComplete', handlePhaseComplete);
+        register<{ phaseId: PhaseId; error: { code: string; message: string; details?: string } }>('phaseError', handlePhaseError);
+        register<{ phaseId: PhaseId; preview: PhasePreviewPayload; timeout?: number }>('feedbackRequest', handleFeedbackRequest);
+        register<{ phaseId: PhaseId; preview?: PhasePreviewPayload; timeout?: number | null }>('feedbackWaiting', handleFeedbackWaiting);
+        register<{ phaseId: PhaseId; updatedPreview: PhasePreviewPayload }>('feedbackApplied', handleFeedbackApplied);
+        register<{ phaseId: PhaseId; preview: PhasePreviewPayload }>('previewReady', handlePreviewReady);
+        register<{ message: string; type: 'user' | 'assistant' | 'system'; phaseId?: PhaseId }>('chatMessage', handleChatMessage);
+        register<LogEntry>('log', handleLog);
+        register<{ results: PhaseResult[]; sessionId?: string | null }>('sessionComplete', handleSessionComplete);
+
+        const handlers = new Map<string, Set<EventHandler>>();
+        handlerMap.forEach((wrapped, event) => {
+          handlers.set(event, new Set<EventHandler>([wrapped]));
+        });
 
         set((state) => ({
           ...state,
@@ -396,7 +409,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
 
         set((state) => ({
           ...state,
-          eventHandlers: new Map()
+          eventHandlers: new Map<string, Set<EventHandler>>()
         }));
       },
 

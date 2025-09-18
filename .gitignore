@@ -46,7 +46,7 @@ backend/.env*
 backend/config/.env*
 
 # Credentials directory
-infrastructure/credentials/service-account-key.json
+credentials/service-account-key.json
 
 # IDE
 .vscode/launch.json
