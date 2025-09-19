@@ -25,7 +25,11 @@ logger = logging.getLogger("alembic.env")
 database_url = os.getenv("DATABASE_URL")
 if not database_url:
     settings = get_settings()
-    database_url = settings.database_url
+    database_url = str(settings.database_url)
+
+# asyncpgをpsycopg2に変更（同期マイグレーション用）
+if "postgresql+asyncpg://" in database_url:
+    database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
 
 config.set_main_option("sqlalchemy.url", database_url)
 
