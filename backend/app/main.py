@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import auth as auth_routes
 from app.api.routes import internal as internal_routes
@@ -21,6 +22,20 @@ def create_app() -> FastAPI:
         version="0.1.0",
         docs_url="/docs",
         redoc_url="/redoc",
+    )
+
+    # Configure CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[
+            "https://comic-ai-agent-470309.web.app",
+            "https://comic-ai-agent-470309.firebaseapp.com",
+            "http://localhost:3000",  # for development
+            "http://localhost:3001",  # for development
+        ],
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
     )
 
     @app.get("/health/live")
