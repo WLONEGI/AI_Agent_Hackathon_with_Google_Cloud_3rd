@@ -88,11 +88,21 @@ export default function Home() {
       }
     } catch (err) {
       console.error('Generation failed:', err);
-      setError(
-        err instanceof Error
-          ? err.message
-          : '生成開始時にエラーが発生しました'
-      );
+
+      // Handle session expiration specifically
+      if (err instanceof Error && err.message === 'session_expired') {
+        // Clear expired authentication state
+        localStorage.removeItem('auth-storage');
+        sessionStorage.clear();
+        setError('セッションが期限切れです。再度ログインしてください。');
+        setShowAuthModal(true);
+      } else {
+        setError(
+          err instanceof Error
+            ? err.message
+            : '生成開始時にエラーが発生しました'
+        );
+      }
       setIsGenerating(false);
     }
   }, [isAuthenticated, router, storyText, tokens]);

@@ -1,0 +1,160 @@
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  annotations:
+    run.googleapis.com/creator: yuki.negishi.wlo@gmail.com
+    run.googleapis.com/lastModifier: yuki.negishi.wlo@gmail.com
+  labels:
+    cloud.googleapis.com/location: asia-northeast1
+    run.googleapis.com/lastUpdatedTime: '2025-09-19T14:47:29.276723Z'
+  name: manga-backend-migrate
+  namespace: '543279618710'
+spec:
+  template:
+    metadata:
+      annotations:
+        run.googleapis.com/client-name: gcloud
+        run.googleapis.com/client-version: 536.0.0
+        run.googleapis.com/cloudsql-instances: comic-ai-agent-470309:asia-northeast1:manga-db-prod
+        run.googleapis.com/execution-environment: gen2
+      labels:
+        client.knative.dev/nonce: sus_zob_qap
+    spec:
+      taskCount: 1
+      template:
+        spec:
+          containers:
+          - args:
+            - /bin/bash
+            - -c
+            - |
+              echo "Installing postgresql-client..."
+              apt-get update -qq && apt-get install -y -qq postgresql-client
+
+              echo "datetime カラムのタイムゾーン設定を修正中..."
+              PGPASSWORD="manga_secure_password_2024" psql -h /cloudsql/comic-ai-agent-470309:asia-northeast1:manga-db-prod -U manga_user -d manga_db << EOF
+
+              -- 現在のdatetimeカラムの型確認
+              SELECT column_name, data_type, column_default
+              FROM information_schema.columns
+              WHERE table_name IN ('users', 'user_refresh_tokens')
+              AND data_type LIKE '%timestamp%'
+              ORDER BY table_name, column_name;
+
+              -- user_refresh_tokensテーブルのdatetimeカラムをtimestamp with time zoneに変更
+              ALTER TABLE user_refresh_tokens
+              ALTER COLUMN expires_at TYPE timestamp with time zone;
+
+              ALTER TABLE user_refresh_tokens
+              ALTER COLUMN revoked_at TYPE timestamp with time zone;
+
+              ALTER TABLE user_refresh_tokens
+              ALTER COLUMN created_at TYPE timestamp with time zone;
+
+              -- 変更後の確認
+              SELECT column_name, data_type, column_default
+              FROM information_schema.columns
+              WHERE table_name IN ('users', 'user_refresh_tokens')
+              AND data_type LIKE '%timestamp%'
+              ORDER BY table_name, column_name;
+
+              -- テスト：timezone-aware datetimeでのユーザー作成
+              INSERT INTO users (firebase_uid, email, display_name, account_type, is_active, created_at, updated_at)
+              VALUES ('test_firebase_uid_tz', 'test_tz@example.com', 'Test TZ User', 'free', true, NOW(), NOW())
+              ON CONFLICT (firebase_uid) DO NOTHING;
+
+              -- テスト結果確認
+              SELECT firebase_uid, email, created_at, updated_at FROM users WHERE firebase_uid = 'test_firebase_uid_tz';
+
+              -- テストユーザー削除
+              DELETE FROM users WHERE firebase_uid = 'test_firebase_uid_tz';
+
+              EOF
+
+              echo "✅ timezone設定修正完了!"
+            env:
+            - name: APP_ENV
+              value: production
+            - name: AUTH_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_AUTH_SECRET_KEY
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_DATABASE_URL
+            - name: CLOUD_TASKS_PROJECT
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_CLOUD_TASKS_PROJECT
+            - name: CLOUD_TASKS_LOCATION
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_CLOUD_TASKS_LOCATION
+            - name: CLOUD_TASKS_QUEUE
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_CLOUD_TASKS_QUEUE
+            - name: CLOUD_TASKS_SERVICE_URL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_CLOUD_TASKS_SERVICE_URL
+            - name: GCS_BUCKET_PREVIEW
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_GCS_BUCKET_PREVIEW
+            - name: FIREBASE_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_FIREBASE_PROJECT_ID
+            - name: FIREBASE_CLIENT_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_FIREBASE_CLIENT_EMAIL
+            - name: FIREBASE_PRIVATE_KEY
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_FIREBASE_PRIVATE_KEY
+            - name: VERTEX_PROJECT_ID
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_VERTEX_PROJECT_ID
+            - name: VERTEX_LOCATION
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_VERTEX_LOCATION
+            - name: VERTEX_TEXT_MODEL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_VERTEX_TEXT_MODEL
+            - name: VERTEX_IMAGE_MODEL
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_VERTEX_IMAGE_MODEL
+            - name: VERTEX_CREDENTIALS_JSON
+              valueFrom:
+                secretKeyRef:
+                  key: latest
+                  name: spell-backend_VERTEX_CREDENTIALS_JSON
+            image: asia-northeast1-docker.pkg.dev/comic-ai-agent-470309/manga-service/manga-backend:9c72a9de-8ccc-44b1-a234-59cae6cfd8c2
+            resources:
+              limits:
+                cpu: 1000m
+                memory: 512Mi
+          maxRetries: 3
+          serviceAccountName: 543279618710-compute@developer.gserviceaccount.com
+          timeoutSeconds: '600'
