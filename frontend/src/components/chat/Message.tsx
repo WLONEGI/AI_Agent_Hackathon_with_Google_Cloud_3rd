@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { type PhaseId } from '@/types/processing';
+import { type PhaseId, type PhasePreviewPayload } from '@/types/processing';
 
 interface MessageProps {
   role: 'user' | 'assistant' | 'system';
@@ -9,7 +9,7 @@ interface MessageProps {
   timestamp: Date;
   isStreaming?: boolean;
   phaseId?: PhaseId;
-  preview?: any;
+  preview?: PhasePreviewPayload;
   onFeedbackRequest?: (phaseId: PhaseId) => void;
 }
 

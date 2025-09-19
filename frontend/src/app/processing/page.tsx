@@ -3,11 +3,13 @@
 import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { NewProcessingLayout } from '@/components/processing/NewProcessingLayout';
+import { ProcessingLayout } from '@/components/processing/ProcessingLayout';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useProcessingStore } from '@/stores/processingStore';
 import { usePolling } from '@/hooks/usePolling';
 import { checkSessionStatus } from '@/lib/api';
 import type { SessionStatusResponse } from '@/types/api-schema';
+import type { PhaseId } from '@/types/processing';
 
 // Loading component for the processing screen
 const ProcessingLoading: React.FC = () => {
@@ -189,6 +191,58 @@ export default function Processing() {
     };
   }, [sessionData?.sessionId, sessionData?.statusUrl, startPolling, stopPolling]);
 
+  useEffect(() => {
+    if (!statusSnapshot || !sessionData?.sessionId) {
+      return;
+    }
+
+    const store = useProcessingStore.getState();
+    const status = statusSnapshot.status;
+    const currentPhase = (statusSnapshot.current_phase ?? 0) as PhaseId | 0;
+
+    const sessionStatus: ReturnType<typeof useProcessingStore.getState>['sessionStatus'] =
+      status === 'completed'
+        ? 'completed'
+        : status === 'failed'
+        ? 'error'
+        : status === 'queued'
+        ? 'connecting'
+        : 'processing';
+
+    store.updateSessionStatus(sessionStatus);
+
+    const phases: PhaseId[] = [1, 2, 3, 4, 5, 6, 7];
+    phases.forEach((phase) => {
+      let phaseStatus: 'pending' | 'processing' | 'waiting_feedback' | 'completed' | 'error' = 'pending';
+
+      if (status === 'completed') {
+        phaseStatus = 'completed';
+      } else if (status === 'failed' && currentPhase === phase) {
+        phaseStatus = 'error';
+      } else if (phase < currentPhase) {
+        phaseStatus = 'completed';
+      } else if (phase === currentPhase && status === 'awaiting_feedback') {
+        phaseStatus = 'waiting_feedback';
+      } else if (phase === currentPhase && status !== 'queued') {
+        phaseStatus = status === 'failed' ? 'error' : 'processing';
+      } else {
+        phaseStatus = 'pending';
+      }
+
+      store.updatePhaseStatus(phase, phaseStatus);
+
+      if (phaseStatus === 'completed') {
+        store.updatePhaseProgress(phase, 100);
+      } else if (phaseStatus === 'processing') {
+        store.updatePhaseProgress(phase, 50);
+      } else if (phaseStatus === 'waiting_feedback') {
+        store.updatePhaseProgress(phase, 90);
+      } else {
+        store.updatePhaseProgress(phase, 0);
+      }
+    });
+  }, [statusSnapshot, sessionData?.sessionId]);
+
   // Handle session cleanup on unmount
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -331,12 +385,12 @@ export default function Processing() {
   return (
     <ErrorBoundary>
       <Suspense fallback={<ProcessingLoading />}>
-        <NewProcessingLayout
+        <ProcessingLayout
           sessionId={sessionData.sessionId}
           initialTitle={sessionData.title}
           initialText={sessionData.text}
           authToken={sessionData.authToken}
-          status={statusSnapshot}
+          websocketChannel={sessionData.websocketChannel}
         />
       </Suspense>
     </ErrorBoundary>

@@ -16,6 +16,44 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
+type StoredSession = {
+  id: unknown;
+  title?: unknown;
+  createdAt?: unknown;
+  status?: unknown;
+};
+
+const isSessionStatus = (value: unknown): value is Session['status'] => {
+  return value === 'draft' || value === 'generating' || value === 'completed' || value === 'error';
+};
+
+const toSession = (raw: StoredSession): Session | null => {
+  if (typeof raw.id !== 'string') {
+    return null;
+  }
+
+  const createdAtValue = raw.createdAt;
+  const createdAt = createdAtValue instanceof Date
+    ? createdAtValue
+    : typeof createdAtValue === 'string'
+      ? new Date(createdAtValue)
+      : null;
+
+  if (!createdAt || Number.isNaN(createdAt.getTime())) {
+    return null;
+  }
+
+  const status = isSessionStatus(raw.status) ? raw.status : 'draft';
+  const title = typeof raw.title === 'string' ? raw.title : 'Untitled generation';
+
+  return {
+    id: raw.id,
+    title,
+    createdAt,
+    status,
+  };
+};
+
 export function Sidebar({ onClose }: SidebarProps) {
   const router = useRouter();
   const [sessions, setSessions] = useState<Session[]>([]);
@@ -29,11 +67,13 @@ export function Sidebar({ onClose }: SidebarProps) {
     const savedSessions = localStorage.getItem('spellSessions');
     if (savedSessions) {
       try {
-        const parsed = JSON.parse(savedSessions);
-        setSessions(parsed.map((s: any) => ({
-          ...s,
-          createdAt: new Date(s.createdAt)
-        })));
+        const parsed: unknown = JSON.parse(savedSessions);
+        if (Array.isArray(parsed)) {
+          const mapped = parsed
+            .map((item) => toSession(item as StoredSession))
+            .filter((item): item is Session => item !== null);
+          setSessions(mapped);
+        }
       } catch (error) {
         console.error('Failed to load sessions:', error);
       }
@@ -72,7 +112,7 @@ export function Sidebar({ onClose }: SidebarProps) {
     onClose?.();
   };
 
-  const groupSessionsByDate = (sessions: Session[]) => {
+  const groupSessionsByDate = (sessionsToGroup: Session[]) => {
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
@@ -85,7 +125,7 @@ export function Sidebar({ onClose }: SidebarProps) {
       'Older': []
     };
 
-    sessions.forEach(session => {
+    sessionsToGroup.forEach(session => {
       const sessionDate = new Date(session.createdAt);
       if (sessionDate >= today) {
         groups['Today'].push(session);

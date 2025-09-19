@@ -124,15 +124,24 @@ class VertexAIService:
         def _invoke() -> str:
             if self._text_model is None:
                 raise VertexAIUnavailableError("Vertex AI text model is not initialised")
+            generation_config = {
+                "temperature": temperature,
+                "max_output_tokens": 2048,
+                "top_p": 0.95,
+                "top_k": 40,
+                "response_mime_type": "application/json",
+            }
+
             try:
                 response = self._text_model.generate_content(
                     [prompt],
-                    generation_config={
-                        "temperature": temperature,
-                        "max_output_tokens": 2048,
-                        "top_p": 0.95,
-                        "top_k": 40,
-                    },
+                    generation_config=generation_config,
+                )
+            except TypeError:  # pragma: no cover - older SDKs without response_mime_type
+                generation_config.pop("response_mime_type", None)
+                response = self._text_model.generate_content(
+                    [prompt],
+                    generation_config=generation_config,
                 )
             except Exception as exc:  # pragma: no cover - runtime failure
                 raise self._translate_exception(exc) from exc

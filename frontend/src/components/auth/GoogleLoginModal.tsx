@@ -11,6 +11,18 @@ import {
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/stores/useAuthStore';
 
+type FirebaseAuthError = {
+  code?: string;
+  message?: string;
+};
+
+const isFirebaseAuthError = (value: unknown): value is FirebaseAuthError => {
+  if (typeof value !== 'object' || value === null) {
+    return false;
+  }
+  return 'code' in value || 'message' in value;
+};
+
 interface GoogleLoginModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -50,22 +62,30 @@ export function GoogleLoginModal({ isOpen, onClose }: GoogleLoginModalProps) {
           } else {
             setError('認証は成功しましたが、ログインに失敗しました。もう一度お試しください。');
           }
-        } catch (firebaseError: any) {
+        } catch (firebaseError) {
           console.error('Firebase authentication error:', firebaseError);
-          
-          // Firebase固有のエラーハンドリング
-          if (firebaseError.code === 'auth/popup-closed-by-user') {
-            setError('ログインがキャンセルされました。');
-          } else if (firebaseError.code === 'auth/popup-blocked') {
-            setError('ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
-          } else if (firebaseError.code === 'auth/unauthorized-domain') {
-            setError('この域名はFirebase認証で許可されていません。管理者に連絡してください。');
-          } else if (firebaseError.code === 'auth/network-request-failed') {
-            setError('ネットワークエラーが発生しました。インターネット接続を確認してください。');
+
+          if (isFirebaseAuthError(firebaseError)) {
+            switch (firebaseError.code) {
+              case 'auth/popup-closed-by-user':
+                setError('ログインがキャンセルされました。');
+                break;
+              case 'auth/popup-blocked':
+                setError('ポップアップがブロックされました。ブラウザの設定でポップアップを許可してください。');
+                break;
+              case 'auth/unauthorized-domain':
+                setError('このドメインはFirebase認証で許可されていません。管理者に連絡してください。');
+                break;
+              case 'auth/network-request-failed':
+                setError('ネットワークエラーが発生しました。インターネット接続を確認してください。');
+                break;
+              default:
+                setError(`認証エラー: ${firebaseError.message ?? 'Google認証に失敗しました'}`);
+            }
           } else {
-            setError(`認証エラー: ${firebaseError.message || 'Google認証に失敗しました'}`);
+            setError('Google認証に失敗しました。時間をおいて再度お試しください。');
           }
-          
+
           throw firebaseError;
         }
       }

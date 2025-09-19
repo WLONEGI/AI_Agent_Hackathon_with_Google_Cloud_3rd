@@ -37,8 +37,8 @@ class Settings(BaseSettings):
 
     vertex_project_id: str = Field(default="", description="GCP project ID for Vertex AI")
     vertex_location: str = Field(default="asia-northeast1")
-    vertex_text_model: str = Field(default="gemini-1.5-flash")
-    vertex_image_model: str = Field(default="imagen-3.0-generate-image")
+    vertex_text_model: str = Field(default="gemini-2.5")
+    vertex_image_model: str = Field(default="imagen-4.0-ultra")
     vertex_credentials_json: str = Field(
         ...,
         description="Raw or base64-encoded JSON service account credentials for Vertex AI",

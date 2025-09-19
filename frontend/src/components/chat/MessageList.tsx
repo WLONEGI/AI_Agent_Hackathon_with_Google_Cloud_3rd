@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Message } from './Message';
-import { type PhaseId } from '@/types/processing';
+import { type PhaseId, type PhasePreviewPayload } from '@/types/processing';
 
 interface MessageData {
   id: string;
@@ -11,7 +11,7 @@ interface MessageData {
   timestamp: Date;
   isStreaming?: boolean;
   phaseId?: PhaseId;
-  preview?: any;
+  preview?: PhasePreviewPayload;
 }
 
 interface MessageListProps {
@@ -22,7 +22,6 @@ interface MessageListProps {
 
 export function MessageList({ messages, onFeedbackRequest, className = "" }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,10 +47,7 @@ export function MessageList({ messages, onFeedbackRequest, className = "" }: Mes
   }
 
   return (
-    <div 
-      ref={containerRef}
-      className={`claude-scrollbar overflow-y-auto ${className}`}
-    >
+    <div className={`claude-scrollbar overflow-y-auto ${className}`}>
       <div className="space-y-6 p-6">
         {messages.map((message) => (
           <Message

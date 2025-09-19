@@ -12,6 +12,15 @@ import type { MangaWorkDetailResponse } from '@/types/api-schema';
 import { logger } from '@/lib/logger';
 import { usePolling } from '@/hooks/usePolling';
 
+type MangaMetadata = {
+  pages?: number;
+  processing_time_seconds?: number;
+};
+
+type MangaFiles = {
+  webp_urls?: unknown;
+};
+
 const formatDuration = (seconds?: number | null) => {
   if (seconds == null) return '取得中';
   const minutes = Math.floor(seconds / 60);
@@ -117,8 +126,10 @@ function ResultsContent() {
   }, [requestId, startPolling, stopPolling]);
 
   const pages = useMemo(() => {
-    const files = mangaDetail?.files as Record<string, unknown> | undefined;
-    const webpUrls = Array.isArray(files?.webp_urls) ? (files?.webp_urls as string[]) : [];
+    const files = mangaDetail?.files as MangaFiles | undefined;
+    const webpUrls = Array.isArray(files?.webp_urls)
+      ? (files?.webp_urls as string[]).filter((item): item is string => typeof item === 'string')
+      : [];
     return webpUrls.map((url, index) => ({
       id: index + 1,
       src: url,
@@ -225,11 +236,25 @@ function ResultsContent() {
               </div>
               <div>
                 <p className="text-sm text-[rgb(var(--text-secondary))]">ページ数</p>
-                <p className="text-sm">{typeof (mangaDetail?.metadata as any)?.pages === 'number' ? (mangaDetail?.metadata as any)?.pages : '取得中'}</p>
+                <p className="text-sm">
+                  {(() => {
+                    const metadata = mangaDetail?.metadata as MangaMetadata | undefined;
+                    return typeof metadata?.pages === 'number' ? metadata.pages : '取得中';
+                  })()}
+                </p>
               </div>
               <div>
                 <p className="text-sm text-[rgb(var(--text-secondary))]">処理時間</p>
-                <p className="text-sm">{formatDuration(typeof (mangaDetail?.metadata as any)?.processing_time_seconds === 'number' ? (mangaDetail?.metadata as any)?.processing_time_seconds : null)}</p>
+                <p className="text-sm">
+                  {(() => {
+                    const metadata = mangaDetail?.metadata as MangaMetadata | undefined;
+                    return formatDuration(
+                      typeof metadata?.processing_time_seconds === 'number'
+                        ? metadata.processing_time_seconds
+                        : null,
+                    );
+                  })()}
+                </p>
               </div>
             </div>
           </Card>

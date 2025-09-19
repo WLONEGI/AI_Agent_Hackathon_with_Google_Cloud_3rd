@@ -1,14 +1,14 @@
 'use client';
 
 import React, { lazy, Suspense } from 'react';
-import { type PhaseId } from '@/types/processing';
+import { type PhaseId, type PhasePreviewPayload } from '@/types/processing';
 
 // Lazy load PhasePreview for better performance
 const PhasePreview = lazy(() => import('@/components/common/PhasePreview'));
 
 interface PreviewData {
   type: 'concept' | 'character' | 'story' | 'panel' | 'scene' | 'dialogue' | 'final';
-  content: any; // PhaseData
+  content: PhasePreviewPayload;
   timestamp?: number;
 }
 

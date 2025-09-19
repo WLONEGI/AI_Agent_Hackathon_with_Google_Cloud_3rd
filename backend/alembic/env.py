@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 from logging.config import fileConfig
 from typing import AsyncGenerator
 
@@ -21,8 +22,12 @@ if config.config_file_name is not None:
 
 logger = logging.getLogger("alembic.env")
 
-settings = get_settings()
-config.set_main_option("sqlalchemy.url", settings.database_url)
+database_url = os.getenv("DATABASE_URL")
+if not database_url:
+    settings = get_settings()
+    database_url = settings.database_url
+
+config.set_main_option("sqlalchemy.url", database_url)
 
 target_metadata = Base.metadata
 

@@ -1,0 +1,77 @@
+# Cloud Build pipeline for the Spell backend service
+steps:
+  - id: unit-tests
+    name: python:3.11-slim
+    entrypoint: bash
+    dir: backend
+    args:
+      - -c
+      - |
+        set -eux
+        pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -e .[dev]
+        pytest
+
+  - id: build-image
+    name: gcr.io/cloud-builders/docker
+    dir: backend
+    args:
+      - build
+      - -t
+      - asia-northeast1-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${BUILD_ID}
+      - -t
+      - asia-northeast1-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:latest
+      - .
+
+  - id: push-image
+    name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - --all-tags
+      - asia-northeast1-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}
+
+  - id: deploy-service
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}-${_ENV}
+      - --image
+      - asia-northeast1-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${BUILD_ID}
+      - --region
+      - ${_REGION}
+      - --platform
+      - managed
+      - --allow-unauthenticated
+      - --set-env-vars
+      - APP_ENV=production,PORT=8080
+      - --update-secrets
+      - AUTH_SECRET_KEY=${_SECRET_PREFIX}_AUTH_SECRET_KEY:latest,DATABASE_URL=${_SECRET_PREFIX}_DATABASE_URL:latest,CLOUD_TASKS_PROJECT=${_SECRET_PREFIX}_CLOUD_TASKS_PROJECT:latest,CLOUD_TASKS_LOCATION=${_SECRET_PREFIX}_CLOUD_TASKS_LOCATION:latest,CLOUD_TASKS_QUEUE=${_SECRET_PREFIX}_CLOUD_TASKS_QUEUE:latest,CLOUD_TASKS_SERVICE_URL=${_SECRET_PREFIX}_CLOUD_TASKS_SERVICE_URL:latest,GCS_BUCKET_PREVIEW=${_SECRET_PREFIX}_GCS_BUCKET_PREVIEW:latest,FIREBASE_PROJECT_ID=${_SECRET_PREFIX}_FIREBASE_PROJECT_ID:latest,FIREBASE_CLIENT_EMAIL=${_SECRET_PREFIX}_FIREBASE_CLIENT_EMAIL:latest,FIREBASE_PRIVATE_KEY=${_SECRET_PREFIX}_FIREBASE_PRIVATE_KEY:latest,VERTEX_PROJECT_ID=${_SECRET_PREFIX}_VERTEX_PROJECT_ID:latest,VERTEX_LOCATION=${_SECRET_PREFIX}_VERTEX_LOCATION:latest,VERTEX_TEXT_MODEL=${_SECRET_PREFIX}_VERTEX_TEXT_MODEL:latest,VERTEX_IMAGE_MODEL=${_SECRET_PREFIX}_VERTEX_IMAGE_MODEL:latest,VERTEX_CREDENTIALS_JSON=${_SECRET_PREFIX}_VERTEX_CREDENTIALS_JSON:latest
+
+  - id: run-migrations
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    waitFor:
+      - deploy-service
+    entrypoint: gcloud
+    args:
+      - run
+      - jobs
+      - execute
+      - ${_MIGRATION_JOB}-${_ENV}
+      - --region
+      - ${_REGION}
+      - --wait
+
+images:
+  - asia-northeast1-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:${BUILD_ID}
+  - asia-northeast1-docker.pkg.dev/${PROJECT_ID}/${_REPOSITORY}/${_SERVICE_NAME}:latest
+
+substitutions:
+  _ENV: prod
+  _REGION: asia-northeast1
+  _SERVICE_NAME: manga-backend
+  _REPOSITORY: manga-service
+  _SECRET_PREFIX: spell-backend
+  _MIGRATION_JOB: manga-backend-migrate

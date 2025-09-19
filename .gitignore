@@ -45,8 +45,9 @@ frontend/.env*
 backend/.env*
 backend/config/.env*
 
-# Credentials directory
-credentials/service-account-key.json
+# Credentials and secrets
+credentials/
+.env.gcp
 
 # IDE
 .vscode/launch.json
@@ -86,6 +87,10 @@ clients/
 coverage/
 .coverage
 .nyc_output/
+
+# Test artifacts and reports
+playwright-report/
+test-artifacts/
 
 # Cache directories
 .cache/

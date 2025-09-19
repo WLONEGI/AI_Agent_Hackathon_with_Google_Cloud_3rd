@@ -1,14 +1,16 @@
 import { User } from 'firebase/auth';
-import { 
-  signInWithGooglePopup, 
-  signOutUser, 
-  getCurrentUser, 
+import {
+  signInWithGooglePopup,
+  signOutUser,
+  getCurrentUser,
   isFirebaseAvailable,
-  mockAuth 
+  mockAuth,
 } from '@/lib/firebase-turbopack';
 
+type AuthUser = User | Record<string, unknown>;
+
 export interface AuthResponse {
-  user: any; // Using any to accommodate both real Firebase User and mock user
+  user: AuthUser;
   idToken: string;
 }
 

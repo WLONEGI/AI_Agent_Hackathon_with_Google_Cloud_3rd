@@ -5,8 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { GoogleLoginModal } from '@/components/auth/GoogleLoginModal';
 
-interface SidebarProps {}
-
 export function Sidebar() {
   const router = useRouter();
   const { isAuthenticated, user, logout } = useAuthStore();

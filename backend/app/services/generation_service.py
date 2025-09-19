@@ -16,8 +16,7 @@ from app.api.schemas.manga import (
     SessionDetailResponse,
     SessionStatusResponse,
 )
-from app.core.clients import get_tasks_client
-from app.core.settings import get_settings
+from app.core import clients as core_clients, settings as core_settings
 from app.db.models import (
     MangaProject,
     MangaProjectStatus,
@@ -30,8 +29,9 @@ from app.db.models import (
 class GenerationService:
     def __init__(self, db: AsyncSession):
         self.db = db
-        self.settings = get_settings()
-        self.tasks_client = get_tasks_client()
+        self.settings = core_settings.get_settings()
+        core_clients.get_tasks_client.cache_clear()
+        self.tasks_client = core_clients.get_tasks_client()
 
     async def enqueue_generation(
         self,
