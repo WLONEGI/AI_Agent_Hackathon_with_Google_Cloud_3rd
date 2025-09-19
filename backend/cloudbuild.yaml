@@ -3,7 +3,6 @@ steps:
   - id: unit-tests
     name: python:3.11-slim
     entrypoint: bash
-    dir: backend
     args:
       - -c
       - |
@@ -15,7 +14,6 @@ steps:
 
   - id: build-image
     name: gcr.io/cloud-builders/docker
-    dir: backend
     args:
       - build
       - -t
