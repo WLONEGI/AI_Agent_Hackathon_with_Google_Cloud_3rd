@@ -45,6 +45,8 @@ steps:
       - --platform
       - managed
       - --allow-unauthenticated
+      - --add-cloudsql-instances
+      - comic-ai-agent-470309:asia-northeast1:manga-db-prod
       - --set-env-vars
       - APP_ENV=production
       - --update-secrets
@@ -59,7 +61,7 @@ steps:
       - run
       - jobs
       - execute
-      - ${_MIGRATION_JOB}-${_ENV}
+      - ${_MIGRATION_JOB}
       - --region
       - ${_REGION}
       - --wait
