@@ -42,7 +42,45 @@ async def test_database_connection(database_url: str) -> bool:
             for col in users_table:
                 print(f"  - {col['column_name']}: {col['data_type']} (NULL: {col['is_nullable']})")
         else:
-            print("\n=== usersテーブルは存在しません ===")
+            print("\n=== usersテーブルは存在しません - 手動作成を開始 ===")
+
+            # usersテーブル手動作成
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    firebase_uid VARCHAR(128) NOT NULL UNIQUE,
+                    email VARCHAR(255) NOT NULL UNIQUE,
+                    display_name VARCHAR(255),
+                    account_type VARCHAR(32) NOT NULL DEFAULT 'free',
+                    is_active BOOLEAN NOT NULL DEFAULT true,
+                    firebase_claims JSON,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+                );
+            """)
+            print("✅ usersテーブル作成完了")
+
+            # user_refresh_tokensテーブル作成
+            await conn.execute("""
+                CREATE TABLE IF NOT EXISTS user_refresh_tokens (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    token_hash VARCHAR(64) NOT NULL UNIQUE,
+                    expires_at TIMESTAMP NOT NULL,
+                    revoked_at TIMESTAMP,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+                );
+            """)
+            print("✅ user_refresh_tokensテーブル作成完了")
+
+            # インデックス作成
+            await conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_firebase_uid ON users (firebase_uid);")
+            await conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_users_email ON users (email);")
+            await conn.execute("CREATE INDEX IF NOT EXISTS ix_user_refresh_tokens_user_id ON user_refresh_tokens (user_id);")
+            await conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ix_user_refresh_tokens_token_hash ON user_refresh_tokens (token_hash);")
+            print("✅ インデックス作成完了")
+
+            print("🎉 手動テーブル作成完了!")
 
         # Alembicバージョンテーブルの確認
         try:
