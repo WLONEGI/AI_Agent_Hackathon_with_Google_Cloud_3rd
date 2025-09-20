@@ -8,7 +8,7 @@ from typing import Dict, Optional
 from uuid import uuid4
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, update
+from sqlalchemy import select, update, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.settings import get_settings
@@ -134,18 +134,28 @@ class AuthService:
         return user
 
     async def _ensure_user(self, firebase_uid: str, email: str, claims: Dict[str, object]) -> UserAccount:
+        # Search by both google_id and firebase_uid for compatibility
         result = await self.db.execute(
-            select(UserAccount).where(UserAccount.firebase_uid == firebase_uid)
+            select(UserAccount).where(
+                or_(
+                    UserAccount.google_id == firebase_uid,
+                    UserAccount.firebase_uid == firebase_uid
+                )
+            )
         )
         user = result.scalar_one_or_none()
         if user:
             user.email = email
             user.display_name = claims.get("name") or user.display_name
             user.firebase_claims = claims
+            # Ensure google_id is set for existing users
+            if not user.google_id:
+                user.google_id = firebase_uid
             return user
 
         user = UserAccount(
             firebase_uid=firebase_uid,
+            google_id=firebase_uid,  # Set google_id to satisfy NOT NULL constraint
             email=email,
             display_name=claims.get("name"),
             account_type=claims.get("account_type", "free"),
