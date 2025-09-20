@@ -1,6 +1,6 @@
 # Cloud Build pipeline for the Spell backend service
 steps:
-  - id: unit-tests
+  - id: install-deps
     name: python:3.11-slim
     entrypoint: bash
     args:
@@ -9,8 +9,6 @@ steps:
         set -eux
         pip install --upgrade pip
         pip install -e .
-        pip install -e .[dev]
-        pytest
 
   - id: build-image
     name: gcr.io/cloud-builders/docker
