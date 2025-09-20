@@ -44,6 +44,12 @@ class Settings(BaseSettings):
         description="Raw or base64-encoded JSON service account credentials for Vertex AI",
     )
 
+    # HITL (Human-in-the-loop) Configuration
+    hitl_enabled: bool = Field(default=True, description="Enable HITL feedback system")
+    hitl_feedback_timeout_minutes: int = Field(default=30, ge=1, le=120, description="Feedback timeout in minutes")
+    hitl_max_retry_attempts: int = Field(default=3, ge=1, le=10, description="Maximum retry attempts for failed feedback integration")
+    hitl_default_quality_threshold: float = Field(default=0.72, ge=0.0, le=1.0, description="Default quality threshold for HITL phases")
+
     @validator("firebase_private_key")
     def _normalize_private_key(cls, value: str) -> str:
         return value.replace("\\n", "\n") if value else value

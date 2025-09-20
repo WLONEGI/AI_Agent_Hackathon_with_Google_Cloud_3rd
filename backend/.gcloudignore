@@ -1,0 +1,16 @@
+.git
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+.env
+node_modules
+*.log
+temp_sql.txt
+add_*.sql
+create_*.sql
+schema*.sql
+migration*.py
+run_*.py
+*.yaml
+cloud_sql_proxy

@@ -74,7 +74,7 @@ class GenerationService:
         expected_duration = 8 if payload.options.priority != "high" else 5
         eta = datetime.utcnow() + timedelta(minutes=expected_duration)
         return GenerateResponse(
-            request_id=session.request_id,
+            request_id=str(session.request_id),
             status=session.status,
             estimated_completion_time=eta,
             expected_duration_minutes=expected_duration,
@@ -92,12 +92,12 @@ class GenerationService:
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
         return SessionStatusResponse(
-            session_id=session.id,
-            request_id=session.request_id,
+            session_id=str(session.id),
+            request_id=str(session.request_id),
             status=session.status,
             current_phase=session.current_phase,
             updated_at=session.updated_at or datetime.utcnow(),
-            project_id=session.project_id,
+            project_id=str(session.project_id) if session.project_id else None,
         )
 
     async def get_session(
@@ -109,8 +109,8 @@ class GenerationService:
         if not session:
             raise HTTPException(status_code=404, detail="Session not found")
         return SessionDetailResponse(
-            session_id=session.id,
-            request_id=session.request_id,
+            session_id=str(session.id),
+            request_id=str(session.request_id),
             status=session.status,
             current_phase=session.current_phase,
             started_at=session.started_at,
@@ -118,7 +118,7 @@ class GenerationService:
             retry_count=session.retry_count,
             phase_results=[pr.content or {} for pr in session.phase_results],
             preview_versions=[pv.version_data or {} for pv in session.preview_versions],
-            project_id=session.project_id,
+            project_id=str(session.project_id) if session.project_id else None,
         )
 
     async def _get_session_by_request(

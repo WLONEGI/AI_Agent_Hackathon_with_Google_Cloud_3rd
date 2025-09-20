@@ -28,7 +28,7 @@ class GenerateRequest(BaseModel):
 
 
 class GenerateResponse(BaseModel):
-    request_id: UUID
+    request_id: str  # Changed from UUID to str for frontend compatibility
     status: str = "queued"
     estimated_completion_time: Optional[datetime] = None
     expected_duration_minutes: Optional[int] = 8
@@ -38,17 +38,17 @@ class GenerateResponse(BaseModel):
 
 
 class SessionStatusResponse(BaseModel):
-    session_id: UUID
-    request_id: UUID
+    session_id: str  # Changed from UUID to str for frontend compatibility
+    request_id: str  # Changed from UUID to str for frontend compatibility
     status: str
     current_phase: Optional[int] = None
     updated_at: datetime
-    project_id: Optional[UUID] = None
+    project_id: Optional[str] = None  # Changed from UUID to str for frontend compatibility
 
 
 class SessionDetailResponse(BaseModel):
-    session_id: UUID
-    request_id: UUID
+    session_id: str  # Changed from UUID to str for frontend compatibility
+    request_id: str  # Changed from UUID to str for frontend compatibility
     status: str
     current_phase: Optional[int]
     started_at: Optional[datetime]
@@ -56,7 +56,7 @@ class SessionDetailResponse(BaseModel):
     retry_count: int
     phase_results: list[dict]
     preview_versions: list[dict]
-    project_id: Optional[UUID] = None
+    project_id: Optional[str] = None  # Changed from UUID to str for frontend compatibility
 
 
 class FeedbackPayload(BaseModel):

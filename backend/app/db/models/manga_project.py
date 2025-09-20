@@ -22,6 +22,7 @@ class MangaProject(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    session_id = Column(UUID(as_uuid=True), ForeignKey("manga_sessions.id", ondelete="SET NULL"), nullable=True)
     title = Column(String(255), nullable=False)
     status = Column(String(32), nullable=False, default=MangaProjectStatus.DRAFT)
     description = Column(Text, nullable=True)
@@ -36,5 +37,6 @@ class MangaProject(Base):
     updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     user = relationship("UserAccount", back_populates="projects")
-    sessions = relationship("MangaSession", back_populates="project")
+    session = relationship("MangaSession", back_populates="projects", foreign_keys=[session_id])
+    sessions = relationship("MangaSession", back_populates="project", foreign_keys="MangaSession.project_id")
     assets = relationship("MangaAsset", back_populates="project", cascade="all, delete-orphan")

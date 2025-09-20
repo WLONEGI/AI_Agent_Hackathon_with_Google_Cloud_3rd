@@ -3,6 +3,9 @@ from .phase_result import PhaseResult
 from .preview_version import PreviewVersion
 from .preview_cache_metadata import PreviewCacheMetadata
 from .user_feedback import UserFeedback
+from .user_feedback_history import UserFeedbackHistory
+from .phase_feedback_state import PhaseFeedbackState
+from .feedback_option_template import FeedbackOptionTemplate
 from .generated_image import GeneratedImage
 from .user_account import UserAccount
 from .user_refresh_token import UserRefreshToken
@@ -16,6 +19,9 @@ __all__ = [
     "PreviewVersion",
     "PreviewCacheMetadata",
     "UserFeedback",
+    "UserFeedbackHistory",
+    "PhaseFeedbackState",
+    "FeedbackOptionTemplate",
     "GeneratedImage",
     "UserAccount",
     "UserRefreshToken",

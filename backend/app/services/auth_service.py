@@ -91,14 +91,13 @@ class AuthService:
         }
 
     async def refresh_access_token(self, refresh_token: str) -> Dict[str, object]:
-        token_hash = self._hash_token(refresh_token)
         result = await self.db.execute(
-            select(UserRefreshToken).where(UserRefreshToken.token_hash == token_hash)
+            select(UserRefreshToken).where(UserRefreshToken.refresh_token == refresh_token)
         )
         token_record = result.scalar_one_or_none()
         if not token_record:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid_refresh_token")
-        if token_record.revoked_at is not None:
+        if token_record.is_revoked:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="refresh_token_revoked")
         if token_record.expires_at < datetime.now(timezone.utc):
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="refresh_token_expired")
@@ -110,11 +109,10 @@ class AuthService:
     async def logout(self, refresh_token: Optional[str]) -> None:
         if not refresh_token:
             return
-        token_hash = self._hash_token(refresh_token)
         await self.db.execute(
             update(UserRefreshToken)
-            .where(UserRefreshToken.token_hash == token_hash, UserRefreshToken.revoked_at.is_(None))
-            .values(revoked_at=datetime.now(timezone.utc))
+            .where(UserRefreshToken.refresh_token == refresh_token, UserRefreshToken.is_revoked == False)
+            .values(is_revoked=True)
         )
 
     async def authenticate_access_token(self, token: str) -> UserAccount:
@@ -151,12 +149,16 @@ class AuthService:
             # Ensure google_id is set for existing users
             if not user.google_id:
                 user.google_id = firebase_uid
+            # Ensure name is set for existing users
+            if not hasattr(user, 'name') or not user.name:
+                user.name = claims.get("name") or email.split("@")[0]
             return user
 
         user = UserAccount(
             firebase_uid=firebase_uid,
             google_id=firebase_uid,  # Set google_id to satisfy NOT NULL constraint
             email=email,
+            name=claims.get("name") or email.split("@")[0],  # Set name to satisfy NOT NULL constraint
             display_name=claims.get("name"),
             account_type=claims.get("account_type", "free"),
             firebase_claims=claims,
@@ -169,7 +171,7 @@ class AuthService:
         refresh_token = uuid4().hex + uuid4().hex
         token_record = UserRefreshToken(
             user_id=user.id,
-            token_hash=self._hash_token(refresh_token),
+            refresh_token=refresh_token,
             expires_at=datetime.now(timezone.utc) + timedelta(days=self.settings.refresh_token_expires_days),
         )
         self.db.add(token_record)
@@ -182,10 +184,6 @@ class AuthService:
             payload,
             expires_delta=timedelta(minutes=self.settings.access_token_expires_minutes),
         )
-
-    @staticmethod
-    def _hash_token(token: str) -> str:
-        return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
     def _decode_id_token(self, id_token: str) -> Dict[str, object]:
         # デバッグモードのトークン処理

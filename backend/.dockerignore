@@ -1,13 +1,97 @@
+# Python関連キャッシュ・バイトコード
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+
+# 仮想環境（最重要 - 456MBの削減）
+venv/
+.venv/
+env/
+.env/
+ENV/
+env.bak/
+venv.bak/
+
+# 開発環境・IDE
+.idea/
+.vscode/
+.vs/
+*.swp
+*.swo
+*~
+
+# テスト・開発ツール
+/tests/
+.pytest_cache/
+.coverage
+.tox/
+.cache/
+.mypy_cache/
+.ruff_cache/
+.nox/
+
+# データベース・ログ・設定ファイル
 *.sqlite3
 *.db
 *.log
+*.pid
 .env*
-.venv/
-.idea/
-.vscode/
-/tests/
+local_settings.py
+
+# 一時ファイル・キャッシュ
+*.tmp
+*.temp
+temp/
+tmp/
+.DS_Store
+.thumbs.db
+
+# プロキシ・外部ツール（23MBの削減）
+cloud_sql_proxy
 cloud_sql_proxy/
+
+# Git・バージョン管理
+.git/
+.gitignore
+.gitattributes
+
+# ドキュメント・README
+*.md
+docs/
+claudedocs/
+
+# SQLスクリプト・マイグレーション一時ファイル
+*.sql
+*_migration.py
+run_*.py
+schema*.yaml
+temp_sql.txt
+add_*.sql
+create_*.sql
+
+# Node.js関連（もしあれば）
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# その他の開発ファイル
+.dockerignore
+Dockerfile
+docker-compose*.yml
+Makefile

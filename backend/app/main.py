@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import auth as auth_routes
+from app.api.routes import hitl as hitl_routes
 from app.api.routes import internal as internal_routes
 from app.api.routes import manga as manga_routes
 from app.api.routes import projects as project_routes
@@ -30,6 +31,8 @@ def create_app() -> FastAPI:
         allow_origins=[
             "https://comic-ai-agent-470309.web.app",
             "https://comic-ai-agent-470309.firebaseapp.com",
+            "https://accounts.google.com",  # Google authentication
+            "https://firebase.googleapis.com",  # Firebase services
             "http://localhost:3000",  # for development
             "http://localhost:3001",  # for development
         ],
@@ -46,6 +49,7 @@ def create_app() -> FastAPI:
     app.include_router(project_routes.router)
     app.include_router(system_routes.router)
     app.include_router(manga_routes.router)
+    app.include_router(hitl_routes.router)
     app.include_router(websocket_routes.router)
     app.include_router(internal_routes.router)
 

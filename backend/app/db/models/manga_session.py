@@ -3,8 +3,8 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, JSON, String
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, JSON, String, Text
+from sqlalchemy.dialects.postgresql import UUID, TIMESTAMP
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
@@ -27,17 +27,30 @@ class MangaSession(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     project_id = Column(UUID(as_uuid=True), ForeignKey("manga_projects.id", ondelete="SET NULL"), nullable=True)
     status = Column(String(32), nullable=False, default=MangaSessionStatus.QUEUED.value)
-    current_phase = Column(Integer, nullable=True)
+    title = Column(String(255), nullable=True)
+    text = Column(Text, nullable=True)  # Made nullable for backward compatibility
+    ai_auto_settings = Column(Boolean, nullable=False, default=True)
+    feedback_mode = Column(JSON, nullable=True)
+    options = Column(JSON, nullable=True)
+    estimated_completion_time = Column(TIMESTAMP(timezone=True), nullable=True)
+    actual_completion_time = Column(TIMESTAMP(timezone=True), nullable=True)
+    current_phase = Column(Integer, nullable=True, default=0)
+    total_phases = Column(Integer, nullable=True, default=5)
+    error_message = Column(Text, nullable=True)
+    websocket_channel = Column(String(255), nullable=True)
     retry_count = Column(Integer, nullable=False, default=0)
     session_metadata = Column(JSON, nullable=True)
 
-    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    started_at = Column(DateTime, nullable=True)
-    completed_at = Column(DateTime, nullable=True)
+    created_at = Column(TIMESTAMP(timezone=True), nullable=False, default=datetime.utcnow)
+    updated_at = Column(TIMESTAMP(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    started_at = Column(TIMESTAMP(timezone=True), nullable=True)
+    completed_at = Column(TIMESTAMP(timezone=True), nullable=True)
 
     phase_results = relationship("PhaseResult", back_populates="session", cascade="all, delete-orphan")
     preview_versions = relationship("PreviewVersion", back_populates="session", cascade="all, delete-orphan")
     feedback_entries = relationship("UserFeedback", back_populates="session", cascade="all, delete-orphan")
+    feedback_history = relationship("UserFeedbackHistory", back_populates="session", cascade="all, delete-orphan")
+    feedback_states = relationship("PhaseFeedbackState", back_populates="session", cascade="all, delete-orphan")
     user = relationship("UserAccount", back_populates="sessions")
-    project = relationship("MangaProject", back_populates="sessions")
+    project = relationship("MangaProject", back_populates="sessions", foreign_keys=[project_id])
+    projects = relationship("MangaProject", back_populates="session", foreign_keys="MangaProject.session_id")

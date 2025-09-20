@@ -1,3 +1,3 @@
-from . import internal, manga, websocket
+from . import hitl, internal, manga, websocket
 
-__all__ = ["internal", "manga", "websocket"]
+__all__ = ["hitl", "internal", "manga", "websocket"]
