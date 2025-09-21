@@ -9,10 +9,11 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import clients as core_clients, settings as core_settings
+from app.core.db import session_scope
 from app.db.models import (
     FeedbackOptionTemplate,
     GeneratedImage,
@@ -683,347 +684,295 @@ class QualityCalculator:
 
 
 class PipelineOrchestrator:
-    def __init__(self, db: AsyncSession):
-        self.db = db
+    def __init__(self, session_factory):
+        self.session_factory = session_factory
         self.settings = core_settings.get_settings()
         core_clients.get_storage_client.cache_clear()
         self.vertex_service = get_vertex_service()
-        self.hitl_service = HITLService(db) if self.settings.hitl_enabled else None
+        self.db = None  # Will be set per-operation to avoid transaction conflicts
 
     async def run(self, request_id: UUID) -> None:
-        # Initialize session scope manager to prevent variable scope issues
-        scope_manager = SessionScopeManager()
-        scope_manager.initialize(request_id)
+        """
+        漫画生成パイプライン実行メイン関数
+        """
+        try:
+            logger.info(f"🚀 Pipeline execution started for request_id: {request_id}")
 
-        # Use transaction to ensure all-or-nothing pipeline execution
-        async with self.db.begin() as transaction:
+            # Get session before starting transaction to avoid context issues
+            session = await self._get_session(request_id)
+            if session is None:
+                logger.error(f"❌ Session not found for request_id: {request_id}")
+                raise ValueError("session_not_found")
+
+            logger.info(f"✅ Found session: {session.id}, status: {session.status}")
+
+            # Run pipeline phases
+            await self._execute_pipeline_phases(session)
+
+            logger.info(f"🎉 Pipeline execution completed successfully for session: {session.id}")
+
+        except Exception as e:
+            logger.error(f"💥 Pipeline failed for session {request_id}: {type(e).__name__}: {e}")
+            logger.exception("Full pipeline error traceback:")
+
+            # Try to update session status to failed using safe methods
             try:
-                session = await self._get_session(request_id)
-                if session is None:
-                    raise ValueError("session_not_found")
+                failed_session = await self._get_session_safe(request_id)
+                if failed_session:
+                    error_message = f"{type(e).__name__}: {str(e)}"
+                    success = await self._update_session_status_safe(
+                        failed_session.id,
+                        MangaSessionStatus.FAILED.value,
+                        error_message
+                    )
+                    if success:
+                        logger.info(f"📝 Updated session {failed_session.id} status to FAILED")
+                    else:
+                        logger.error(f"❌ Failed to update session {failed_session.id} status to FAILED")
+                else:
+                    logger.warning(f"⚠️ Could not find session for request_id: {request_id}")
+            except Exception as status_update_error:
+                logger.error(f"Could not update session status (safe method): {status_update_error}")
 
-                # Set session in scope manager for safe access throughout pipeline
-                scope_manager.set_session(session)
+            raise
 
-                session.status = MangaSessionStatus.RUNNING.value
-                session.started_at = session.started_at or datetime.utcnow()
-                # Remove flush() - will be handled by transaction commit
+    async def _execute_pipeline_phases(self, session: MangaSession) -> None:
+        """
+        パイプラインの各フェーズを実行 - 各フェーズごとに独立したトランザクションを使用
+        """
+        logger.info(f"🔄 Starting pipeline phases for session: {session.id}")
 
-                await realtime_hub.publish(
-                    session.request_id,
-                    build_event(
-                        "session_start",
-                        sessionId=str(session.request_id),
-                        requestId=str(session.request_id),
-                    ),
+        try:
+            # Update session status to running (separate transaction)
+            await self._update_session_status(session.id, MangaSessionStatus.RUNNING.value, started_at=datetime.utcnow())
+
+            # Execute actual manga generation phases
+            phase_context = {}
+            for phase_config in PHASE_SEQUENCE:
+                phase_number = phase_config["phase"]
+                phase_name = phase_config["name"]
+
+                logger.info(f"📋 Executing phase {phase_number}: {phase_name}")
+
+                # Update current phase (separate transaction)
+                await self._update_session_status(session.id, None, current_phase=phase_number)
+
+                # Execute phase with its own transaction scope
+                try:
+                    phase_result = await self._execute_single_phase(session, phase_config, phase_context)
+                    phase_context[phase_number] = phase_result
+                    logger.info(f"✅ Phase {phase_number} ({phase_name}) completed successfully")
+
+                except Exception as phase_error:
+                    logger.error(f"❌ Phase {phase_number} ({phase_name}) failed: {phase_error}")
+                    await self._update_session_status(session.id, MangaSessionStatus.FAILED.value, error_message=str(phase_error))
+                    raise
+
+            # Mark session as completed (separate transaction)
+            await self._update_session_status(
+                session.id,
+                MangaSessionStatus.COMPLETED.value,
+                completed_at=datetime.utcnow(),
+                actual_completion_time=datetime.utcnow(),
+                current_phase=len(PHASE_SEQUENCE)
+            )
+
+            logger.info(f"🎉 All phases completed successfully for session: {session.id}")
+
+        except Exception as e:
+            logger.error(f"❌ Pipeline execution failed for session {session.id}: {e}")
+            # Ensure session is marked as failed if not already done
+            try:
+                await self._update_session_status(session.id, MangaSessionStatus.FAILED.value, error_message=str(e))
+            except Exception as update_error:
+                logger.error(f"Failed to update session status to failed: {update_error}")
+            raise
+
+    async def _update_session_status(self, session_id: UUID, status: Optional[str] = None, **kwargs) -> None:
+        """Update session status in a separate transaction to avoid conflicts"""
+        async with self.session_factory() as db_session:
+            async with db_session.begin():
+                update_values = {"updated_at": datetime.utcnow()}
+                if status:
+                    update_values["status"] = status
+                update_values.update(kwargs)
+
+                await db_session.execute(
+                    update(MangaSession)
+                    .where(MangaSession.id == session_id)
+                    .values(**update_values)
                 )
 
-                project = await self._load_project(session.project_id)
-                # Set project in scope manager for safe access
-                scope_manager.set_project(project)
+    async def _execute_single_phase(self, session: MangaSession, phase_config: Dict[str, Any], context: Dict[int, Dict[str, Any]]) -> Dict[str, Any]:
+        """Execute a single phase with its own database transaction scope"""
+        async with self.session_factory() as db_session:
+            # Set database session for this phase
+            self.db = db_session
 
-                # Initialize protected phase context manager
-                context_manager = PhaseContextManager()
+            async with db_session.begin():
+                try:
+                    # Process the phase
+                    phase_result = await self._process_phase(session, phase_config, context, attempt=1)
 
-                # Check if HITL is enabled for this session
-                hitl_enabled = self._is_hitl_enabled_for_session(session)
+                    # Persist phase results within the same transaction
+                    await self._persist_phase_results(session, phase_config, phase_result)
 
-                for phase_config in PHASE_SEQUENCE:
-                    phase_number = phase_config["phase"]
-                    session.current_phase = phase_number
-                    # Remove flush() - will be handled by transaction commit
+                    return phase_result
 
-                    await realtime_hub.publish(
-                        session.request_id,
-                        build_event(
-                            "phase_start",
-                            phaseId=phase_number,
-                            phaseName=phase_config["label"],
-                        ),
-                    )
+                except Exception as e:
+                    logger.error(f"Phase {phase_config['phase']} execution failed: {e}")
+                    raise
+                finally:
+                    # Clear database session to prevent reuse
+                    self.db = None
 
-                    await realtime_hub.publish(
-                        session.request_id,
-                        build_event(
-                            "phase_progress",
-                            phase=phase_number,
-                            progress=10,
-                            status="processing",
-                        ),
-                    )
-
-                    # Create context snapshot before phase processing for rollback capability
-                    context_manager.create_snapshot(phase_number)
-
-                    attempt = 0
-                    phase_payload: Optional[Dict[str, Any]] = None
-                    quality_score = 0.0
-                    while attempt < MAX_PHASE_RETRIES:
-                        attempt += 1
-                        try:
-                            # Get current context for phase processing
-                            current_context = context_manager.get_context()
-                            phase_payload = await self._process_phase(session, phase_config, current_context, attempt)
-                        except Exception as exc:
-                            # Standardized error recovery using ErrorRecoveryManager
-                            error_type = type(exc).__name__
-
-                            # Log error with appropriate level based on error type
-                            if error_type in ["VertexAICredentialsError", "PhaseTimeoutError", "PhaseDependencyError"]:
-                                logger.error("Unrecoverable error on phase %s (attempt %s): %s", phase_number, attempt, exc)
-                            else:
-                                logger.warning("Recoverable error on phase %s (attempt %s): %s", phase_number, attempt, exc)
-
-                            # Check if we should retry based on error recovery strategy
-                            if not ErrorRecoveryManager.should_retry(error_type, attempt):
-                                # Rollback context to snapshot for unrecoverable errors
-                                context_manager.rollback_to_snapshot(phase_number)
-                                failure_reason = ErrorRecoveryManager.get_failure_reason(error_type, attempt)
-                                await self._handle_failure(session, project, phase_number, failure_reason)
-                                return
-
-                            # Calculate wait time based on error type and attempt
-                            wait_time = await ErrorRecoveryManager.calculate_wait_time(error_type, attempt)
-
-                            if wait_time > 0:
-                                logger.info(f"Waiting {wait_time:.1f}s before retry (strategy: {ErrorRecoveryManager.get_strategy(error_type).strategy_type})")
-                                try:
-                                    # Use timeout protection for wait operations
-                                    await asyncio.wait_for(asyncio.sleep(wait_time), timeout=max(wait_time + 5, 15))
-                                except asyncio.TimeoutError:
-                                    logger.warning(f"Error recovery wait timed out for phase {phase_number}")
-                                    # Continue anyway - this shouldn't normally happen
-
-                            continue  # Retry the operation
-
-                        quality_score = phase_payload.get("metadata", {}).get("quality", 0.0)
-                        if quality_score >= QUALITY_THRESHOLD:
-                            break
-
-                        logger.warning(
-                            "Phase %s quality %.2f below threshold %.2f (attempt %s)",
-                            phase_number,
-                            quality_score,
-                            QUALITY_THRESHOLD,
-                            attempt,
-                        )
-                        if attempt >= MAX_PHASE_RETRIES:
-                            await self._handle_failure(session, project, phase_number, "quality_threshold_not_met")
-                            return
-
-                    if phase_payload is None:
-                        await self._handle_failure(session, project, phase_number, "phase_payload_missing")
-                        return
-
-                    if attempt > 1:
-                        session.retry_count = (session.retry_count or 0) + (attempt - 1)
-
-                    await self._persist_phase_outputs(
-                        session=session,
-                        project=project,
-                        phase_config=phase_config,
-                        phase_payload=phase_payload,
-                    )
-
-                    await realtime_hub.publish(
-                        session.request_id,
-                        build_event(
-                            "phase_progress",
-                            phase=phase_number,
-                            progress=90,
-                            status="completed",
-                            preview=phase_payload.get("preview"),
-                        ),
-                    )
-
-                    await realtime_hub.publish(
-                        session.request_id,
-                        build_event(
-                            "phase_complete",
-                            phaseId=phase_number,
-                            result=phase_payload,
-                        ),
-                    )
-
-                    # Store validated phase data in protected context
-                    context_manager.set_phase_data(phase_number, phase_payload)
-
-                    # HITL Integration: Request feedback after phase completion
-                    if hitl_enabled and self.hitl_service:
-                        # Get current context for HITL feedback
-                        current_context = context_manager.get_context()
-                        feedback_result = await self._handle_hitl_feedback(
-                            session, phase_number, phase_payload, current_context
-                        )
-
-                        # Apply feedback modifications if provided
-                        if feedback_result and feedback_result.get("modifications"):
-                            phase_payload = await self._apply_feedback_modifications(
-                                session, phase_config, phase_payload, feedback_result["modifications"]
-                            )
-
-                            # CRITICAL: Re-evaluate quality after HITL modifications
-                            modified_data = phase_payload.get("data", {})
-                            modified_diagnostics = phase_payload.get("diagnostics", {})
-                            modified_quality = self._evaluate_quality(phase_number, modified_data, modified_diagnostics)
-
-                            # Update metadata with new quality score
-                            if "metadata" not in phase_payload:
-                                phase_payload["metadata"] = {}
-                            phase_payload["metadata"]["quality"] = round(modified_quality, 3)
-                            phase_payload["metadata"]["modified_by_user"] = True
-                            phase_payload["metadata"]["original_quality"] = phase_payload["metadata"].get("quality", 0.0)
-
-                            # Check if quality degraded after modifications
-                            if modified_quality < QUALITY_THRESHOLD:
-                                logger.warning(
-                                    f"Phase {phase_number} quality degraded to {modified_quality:.3f} "
-                                    f"after HITL modifications (threshold: {QUALITY_THRESHOLD})"
-                                )
-
-                                # Notify user about quality degradation
-                                await realtime_hub.publish(
-                                    session.request_id,
-                                    build_event(
-                                        "quality_warning",
-                                        phase=phase_number,
-                                        original_quality=phase_payload["metadata"].get("original_quality", 0.0),
-                                        modified_quality=modified_quality,
-                                        threshold=QUALITY_THRESHOLD,
-                                        message=f"User modifications reduced quality below threshold"
-                                    ),
-                                )
-
-                            # Update protected context with modified payload
-                            context_manager.set_phase_data(phase_number, phase_payload)
-
-                            # Re-persist modified outputs with updated quality
-                            await self._persist_phase_outputs(
-                                session=session,
-                                project=project,
-                                phase_config=phase_config,
-                                phase_payload=phase_payload,
-                            )
-
-                # Validate final context integrity before completion
-                if not context_manager.validate_context_integrity():
-                    logger.error("Context integrity validation failed at pipeline completion")
-                    raise ValueError("Pipeline context integrity validation failed")
-
-                session.status = MangaSessionStatus.COMPLETED.value
-                session.completed_at = datetime.utcnow()
-                if project is not None:
-                    project.status = MangaProjectStatus.COMPLETED
-                    # Get final context for page estimation
-                    final_context = context_manager.get_context()
-                    project.total_pages = self._estimate_pages(session, final_context)
-                    project.updated_at = datetime.utcnow()
-                    await self._upsert_project_assets(project, session)
-                # Remove flush() - will be handled by transaction commit
-
-                # Clean up context snapshots before completion
-                context_manager.cleanup_snapshots(keep_latest=1)
-
-                # Log context summary for debugging
-                context_summary = context_manager.get_context_summary()
-                logger.info(f"Pipeline completed successfully for session {request_id}. Context: {context_summary}")
-
-                # Transaction will commit automatically on successful completion
-                await transaction.commit()
-
-            except Exception as e:
-                # Transaction will rollback automatically on exception
-                await transaction.rollback()
-                logger.error(f"Pipeline failed for session {request_id}, rolling back all changes: {e}")
-
-                # Handle failure status update outside transaction using scope manager
-                failed_session = await self._get_session(request_id)
-                if failed_session:
-                    scope_manager.set_session(failed_session)
-                    await self._handle_failure_outside_transaction(failed_session, scope_manager.project, 0, str(e))
-                raise
-
-        # Publish completion event outside transaction using scope manager
-        # This prevents NameError if session was not initialized due to early pipeline failure
-        completion_event_data = scope_manager.get_completion_event_data()
-        await realtime_hub.publish(
-            UUID(completion_event_data["sessionId"]) if completion_event_data["sessionId"] != "unknown" else request_id,
-            build_event("session_complete", **completion_event_data),
-        )
-
-    async def _get_session(self, request_id: UUID) -> Optional[MangaSession]:
-        result = await self.db.execute(
-            select(MangaSession).where(MangaSession.request_id == request_id)
-        )
-        return result.scalar_one_or_none()
-
-    async def _persist_phase_outputs(
-        self,
-        *,
-        session: MangaSession,
-        project: Optional[MangaProject],
-        phase_config: Dict[str, Any],
-        phase_payload: Dict[str, Any],
-    ) -> None:
+    async def _persist_phase_results(self, session: MangaSession, phase_config: Dict[str, Any], phase_result: Dict[str, Any]) -> None:
+        """Persist phase results to database"""
         phase_number = phase_config["phase"]
-        quality_score = float(phase_payload.get("metadata", {}).get("quality", 0.0))
+        quality_score = float(phase_result.get("metadata", {}).get("quality", 0.0))
 
-        phase_result = PhaseResult(
+        # Create phase result record
+        phase_result_record = PhaseResult(
             session_id=session.id,
             phase=phase_number,
             status="completed",
-            content=phase_payload,
+            content=phase_result,
             quality_score=quality_score,
         )
-        self.db.add(phase_result)
+        self.db.add(phase_result_record)
         await self.db.flush()
 
+        # Create preview version
         preview_version = PreviewVersion(
             session_id=session.id,
             phase=phase_number,
-            version_data=phase_payload.get("preview"),
+            version_data=phase_result.get("preview"),
             quality_level=self._quality_to_level(quality_score),
             quality_score=quality_score,
         )
         self.db.add(preview_version)
         await self.db.flush()
 
-        cache_entry = PreviewCacheMetadata(
-            cache_key=(
-                f"preview/{session.request_id}/phase-{phase_number}/"
-                f"v{preview_version.created_at.timestamp():.0f}"
-            ),
-            version_id=preview_version.id,
-            phase=phase_number,
-            quality_level=self._quality_to_level(quality_score),
-            signed_url=self._build_signed_url(session, phase_config, preview_version),
-            content_type="application/json",
-            expires_at=datetime.utcnow() + timedelta(seconds=self.settings.signed_url_ttl_seconds),
-        )
-        self.db.add(cache_entry)
+        logger.info(f"Persisted results for phase {phase_number}")
 
-        if phase_number == 5:
-            images = phase_payload.get("data", {}).get("images", [])
-            for index, image in enumerate(images, start=1):
-                storage_path = (
-                    f"projects/{session.project_id}/sessions/{session.request_id}/"
-                    f"phase-{phase_number}/panel-{index}.png"
-                )
-                image_record = GeneratedImage(
-                    session_id=session.id,
-                    phase=phase_number,
-                    storage_path=storage_path,
-                    signed_url=self._build_asset_signed_url(storage_path),
-                    image_metadata={
-                        "panel_id": image.get("panelId"),
-                        "status": image.get("status"),
-                        "prompt": image.get("prompt"),
-                        "has_preview": bool(image.get("url")),
-                    },
-                )
-                self.db.add(image_record)
+    async def _get_session(self, request_id: UUID) -> Optional[MangaSession]:
+        from sqlalchemy.exc import ProgrammingError, InvalidRequestError
+        from asyncpg.exceptions import UndefinedColumnError
 
-        await self.db.flush()
+        logger.info(f"_get_session called with request_id: {request_id}")
+
+        async with self.session_factory() as db_session:
+            try:
+                # Try to query by request_id if the column exists
+                logger.info("Attempting to query by request_id column")
+                result = await db_session.execute(
+                    select(MangaSession).where(MangaSession.request_id == request_id)
+                )
+                session = result.scalar_one_or_none()
+                logger.info(f"Successfully found session by request_id: {session is not None}")
+                return session
+            except (ProgrammingError, InvalidRequestError, UndefinedColumnError) as e:
+                # If request_id column doesn't exist, query by id instead
+                logger.warning(f"request_id column not available (specific error), using id instead: {type(e).__name__}: {e}")
+                try:
+                    logger.info("Attempting to query by id column")
+                    result = await db_session.execute(
+                        select(MangaSession).where(MangaSession.id == request_id)
+                    )
+                    session = result.scalar_one_or_none()
+                    logger.info(f"Successfully found session by id: {session is not None}")
+                    return session
+                except Exception as e2:
+                    logger.error(f"Failed to find session by id either: {type(e2).__name__}: {e2}")
+                    return None
+            except Exception as e:
+                # Catch all other exceptions
+                logger.warning(f"Unexpected error type, using id instead: {type(e).__name__}: {e}")
+                try:
+                    logger.info("Attempting to query by id column (generic exception)")
+                    result = await db_session.execute(
+                        select(MangaSession).where(MangaSession.id == request_id)
+                    )
+                    session = result.scalar_one_or_none()
+                    logger.info(f"Successfully found session by id (generic): {session is not None}")
+                    return session
+                except Exception as e2:
+                    logger.error(f"Failed to find session by id either (generic): {type(e2).__name__}: {e2}")
+                    return None
+
+    async def _get_session_safe(self, request_id: UUID) -> Optional[MangaSession]:
+        """
+        安全にセッションを取得する（独立したトランザクションコンテキストを使用）
+        エラーハンドリング中でも使用できる
+        """
+        from sqlalchemy.exc import ProgrammingError, InvalidRequestError
+        from asyncpg.exceptions import UndefinedColumnError
+
+        logger.info(f"_get_session_safe called with request_id: {request_id}")
+
+        try:
+            # 独立したデータベースセッションを作成
+            async with session_scope() as independent_session:
+                try:
+                    # Try to query by request_id if the column exists
+                    logger.info("Safe session: Attempting to query by request_id column")
+                    result = await independent_session.execute(
+                        select(MangaSession).where(MangaSession.request_id == request_id)
+                    )
+                    session = result.scalar_one_or_none()
+                    logger.info(f"Safe session: Successfully found session by request_id: {session is not None}")
+                    return session
+                except (ProgrammingError, InvalidRequestError, UndefinedColumnError) as e:
+                    # If request_id column doesn't exist, query by id instead
+                    logger.warning(f"Safe session: request_id column not available, using id instead: {type(e).__name__}: {e}")
+                    try:
+                        logger.info("Safe session: Attempting to query by id column")
+                        result = await independent_session.execute(
+                            select(MangaSession).where(MangaSession.id == request_id)
+                        )
+                        session = result.scalar_one_or_none()
+                        logger.info(f"Safe session: Successfully found session by id: {session is not None}")
+                        return session
+                    except Exception as e2:
+                        logger.error(f"Safe session: Failed to find session by id either: {type(e2).__name__}: {e2}")
+                        return None
+        except Exception as e:
+            logger.error(f"Safe session: Failed to create independent session: {type(e).__name__}: {e}")
+            return None
+
+    async def _update_session_status_safe(self, session_id: UUID, status: str, error_message: Optional[str] = None) -> bool:
+        """
+        安全にセッションステータスを更新する（独立したトランザクションコンテキストを使用）
+        エラーハンドリング中でも使用できる
+        """
+        try:
+            # 独立したデータベースセッションを作成
+            async with session_scope() as independent_session:
+                async with independent_session.begin() as transaction:
+                    try:
+                        update_values = {
+                            'status': status,
+                            'updated_at': datetime.utcnow()
+                        }
+                        if error_message:
+                            update_values['error_message'] = error_message[:500]  # Limit error message length
+
+                        await independent_session.execute(
+                            update(MangaSession)
+                            .where(MangaSession.id == session_id)
+                            .values(**update_values)
+                        )
+                        await transaction.commit()
+                        logger.info(f"Safe update: Successfully updated session {session_id} status to {status}")
+                        return True
+                    except Exception as commit_error:
+                        await transaction.rollback()
+                        logger.error(f"Safe update: Failed to update session status: {commit_error}")
+                        return False
+        except Exception as e:
+            logger.error(f"Safe update: Failed to create independent session: {type(e).__name__}: {e}")
+            return False
+
 
     async def _process_phase(
         self,
@@ -1577,23 +1526,24 @@ class PipelineOrchestrator:
                 )
             ).order_by(FeedbackOptionTemplate.display_order, FeedbackOptionTemplate.option_label)
 
-            options_result = await self.db.execute(options_query)
-            feedback_options = options_result.scalars().all()
+            async with self.session_factory() as db_session:
+                options_result = await db_session.execute(options_query)
+                feedback_options = options_result.scalars().all()
 
-            # Convert to dict format for WebSocket
-            options_data = [
-                {
-                    "id": str(option.id),
-                    "phase": option.phase,
-                    "option_key": option.option_key,
-                    "option_label": option.option_label,
-                    "option_description": option.option_description,
-                    "option_category": option.option_category,
-                    "display_order": option.display_order,
-                    "is_active": option.is_active,
-                }
-                for option in feedback_options
-            ]
+                # Convert to dict format for WebSocket
+                options_data = [
+                    {
+                        "id": str(option.id),
+                        "phase": option.phase,
+                        "option_key": option.option_key,
+                        "option_label": option.option_label,
+                        "option_description": option.option_description,
+                        "option_category": option.option_category,
+                        "display_order": option.display_order,
+                        "is_active": option.is_active,
+                    }
+                    for option in feedback_options
+                ]
 
             # Create feedback waiting state
             feedback_state = await self.hitl_service.create_feedback_waiting_state(
@@ -1675,33 +1625,34 @@ class PipelineOrchestrator:
                     PhaseFeedbackState.phase == phase_number
                 )
             )
-            state_result = await self.db.execute(state_query)
-            current_state = state_result.scalar_one_or_none()
+            async with self.session_factory() as db_session:
+                state_result = await db_session.execute(state_query)
+                current_state = state_result.scalar_one_or_none()
 
-            if current_state and current_state.state == "received":
-                # Feedback received, get the feedback data
-                from app.db.models import UserFeedbackHistory
+                if current_state and current_state.state == "received":
+                    # Feedback received, get the feedback data
+                    from app.db.models import UserFeedbackHistory
 
-                feedback_query = select(UserFeedbackHistory).where(
-                    and_(
-                        UserFeedbackHistory.session_id == feedback_state.session_id,
-                        UserFeedbackHistory.phase == phase_number
-                    )
-                ).order_by(UserFeedbackHistory.created_at.desc())
+                    feedback_query = select(UserFeedbackHistory).where(
+                        and_(
+                            UserFeedbackHistory.session_id == feedback_state.session_id,
+                            UserFeedbackHistory.phase == phase_number
+                        )
+                    ).order_by(UserFeedbackHistory.created_at.desc())
 
-                feedback_result = await self.db.execute(feedback_query)
-                feedback_entry = feedback_result.scalar_one_or_none()
+                    feedback_result = await db_session.execute(feedback_query)
+                    feedback_entry = feedback_result.scalar_one_or_none()
 
-                if feedback_entry:
-                    logger.info(f"Feedback received for session {session.request_id}, phase {phase_number}: {feedback_entry.feedback_type}")
-                    return {
-                        "type": "feedback",
-                        "feedback_type": feedback_entry.feedback_type,
-                        "selected_options": feedback_entry.selected_options,
-                        "natural_language_input": feedback_entry.natural_language_input,
-                        "user_satisfaction_score": feedback_entry.user_satisfaction_score,
-                        "modifications": self._extract_feedback_modifications(feedback_entry)
-                    }
+                    if feedback_entry:
+                        logger.info(f"Feedback received for session {session.request_id}, phase {phase_number}: {feedback_entry.feedback_type}")
+                        return {
+                            "type": "feedback",
+                            "feedback_type": feedback_entry.feedback_type,
+                            "selected_options": feedback_entry.selected_options,
+                            "natural_language_input": feedback_entry.natural_language_input,
+                            "user_satisfaction_score": feedback_entry.user_satisfaction_score,
+                            "modifications": self._extract_feedback_modifications(feedback_entry)
+                        }
 
             # Wait before next check
             await asyncio.sleep(poll_interval)
@@ -1787,10 +1738,22 @@ class PipelineOrchestrator:
         phase_number: int,
         message: str,
     ) -> None:
-        session.status = MangaSessionStatus.FAILED.value
-        session.completed_at = datetime.utcnow()
-        await self.db.flush()
+        # Update session and project status with proper transaction management
+        async with self.session_factory() as db_session:
+            async with db_session.begin():
+                # Refresh objects in current session context
+                await db_session.merge(session)
+                if project:
+                    await db_session.merge(project)
 
+                session.status = MangaSessionStatus.FAILED.value
+                session.completed_at = datetime.utcnow()
+
+                if project is not None:
+                    project.status = MangaProjectStatus.FAILED
+                    project.updated_at = datetime.utcnow()
+
+        # Publish error events
         await realtime_hub.publish(
             session.request_id,
             build_event("phase_error", phaseId=phase_number, error=message),
@@ -1810,11 +1773,6 @@ class PipelineOrchestrator:
             ),
         )
 
-        if project is not None:
-            project.status = MangaProjectStatus.FAILED
-            project.updated_at = datetime.utcnow()
-        await self.db.flush()
-
     async def _handle_failure_outside_transaction(
         self,
         session: MangaSession,
@@ -1823,21 +1781,27 @@ class PipelineOrchestrator:
         message: str,
     ) -> None:
         """Handle failure outside transaction context"""
-        async with self.db.begin() as failure_transaction:
-            try:
-                session.status = MangaSessionStatus.FAILED.value
-                session.completed_at = datetime.utcnow()
+        async with self.session_factory() as db_session:
+            async with db_session.begin() as failure_transaction:
+                try:
+                    # Refresh objects in current session context
+                    await db_session.merge(session)
+                    if project:
+                        await db_session.merge(project)
 
-                if project is not None:
-                    project.status = MangaProjectStatus.FAILED
-                    project.updated_at = datetime.utcnow()
+                    session.status = MangaSessionStatus.FAILED.value
+                    session.completed_at = datetime.utcnow()
 
-                await failure_transaction.commit()
-                logger.info(f"Failure status updated for session {session.request_id}")
+                    if project is not None:
+                        project.status = MangaProjectStatus.FAILED
+                        project.updated_at = datetime.utcnow()
 
-            except Exception as e:
-                await failure_transaction.rollback()
-                logger.error(f"Failed to update failure status for session {session.request_id}: {e}")
+                    await failure_transaction.commit()
+                    logger.info(f"Failure status updated for session {session.request_id}")
+
+                except Exception as e:
+                    await failure_transaction.rollback()
+                    logger.error(f"Failed to update failure status for session {session.request_id}: {e}")
 
         # Publish error events outside transaction
         await realtime_hub.publish(
@@ -1894,38 +1858,41 @@ class PipelineOrchestrator:
         return max(DEFAULT_PAGE_MIN, act_count * 6)
 
     async def _upsert_project_assets(self, project, session: MangaSession) -> None:
-        result = await self.db.execute(
-            select(MangaAsset).where(
-                MangaAsset.project_id == project.id,
-                MangaAsset.asset_type == MangaAssetType.PDF,
-            )
-        )
-        existing_pdf = result.scalars().first()
-        storage_path = f"projects/{project.id}/final/{session.request_id}.pdf"
-        signed_url = self._build_asset_signed_url(storage_path)
-        asset_payload = {
-            "project_id": project.id,
-            "asset_type": MangaAssetType.PDF,
-            "storage_path": storage_path,
-            "signed_url": signed_url,
-            "asset_metadata": {
-                "total_pages": project.total_pages,
-                "generated_at": datetime.utcnow().isoformat(),
-            },
-        }
-        if existing_pdf:
-            for key, value in asset_payload.items():
-                setattr(existing_pdf, key, value)
-        else:
-            self.db.add(MangaAsset(**asset_payload))
+        async with self.session_factory() as db_session:
+            async with db_session.begin():
+                result = await db_session.execute(
+                    select(MangaAsset).where(
+                        MangaAsset.project_id == project.id,
+                        MangaAsset.asset_type == MangaAssetType.PDF,
+                    )
+                )
+                existing_pdf = result.scalars().first()
+                storage_path = f"projects/{project.id}/final/{session.request_id}.pdf"
+                signed_url = self._build_asset_signed_url(storage_path)
+                asset_payload = {
+                    "project_id": project.id,
+                    "asset_type": MangaAssetType.PDF,
+                    "storage_path": storage_path,
+                    "signed_url": signed_url,
+                    "asset_metadata": {
+                        "total_pages": project.total_pages,
+                        "generated_at": datetime.utcnow().isoformat(),
+                    },
+                }
+                if existing_pdf:
+                    for key, value in asset_payload.items():
+                        setattr(existing_pdf, key, value)
+                else:
+                    db_session.add(MangaAsset(**asset_payload))
 
     async def _load_project(self, project_id: Optional[UUID]) -> Optional[MangaProject]:
         if not project_id:
             return None
-        result = await self.db.execute(
-            select(MangaProject).where(MangaProject.id == project_id)
-        )
-        return result.scalar_one_or_none()
+        async with self.session_factory() as db_session:
+            result = await db_session.execute(
+                select(MangaProject).where(MangaProject.id == project_id)
+            )
+            return result.scalar_one_or_none()
 
     def _build_asset_signed_url(self, storage_path: str) -> str:
         bucket = self.settings.gcs_bucket_preview
