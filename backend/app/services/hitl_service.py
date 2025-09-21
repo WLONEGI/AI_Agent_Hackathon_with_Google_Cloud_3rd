@@ -43,6 +43,23 @@ class HITLService:
         self.db = db
         self.settings = get_settings()
 
+    async def _get_session_by_request_id_or_id(self, session_id: UUID) -> Optional[MangaSession]:
+        """Get session by request_id if column exists, otherwise by id"""
+        from sqlalchemy.exc import ProgrammingError, InvalidRequestError
+        from asyncpg.exceptions import UndefinedColumnError
+
+        try:
+            # Try to query by request_id if the column exists
+            session_query = select(MangaSession).where(MangaSession.request_id == session_id)
+            session_result = await self.db.execute(session_query)
+            return session_result.scalar_one_or_none()
+        except (ProgrammingError, InvalidRequestError, UndefinedColumnError):
+            # If request_id column doesn't exist, query by id instead
+            logger.warning(f"request_id column not available, using id instead")
+            session_query = select(MangaSession).where(MangaSession.id == session_id)
+            session_result = await self.db.execute(session_query)
+            return session_result.scalar_one_or_none()
+
     async def submit_feedback(
         self,
         session_id: UUID,
@@ -62,11 +79,8 @@ class HITLService:
         if phase < 1 or phase > 7:
             raise ValueError(f"Invalid phase number: {phase}")
 
-        # Find the session
-        session_query = select(MangaSession).where(MangaSession.request_id == session_id)
-        session_result = await self.db.execute(session_query)
-        session = session_result.scalar_one_or_none()
-
+        # Find the session - try request_id first, fallback to id if column doesn't exist
+        session = await self._get_session_by_request_id_or_id(session_id)
         if not session:
             raise FileNotFoundError(f"Session not found: {session_id}")
 
@@ -152,11 +166,8 @@ class HITLService:
 
         timeout_minutes = timeout_minutes or self.settings.hitl_feedback_timeout_minutes
 
-        # Find the session
-        session_query = select(MangaSession).where(MangaSession.request_id == session_id)
-        session_result = await self.db.execute(session_query)
-        session = session_result.scalar_one_or_none()
-
+        # Find the session - try request_id first, fallback to id if column doesn't exist
+        session = await self._get_session_by_request_id_or_id(session_id)
         if not session:
             raise FileNotFoundError(f"Session not found: {session_id}")
 
@@ -250,11 +261,8 @@ class HITLService:
     async def get_session_feedback_summary(self, session_id: UUID) -> Dict[str, Any]:
         """Get feedback summary for a session"""
 
-        # Find the session
-        session_query = select(MangaSession).where(MangaSession.request_id == session_id)
-        session_result = await self.db.execute(session_query)
-        session = session_result.scalar_one_or_none()
-
+        # Find the session - try request_id first, fallback to id if column doesn't exist
+        session = await self._get_session_by_request_id_or_id(session_id)
         if not session:
             raise FileNotFoundError(f"Session not found: {session_id}")
 

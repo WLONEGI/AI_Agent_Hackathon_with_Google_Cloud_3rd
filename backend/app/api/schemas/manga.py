@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
@@ -67,3 +67,61 @@ class FeedbackPayload(BaseModel):
 class FeedbackRequest(BaseModel):
     phase: int
     payload: FeedbackPayload
+
+
+# New schemas for chat and messaging
+class MessageRequest(BaseModel):
+    content: str = Field(min_length=1, max_length=5000)
+    message_type: str = Field(default="user")
+    phase: Optional[int] = None
+    metadata: Optional[dict] = None
+
+
+class MessageResponse(BaseModel):
+    id: str
+    session_id: str
+    message_type: str
+    content: str
+    phase: Optional[int]
+    metadata: Optional[dict]
+    created_at: datetime
+    updated_at: datetime
+
+
+class MessagesListResponse(BaseModel):
+    messages: List[MessageResponse]
+    total: int
+    has_more: bool
+
+
+class PhasePreviewUpdate(BaseModel):
+    preview_type: str = Field(default="text")
+    content: Optional[str] = None
+    image_url: Optional[str] = None
+    document_url: Optional[str] = None
+    progress: int = Field(ge=0, le=100)
+    status: str = Field(default="processing")
+    metadata: Optional[dict] = None
+
+
+class PhasePreviewResponse(BaseModel):
+    id: str
+    session_id: str
+    phase_number: int
+    preview_type: str
+    content: Optional[str]
+    image_url: Optional[str]
+    document_url: Optional[str]
+    progress: int
+    status: str
+    metadata: Optional[dict]
+    created_at: datetime
+    updated_at: datetime
+
+
+class SessionEventResponse(BaseModel):
+    id: str
+    session_id: str
+    event_type: str
+    event_data: dict
+    created_at: datetime

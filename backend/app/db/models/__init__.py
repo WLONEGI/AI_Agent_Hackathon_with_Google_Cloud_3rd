@@ -11,6 +11,8 @@ from .user_account import UserAccount
 from .user_refresh_token import UserRefreshToken
 from .manga_project import MangaProject, MangaProjectStatus
 from .manga_asset import MangaAsset, MangaAssetType
+from .session_message import SessionMessage, MessageType
+from .session_event import SessionEvent
 
 __all__ = [
     "MangaSession",
@@ -29,4 +31,7 @@ __all__ = [
     "MangaProjectStatus",
     "MangaAsset",
     "MangaAssetType",
+    "SessionMessage",
+    "MessageType",
+    "SessionEvent",
 ]

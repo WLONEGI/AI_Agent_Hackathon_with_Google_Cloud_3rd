@@ -23,7 +23,7 @@ class MangaSession(Base):
     __tablename__ = "manga_sessions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    request_id = Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+    request_id = Column(UUID(as_uuid=True), unique=True, nullable=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     project_id = Column(UUID(as_uuid=True), ForeignKey("manga_projects.id", ondelete="SET NULL"), nullable=True)
     status = Column(String(32), nullable=False, default=MangaSessionStatus.QUEUED.value)
@@ -51,6 +51,8 @@ class MangaSession(Base):
     feedback_entries = relationship("UserFeedback", back_populates="session", cascade="all, delete-orphan")
     feedback_history = relationship("UserFeedbackHistory", back_populates="session", cascade="all, delete-orphan")
     feedback_states = relationship("PhaseFeedbackState", back_populates="session", cascade="all, delete-orphan")
+    messages = relationship("SessionMessage", back_populates="session", cascade="all, delete-orphan")
+    events = relationship("SessionEvent", back_populates="session", cascade="all, delete-orphan")
     user = relationship("UserAccount", back_populates="sessions")
     project = relationship("MangaProject", back_populates="sessions", foreign_keys=[project_id])
     projects = relationship("MangaProject", back_populates="session", foreign_keys="MangaProject.session_id")

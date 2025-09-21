@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, HTTPException, status
 
 from app.api.schemas.tasks import TaskPayload
-from app.dependencies import get_db_session
+from app.core.db import get_session_factory
 from app.services.pipeline_service import PipelineOrchestrator
 
 router = APIRouter(prefix="/internal/tasks", tags=["internal"])
@@ -13,9 +12,9 @@ router = APIRouter(prefix="/internal/tasks", tags=["internal"])
 @router.post("/manga", status_code=status.HTTP_202_ACCEPTED)
 async def execute_manga_task(
     payload: TaskPayload,
-    db: AsyncSession = Depends(get_db_session),
 ) -> dict[str, str]:
-    orchestrator = PipelineOrchestrator(db)
+    session_factory = get_session_factory()
+    orchestrator = PipelineOrchestrator(session_factory)
     try:
         await orchestrator.run(payload.request_id)
     except ValueError:

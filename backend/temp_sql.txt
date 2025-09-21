@@ -1,4 +1,0 @@
-ALTER TABLE users ADD COLUMN IF NOT EXISTS firebase_uid VARCHAR(128) UNIQUE;
-CREATE UNIQUE INDEX IF NOT EXISTS ix_users_firebase_uid ON users(firebase_uid);
-UPDATE users SET firebase_uid = 'temp_uid_' || id::text WHERE firebase_uid IS NULL;
-ALTER TABLE users ALTER COLUMN firebase_uid SET NOT NULL;

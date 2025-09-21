@@ -36,52 +36,63 @@ class GenerationService:
     async def enqueue_generation(
         self,
         payload: GenerateRequest,
-        user: Optional[UserAccount] = None,
+        user: UserAccount,
     ) -> GenerateResponse:
-        project = MangaProject(
-            user_id=user.id if user else None,
-            title=payload.title,
-            status=MangaProjectStatus.PROCESSING,
-            project_metadata={
-                "source_text_length": len(payload.text),
-                "ai_auto_settings": payload.ai_auto_settings,
-                "options": payload.options.model_dump(),
-            },
-            settings={"feedback_mode": payload.feedback_mode.model_dump()},
-            total_pages=None,
-        )
-        self.db.add(project)
-        await self.db.flush()
+        try:
+            project = MangaProject(
+                user_id=user.id,
+                title=payload.title,
+                status=MangaProjectStatus.PROCESSING,
+                project_metadata={
+                    "source_text_length": len(payload.text),
+                    "ai_auto_settings": payload.ai_auto_settings,
+                    "options": payload.options.model_dump(),
+                },
+                settings={"feedback_mode": payload.feedback_mode.model_dump()},
+                total_pages=None,
+            )
+            self.db.add(project)
+            await self.db.flush()
 
-        generated_request_id = uuid4()
-        session = MangaSession(
-            request_id=generated_request_id,
-            status=MangaSessionStatus.QUEUED.value,
-            user_id=user.id if user else None,
-            project_id=project.id,
-            session_metadata={
-                "title": payload.title,
-                "text": payload.text,
-                "feedback_mode": payload.feedback_mode.model_dump(),
-                "options": payload.options.model_dump(),
-            },
-        )
-        self.db.add(session)
-        await self.db.flush()
+            generated_request_id = uuid4()
+            session = MangaSession(
+                request_id=generated_request_id,
+                status=MangaSessionStatus.QUEUED.value,
+                user_id=user.id,
+                project_id=project.id,
+                session_metadata={
+                    "title": payload.title,
+                    "text": payload.text,
+                    "feedback_mode": payload.feedback_mode.model_dump(),
+                    "options": payload.options.model_dump(),
+                },
+            )
+            self.db.add(session)
+            await self.db.flush()
+            await self.db.commit()
 
-        await self._enqueue_task(session.request_id)
+            await self._enqueue_task(session.request_id)
 
-        expected_duration = 8 if payload.options.priority != "high" else 5
-        eta = datetime.utcnow() + timedelta(minutes=expected_duration)
-        return GenerateResponse(
-            request_id=str(session.request_id),
-            status=session.status,
-            estimated_completion_time=eta,
-            expected_duration_minutes=expected_duration,
-            status_url=f"/api/v1/manga/sessions/{session.request_id}/status",
-            websocket_channel=self._build_websocket_channel(session.request_id),
-            message="Generation enqueued",
-        )
+            expected_duration = 8 if payload.options.priority != "high" else 5
+            eta = datetime.utcnow() + timedelta(minutes=expected_duration)
+            return GenerateResponse(
+                request_id=str(session.request_id),
+                status=session.status,
+                estimated_completion_time=eta,
+                expected_duration_minutes=expected_duration,
+                status_url=f"/api/v1/manga/sessions/{session.request_id}/status",
+                websocket_channel=self._build_websocket_channel(session.request_id),
+                message="Generation enqueued",
+            )
+        except Exception as exc:
+            # Rollback transaction on any error
+            await self.db.rollback()
+            import logging
+            logging.getLogger(__name__).error("Failed to enqueue generation: %s", exc)
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to enqueue manga generation. Please try again."
+            ) from exc
 
     async def get_status(
         self,
