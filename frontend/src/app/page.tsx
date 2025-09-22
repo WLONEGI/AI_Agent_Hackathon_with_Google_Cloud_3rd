@@ -41,8 +41,8 @@ export default function Home() {
   }, [autoResizeTextarea]);
 
   const handleSubmit = useCallback(async () => {
-    // Skip auth check in development mode
-    if (!isAuthenticated && process.env.NODE_ENV !== 'development') {
+    // Require authentication in all environments
+    if (!isAuthenticated) {
       setShowAuthModal(true);
       return;
     }
@@ -77,7 +77,7 @@ export default function Home() {
           sessionStorage.removeItem('statusUrl');
         }
 
-        // Store auth token for development environment
+        // Store auth token for session continuity
         if (tokens?.access_token) {
           sessionStorage.setItem('authToken', tokens.access_token);
         }

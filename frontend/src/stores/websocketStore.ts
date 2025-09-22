@@ -85,7 +85,7 @@ export const useWebSocketStore = create<WebSocketState & WebSocketActions>()(
         setupProcessingEventHandlers();
 
         // Connect to session if provided
-        const token = authToken || (process.env.NEXT_PUBLIC_APP_ENV === 'development' ? 'mock-dev-token' : '');
+        const token = authToken || '';
         if (channel) {
           wsClient.connectToChannel(channel, token);
         } else if (sessionId && token) {

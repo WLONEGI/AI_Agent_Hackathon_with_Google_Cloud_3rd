@@ -34,3 +34,7 @@ class UserAccount(Base):
     projects = relationship("MangaProject", back_populates="user")
     sessions = relationship("MangaSession", back_populates="user")
     refresh_tokens = relationship("UserRefreshToken", back_populates="user", cascade="all, delete-orphan")
+    interactive_changes = relationship("InteractiveChange", foreign_keys="InteractiveChange.user_id", back_populates="user")
+    approved_changes = relationship("InteractiveChange", foreign_keys="InteractiveChange.approved_by_user_id", back_populates="approved_by")
+    created_branches = relationship("PreviewBranch", foreign_keys="PreviewBranch.created_by_user_id", back_populates="created_by")
+    modified_branches = relationship("PreviewBranch", foreign_keys="PreviewBranch.last_modified_by", back_populates="modified_by")

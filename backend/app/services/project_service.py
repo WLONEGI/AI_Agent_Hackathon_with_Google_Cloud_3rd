@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import HTTPException, status
 from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.db.models import MangaAsset, MangaAssetType, MangaProject, UserAccount
 
@@ -29,7 +30,7 @@ class ProjectService:
         if limit < 1 or limit > 100:
             limit = 20
 
-        query = select(MangaProject).where(MangaProject.user_id == user.id)
+        query = select(MangaProject).options(selectinload(MangaProject.assets)).where(MangaProject.user_id == user.id)
         count_query = select(func.count()).select_from(MangaProject).where(MangaProject.user_id == user.id)
 
         if status_filter and status_filter != "all":
@@ -81,7 +82,7 @@ class ProjectService:
 
     async def _get_user_project(self, user: UserAccount, project_id: UUID) -> MangaProject:
         result = await self.db.execute(
-            select(MangaProject).where(MangaProject.id == project_id, MangaProject.user_id == user.id)
+            select(MangaProject).options(selectinload(MangaProject.assets)).where(MangaProject.id == project_id, MangaProject.user_id == user.id)
         )
         project = result.scalar_one_or_none()
         if not project:

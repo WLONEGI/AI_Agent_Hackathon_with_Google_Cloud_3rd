@@ -43,7 +43,7 @@ const initializeFirebaseAuth = () => {
   }
 };
 
-const MOCK_AUTH_ENABLED = process.env.NEXT_PUBLIC_ENABLE_MOCK_AUTH === 'true';
+const MOCK_AUTH_ENABLED = false;
 
 export const useAuthStore = create<AuthStore>()(
   persist(

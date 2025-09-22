@@ -125,3 +125,73 @@ class SessionEventResponse(BaseModel):
     event_type: str
     event_data: dict
     created_at: datetime
+
+
+# Manga Project schemas
+class MangaProjectItem(BaseModel):
+    manga_id: str
+    title: str
+    status: str
+    pages: Optional[int] = None
+    style: Optional[str] = None
+    description: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class Pagination(BaseModel):
+    page: int
+    limit: int
+    total_items: int
+    total_pages: int
+    has_next: bool
+    has_previous: bool
+
+
+class MangaProjectListResponse(BaseModel):
+    items: List[MangaProjectItem]
+    pagination: Pagination
+
+
+class MangaProjectDetailResponse(BaseModel):
+    manga_id: str
+    title: str
+    status: str
+    description: Optional[str] = None
+    metadata: Optional[dict] = None
+    settings: Optional[dict] = None
+    total_pages: Optional[int] = None
+    style: Optional[str] = None
+    visibility: str
+    expires_at: Optional[datetime] = None
+    files: Optional[dict] = None
+    created_at: datetime
+    updated_at: datetime
+    user_id: Optional[str] = None
+    session_id: Optional[str] = None
+
+
+# Error handling schemas
+class PhaseErrorDetailResponse(BaseModel):
+    phase_id: int
+    phase_name: str
+    error_code: str
+    error_message: str
+    error_details: Optional[str] = None
+    timestamp: datetime
+    retryable: bool
+    retry_count: int
+    suggested_actions: List[str]
+
+
+class PhaseRetryRequest(BaseModel):
+    force_retry: bool = False
+    reset_feedback: bool = True
+
+
+class PhaseRetryResponse(BaseModel):
+    phase_id: int
+    status: str
+    message: str
+    retry_started: bool
+    estimated_completion_time: Optional[datetime] = None

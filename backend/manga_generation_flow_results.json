@@ -1,8 +1,0 @@
-{
-  "test_start": "2025-09-21T01:17:46.275947",
-  "backend_url": "https://manga-backend-prod-wg2vlc4pxq-an.a.run.app",
-  "stages": {},
-  "overall_result": "critical_error",
-  "error": "relation \"user_accounts\" does not exist\nLINE 2:                 INSERT INTO user_accounts (id, firebase_uid,...\n                                    ^\n",
-  "test_end": "2025-09-21T01:17:46.559675"
-}

@@ -69,9 +69,11 @@ class GenerationService:
             )
             self.db.add(session)
             await self.db.flush()
-            await self.db.commit()
 
+            # Enqueue task before committing to ensure task creation success
             await self._enqueue_task(session.request_id)
+
+            await self.db.commit()
 
             expected_duration = 8 if payload.options.priority != "high" else 5
             eta = datetime.utcnow() + timedelta(minutes=expected_duration)
@@ -165,7 +167,11 @@ class GenerationService:
             self.tasks_client.create_task(request={"parent": parent, "task": task})
         except Exception as exc:
             import logging
-            logging.getLogger(__name__).warning("Cloud Tasks enqueue failed: %s", exc)
+            logging.getLogger(__name__).error("Cloud Tasks enqueue failed: %s", exc)
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to enqueue processing task. Please try again."
+            ) from exc
 
     def _build_websocket_channel(self, request_id: UUID) -> Optional[str]:
         if self.settings.websocket_base_url:

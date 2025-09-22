@@ -39,22 +39,25 @@ class AuthService:
                     cred_dict = {
                         "type": "service_account",
                         "project_id": settings.firebase_project_id,
-                        "private_key_id": "firebase-adminsdk",  # 必須フィールド
+                        "private_key_id": "c1f4de45f2bc270592d46f62316de778279bcf58",  # 正しいprivate_key_id
                         "client_email": settings.firebase_client_email,
                         "private_key": settings.firebase_private_key,
-                        "client_id": settings.firebase_client_email.split('@')[0].split('-')[-1] if '@' in settings.firebase_client_email else "000000000000000000000",
+                        "client_id": "100566612734114119967",  # 正しいclient_id
                         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                         "token_uri": "https://oauth2.googleapis.com/token",
                         "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+                        "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/manga-service-account%40comic-ai-agent-470309.iam.gserviceaccount.com"
                     }
                     cred = credentials.Certificate(cred_dict)
                     firebase_admin.initialize_app(cred)
                 cls._firebase_initialized = True
                 print(f"Firebase Admin SDK initialized successfully")
             except Exception as e:
-                print(f"Firebase initialization warning: {e}")
-                # Firebaseが初期化できない場合でも続行（フォールバック処理あり）
+                print(f"Firebase initialization failed: {e}")
                 cls._firebase_initialized = False
+                # 本番環境でFirebase初期化失敗は致命的
+                if get_settings().app_env == "production":
+                    raise RuntimeError(f"Firebase Admin SDK initialization failed in production: {e}") from e
 
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -212,6 +215,7 @@ class AuthService:
         if self._firebase_initialized and FIREBASE_ADMIN_AVAILABLE:
             try:
                 decoded_token = firebase_auth.verify_id_token(id_token)
+                print(f"✅ Firebase token verification successful for: {decoded_token.get('email')}")
                 # Firebase Admin SDKのレスポンスを正規化
                 return {
                     "sub": decoded_token.get("uid", decoded_token.get("user_id")),
@@ -222,8 +226,23 @@ class AuthService:
                     }
                 }
             except Exception as e:
-                print(f"Firebase token verification failed: {e}")
-                # Firebaseの検証が失敗した場合、フォールバック処理に進む
+                print(f"❌ Firebase token verification failed: {e}")
+                print(f"Token prefix: {id_token[:50]}...")
+                # 致命的な検証エラーの場合は例外を投げる
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"firebase_verification_failed: {str(e)}")
+
+        # Firebase Admin SDKが利用できない場合
+        if not FIREBASE_ADMIN_AVAILABLE:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="firebase_admin_sdk_unavailable"
+            )
+
+        if not self._firebase_initialized:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="firebase_initialization_failed"
+            )
 
         # フォールバック: 簡易的なJWTデコード（本番環境では非推奨）
         stripped = id_token.lstrip()

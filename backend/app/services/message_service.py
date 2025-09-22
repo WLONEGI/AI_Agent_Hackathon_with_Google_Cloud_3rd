@@ -28,13 +28,13 @@ class MessageService:
         session = await self._get_user_session(request_id, current_user)
 
         # Get total count
-        total_query = func.count(SessionMessage.id).filter(
+        from sqlalchemy import select
+        total_query = select(func.count(SessionMessage.id)).where(
             SessionMessage.session_id == session.id
         )
         total = await self.db.scalar(total_query)
 
         # Get messages with pagination
-        from sqlalchemy import select
         messages_query = (
             select(SessionMessage)
             .where(SessionMessage.session_id == session.id)

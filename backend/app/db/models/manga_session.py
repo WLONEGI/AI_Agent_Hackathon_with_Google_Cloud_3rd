@@ -56,3 +56,8 @@ class MangaSession(Base):
     user = relationship("UserAccount", back_populates="sessions")
     project = relationship("MangaProject", back_populates="sessions", foreign_keys=[project_id])
     projects = relationship("MangaProject", back_populates="session", foreign_keys="MangaProject.session_id")
+    assets = relationship("MangaAsset", back_populates="session", cascade="all, delete-orphan")
+    interactive_changes = relationship("InteractiveChange", back_populates="session")
+    preview_branches = relationship("PreviewBranch", back_populates="session")
+    preview_versions_extended = relationship("PreviewVersionExtended", back_populates="session")
+    quality_gates = relationship("PhaseQualityGate", back_populates="session")

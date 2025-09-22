@@ -24,6 +24,14 @@ export interface LogEntry {
   source: 'system' | 'ai' | 'user' | 'websocket';
 }
 
+export interface ChatMessage {
+  id: string;
+  content: string;
+  type: 'user' | 'system' | 'ai';
+  timestamp: string;
+  phase?: number;
+}
+
 export interface FeedbackEntry {
   id: string;
   timestamp: Date;
@@ -58,33 +66,38 @@ export interface ProcessingState {
   sessionStatus: 'idle' | 'connecting' | 'processing' | 'completed' | 'error' | 'cancelled';
   sessionTitle: string;
   sessionText: string;
-  
+
   // 7-Phase System
   phases: PhaseState[];
   currentPhase: PhaseId | 0;
   overallProgress: number;
   completedSessionId: string | null;
-  
+
   // Real-time Communication
   wsClient: WebSocketClient | null;
   connectionStatus: 'disconnected' | 'connecting' | 'connected' | 'reconnecting' | 'error';
   connectionAttempts: number;
   lastConnectionError: string | null;
-  
+
+  // Chat Messages
+  chatMessages: ChatMessage[];
+  maxChatHistory: number;
+
   // HITL Feedback
   feedbackRequired: boolean;
   feedbackPhase: number | null;
   feedbackTimeout: number | null;
   feedbackTimeRemaining: number | null;
   feedbackInput: string;
-  
+  selectedPhaseForFeedback: number | null;
+
   // UI State
   leftPanelWidth: number;
   showLogs: boolean;
   showPhaseDetails: boolean;
   selectedPhase: number | null;
   autoScroll: boolean;
-  
+
   // Performance & Analytics
   totalLogs: number;
   maxLogHistory: number;
@@ -104,7 +117,7 @@ export interface ProcessingActions {
   resetSession: () => void;
   updateSessionStatus: (status: ProcessingState['sessionStatus']) => void;
   cancelSession: () => void;
-  
+
   // Phase Actions
   updatePhaseStatus: (phaseId: PhaseId, status: PhaseState['status']) => void;
   updatePhaseProgress: (phaseId: PhaseId, progress: number) => void;
@@ -112,13 +125,19 @@ export interface ProcessingActions {
   setPhaseResult: (phaseId: PhaseId, result: PhaseResult) => void;
   setPhaseError: (phaseId: PhaseId, error: string) => void;
   advanceToPhase: (phaseId: PhaseId) => void;
-  
+
   // WebSocket Actions
   setWebSocketClient: (client: WebSocketClient | null) => void;
   updateConnectionStatus: (status: ProcessingState['connectionStatus']) => void;
   incrementConnectionAttempts: () => void;
   setConnectionError: (error: string | null) => void;
-  
+
+  // Chat Message Actions
+  addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => void;
+  clearChatMessages: () => void;
+  setChatMessages: (messages: ChatMessage[]) => void;
+  setMaxChatHistory: (max: number) => void;
+
   // HITL Feedback Actions
   requestFeedback: (phaseId: PhaseId, timeout?: number) => void;
   updateFeedbackInput: (input: string) => void;
@@ -126,25 +145,26 @@ export interface ProcessingActions {
   skipFeedback: (reason: 'satisfied' | 'time_constraint' | 'default_acceptable') => Promise<void>;
   clearFeedbackRequest: () => void;
   updateFeedbackTimer: (timeRemaining: number) => void;
-  
+  setSelectedPhaseForFeedback: (phaseId: number | null) => void;
+
   // Logging Actions
   addLog: (log: Omit<LogEntry, 'id' | 'timestamp'>) => void;
   clearLogs: () => void;
   setMaxLogHistory: (max: number) => void;
-  
+
   // UI Actions
   setLeftPanelWidth: (width: number) => void;
   toggleLogs: () => void;
   togglePhaseDetails: () => void;
   selectPhase: (phaseId: number | null) => void;
   toggleAutoScroll: () => void;
-  
+
   // Utility Actions
   calculateOverallProgress: () => void;
   getPhaseById: (phaseId: number) => PhaseState | undefined;
   getCurrentPhase: () => PhaseState | undefined;
   isPhaseActive: (phaseId: number) => boolean;
-  
+
   // Performance Actions
   recordPhaseStart: (phaseId: PhaseId) => void;
   recordFeedbackResponse: (phaseId: PhaseId, responseTime: number) => void;
@@ -341,33 +361,38 @@ const initialState: ProcessingState = {
   sessionStatus: 'idle',
   sessionTitle: '',
   sessionText: '',
-  
+
   // 7-Phase System
   phases: initialPhases,
   currentPhase: 0,
   overallProgress: 0,
   completedSessionId: null,
-  
+
   // Real-time Communication
   wsClient: null,
   connectionStatus: 'disconnected',
   connectionAttempts: 0,
   lastConnectionError: null,
-  
+
+  // Chat Messages
+  chatMessages: [],
+  maxChatHistory: 500,
+
   // HITL Feedback
   feedbackRequired: false,
   feedbackPhase: null,
   feedbackTimeout: null,
   feedbackTimeRemaining: null,
   feedbackInput: '',
-  
+  selectedPhaseForFeedback: null,
+
   // UI State
   leftPanelWidth: 50, // percentage
   showLogs: true,
   showPhaseDetails: true,
   selectedPhase: null,
   autoScroll: true,
-  
+
   // Performance & Analytics
   totalLogs: 0,
   maxLogHistory: 1000,
@@ -583,6 +608,42 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
           });
         },
 
+        // Chat Message Actions
+        addChatMessage: (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+          set((state) => {
+            const newMessage: ChatMessage = {
+              ...message,
+              id: `msg_${Date.now()}_${Math.random()}`,
+              timestamp: new Date().toLocaleTimeString()
+            };
+
+            state.chatMessages = [...state.chatMessages, newMessage];
+
+            // Limit chat history
+            if (state.chatMessages.length > state.maxChatHistory) {
+              state.chatMessages = state.chatMessages.slice(-state.maxChatHistory);
+            }
+          });
+        },
+
+        clearChatMessages: () => {
+          set((state) => {
+            state.chatMessages = [];
+          });
+        },
+
+        setChatMessages: (messages: ChatMessage[]) => {
+          set((state) => {
+            state.chatMessages = [...messages];
+          });
+        },
+
+        setMaxChatHistory: (max: number) => {
+          set((state) => {
+            state.maxChatHistory = max;
+          });
+        },
+
         // HITL Feedback Actions
         requestFeedback: (phaseId: PhaseId, timeout?: number) => {
           set((state) => {
@@ -612,18 +673,22 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
             throw new Error('フィードバック対象のセッションが見つかりませんでした');
           }
 
-          const requestPayload = {
-            phase: feedbackPhase,
-            feedback_type: type === 'quick_option' ? 'quick_option' : 'natural_language',
-            content: {
-              natural_language: type === 'natural_language' ? feedback : undefined,
-              quick_option: type === 'quick_option' ? (feedback as 'make_brighter' | 'more_serious' | 'add_detail' | 'simplify') : undefined,
-              intensity: 0.7,
-              target_elements: [] as string[]
-            }
-          };
+          // Map feedback type to HITL feedback type
+          let hitlFeedbackType: 'approval' | 'modification' | 'skip' = 'modification';
+          if (type === 'skip') {
+            hitlFeedbackType = 'skip';
+          }
 
-          const response = await apiClient.submitFeedback(sessionId, requestPayload);
+          const startTime = Date.now();
+          const response = await apiClient.submitHitlFeedback(sessionId, {
+            phase: feedbackPhase,
+            feedback_type: hitlFeedbackType,
+            natural_language_input: feedback,
+            selected_options: type === 'quick_option' ? [feedback] : [],
+            user_satisfaction_score: undefined,
+            processing_time_ms: undefined
+          });
+
           if (!response.success) {
             throw new Error(response.error || 'フィードバックの送信に失敗しました');
           }
@@ -653,7 +718,7 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
             draft.feedbackInput = '';
           });
 
-          get().updatePhaseStatus(feedbackPhase, 'processing');
+          get().updatePhaseStatus(feedbackPhase as PhaseId, 'processing');
         },
 
         skipFeedback: async (reason: 'satisfied' | 'time_constraint' | 'default_acceptable') => {
@@ -662,9 +727,13 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
             throw new Error('スキップ対象のセッションが見つかりませんでした');
           }
 
-          const response = await apiClient.skipFeedback(sessionId, {
+          const response = await apiClient.submitHitlFeedback(sessionId, {
             phase: feedbackPhase,
-            skip_reason: reason
+            feedback_type: 'skip',
+            natural_language_input: `Skipped due to: ${reason}`,
+            selected_options: [reason],
+            user_satisfaction_score: undefined,
+            processing_time_ms: undefined
           });
 
           if (!response.success) {
@@ -691,7 +760,7 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
             draft.feedbackInput = '';
           });
 
-          get().updatePhaseStatus(feedbackPhase, 'processing');
+          get().updatePhaseStatus(feedbackPhase as PhaseId, 'processing');
         },
 
         clearFeedbackRequest: () => {
@@ -701,6 +770,12 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
             state.feedbackTimeout = null;
             state.feedbackTimeRemaining = null;
             state.feedbackInput = '';
+          });
+        },
+
+        setSelectedPhaseForFeedback: (phaseId: number | null) => {
+          set((state) => {
+            state.selectedPhaseForFeedback = phaseId;
           });
         },
 
@@ -896,6 +971,11 @@ export const useLogs = () => useProcessingStore(useShallow((state) =>
 // Get current phase ID for HITL feedback
 export const useCurrentPhaseId = () => useProcessingStore(state => state.currentPhase);
 
+// Chat message selectors
+export const useChatMessages = () => useProcessingStore(state => state.chatMessages);
+
+export const useSelectedPhaseForFeedback = () => useProcessingStore(state => state.selectedPhaseForFeedback);
+
 // Add missing selector for feedback state with currentPhaseId
 export const useFeedbackStateWithPhaseId = () => useProcessingStore(useShallow(
   (state) => ({
@@ -904,6 +984,7 @@ export const useFeedbackStateWithPhaseId = () => useProcessingStore(useShallow(
     feedbackTimeout: state.feedbackTimeout,
     feedbackTimeRemaining: state.feedbackTimeRemaining,
     feedbackInput: state.feedbackInput,
-    currentPhaseId: state.currentPhase
+    currentPhaseId: state.currentPhase,
+    selectedPhaseForFeedback: state.selectedPhaseForFeedback
   })
 ));

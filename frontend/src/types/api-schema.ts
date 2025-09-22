@@ -136,40 +136,90 @@ export interface ApiResponse<T = unknown> {
 
 // ===== Manga project API =====
 
-export interface MangaWorkItem {
+export interface MangaProjectItem {
   manga_id: string;
   title: string;
   status: string;
   pages?: number | null;
   style?: string | null;
+  description?: string | null;
   created_at: string;
   updated_at: string;
-  thumbnail_url?: string | null;
-  size_bytes?: number | null;
 }
 
-export interface PaginationResponse {
+export interface Pagination {
   page: number;
   limit: number;
-  total_items: number;
-  total_pages: number;
+  total: number;
+  pages: number;
   has_next: boolean;
-  has_previous: boolean;
+  has_prev: boolean;
 }
 
-export interface MangaWorksListResponse {
-  items: MangaWorkItem[];
-  pagination: PaginationResponse;
+export interface MangaProjectListResponse {
+  items: MangaProjectItem[];
+  pagination: Pagination;
 }
 
-export interface MangaWorkDetailResponse {
+export interface MangaProjectDetailResponse {
   manga_id: string;
   title: string;
   status: string;
-  metadata: Record<string, unknown>;
-  files: Record<string, unknown>;
+  description?: string | null;
+  metadata?: Record<string, unknown> | null;
+  settings?: Record<string, unknown> | null;
+  total_pages?: number | null;
+  style?: string | null;
+  visibility: string;
+  expires_at?: string | null;
+  files?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
-  expires_at?: string | null;
+  user_id?: string | null;
+  session_id?: string | null;
+}
+
+// ===== Error Handling =====
+
+export interface PhaseError {
+  code: string;
+  message: string;
+  details?: string;
+  timestamp: Date;
+  retryable: boolean;
+  retryCount: number;
+  errorType: 'network' | 'authentication' | 'validation' | 'server' | 'timeout' | 'unknown';
+  suggestions?: string[];
+}
+
+export interface ErrorState {
+  [phaseId: number]: {
+    error: PhaseError | null;
+    retryAttempts: number;
+    lastRetryAt: Date | null;
+    isRetrying: boolean;
+    autoRetryEnabled: boolean;
+  };
+}
+
+export interface RetryConfig {
+  maxAttempts: number;
+  baseDelay: number;
+  maxDelay: number;
+  backoffMultiplier: number;
+  retryableErrors: string[];
+}
+
+// Legacy interfaces for backward compatibility
+export interface MangaWorkItem extends MangaProjectItem {}
+export interface PaginationResponse extends Pagination {
+  total_items: number;
+  total_pages: number;
+  has_previous: boolean;
+}
+export interface MangaWorksListResponse extends MangaProjectListResponse {}
+export interface MangaWorkDetailResponse extends MangaProjectDetailResponse {
+  metadata: Record<string, unknown>;
+  files: Record<string, unknown>;
 }
 

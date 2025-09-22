@@ -37,6 +37,13 @@ export function useWebSocket() {
 
     client.on('phaseStart', (data: { phaseId: PhaseId; phaseName: string }) => {
       store.updatePhaseStatus(data.phaseId, 'processing');
+      store.updatePhaseProgress(data.phaseId, 10); // Initial progress
+      logger.info(`Phase ${data.phaseId} started: ${data.phaseName}`);
+    });
+
+    client.on('phaseProgress', (data: { phaseId: PhaseId; progress: number }) => {
+      store.updatePhaseProgress(data.phaseId, data.progress);
+      logger.debug(`Phase ${data.phaseId} progress: ${data.progress}%`);
     });
 
     client.on('phaseComplete', (data: WebSocketEventData['phaseComplete']) => {
@@ -52,6 +59,14 @@ export function useWebSocket() {
     client.on('feedbackRequest', (data: WebSocketEventData['feedbackRequest']) => {
       store.updatePhaseStatus(data.phaseId, 'waiting_feedback');
       store.setPhasePreview(data.phaseId, data.preview);
+    });
+
+    client.on('feedbackRequired', (data: { phaseId: PhaseId; preview?: any }) => {
+      store.updatePhaseStatus(data.phaseId, 'waiting_feedback');
+      if (data.preview) {
+        store.setPhasePreview(data.phaseId, data.preview);
+      }
+      logger.info(`Feedback required for phase ${data.phaseId}`);
     });
 
     client.on('log', (logEntry: LogEntry) => {

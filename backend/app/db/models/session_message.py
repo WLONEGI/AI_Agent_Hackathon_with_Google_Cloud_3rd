@@ -25,7 +25,7 @@ class SessionMessage(Base):
     message_type = Column(String(20), nullable=False)
     content = Column(Text, nullable=False)
     phase = Column(Integer, nullable=True)  # Optional phase association
-    metadata = Column(JSON, nullable=True, default=dict)
+    message_metadata = Column(JSON, nullable=True, default=dict)
 
     created_at = Column(TIMESTAMP(timezone=True), nullable=False, default=datetime.utcnow)
     updated_at = Column(TIMESTAMP(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)

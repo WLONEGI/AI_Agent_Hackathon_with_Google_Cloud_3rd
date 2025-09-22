@@ -20,7 +20,7 @@ from app.db.models import MangaProject, UserAccount
 from app.services.project_service import ProjectService
 
 
-router = APIRouter(prefix="/api/v1/manga", tags=["manga-projects"])
+router = APIRouter(prefix="/api/v1/projects", tags=["manga-projects"])
 
 
 @router.get("", response_model=MangaProjectListResponse)

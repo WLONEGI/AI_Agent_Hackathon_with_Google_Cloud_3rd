@@ -6,7 +6,7 @@ import logging
 import math
 import time
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from uuid import UUID
 
 from sqlalchemy import select, update
@@ -28,7 +28,15 @@ from app.db.models import (
     PreviewVersion,
 )
 from app.services.realtime_hub import build_event, realtime_hub
-from app.services.hitl_service import HITLService
+from app.services.hitl_service import (
+    HITLService,
+    HITLStateManager,
+    HITLError,
+    HITLSessionError,
+    HITLStateError,
+    HITLTimeoutError,
+    HITLDatabaseError
+)
 from app.services.vertex_ai_service import (
     VertexAIServiceError,
     VertexAIRateLimitError,
@@ -791,17 +799,31 @@ class PipelineOrchestrator:
     async def _update_session_status(self, session_id: UUID, status: Optional[str] = None, **kwargs) -> None:
         """Update session status in a separate transaction to avoid conflicts"""
         async with self.session_factory() as db_session:
-            async with db_session.begin():
+            try:
                 update_values = {"updated_at": datetime.utcnow()}
                 if status:
                     update_values["status"] = status
                 update_values.update(kwargs)
 
-                await db_session.execute(
-                    update(MangaSession)
-                    .where(MangaSession.id == session_id)
-                    .values(**update_values)
-                )
+                # Check if transaction is already active to avoid double-begin
+                if db_session.in_transaction():
+                    logger.info("_update_session_status: Using existing transaction")
+                    await db_session.execute(
+                        update(MangaSession)
+                        .where(MangaSession.id == session_id)
+                        .values(**update_values)
+                    )
+                else:
+                    logger.info("_update_session_status: Starting new transaction")
+                    async with db_session.begin():
+                        await db_session.execute(
+                            update(MangaSession)
+                            .where(MangaSession.id == session_id)
+                            .values(**update_values)
+                        )
+            except Exception as e:
+                logger.error(f"Failed to update session status: {e}")
+                raise
 
     async def _execute_single_phase(self, session: MangaSession, phase_config: Dict[str, Any], context: Dict[int, Dict[str, Any]]) -> Dict[str, Any]:
         """Execute a single phase with its own database transaction scope"""
@@ -809,22 +831,30 @@ class PipelineOrchestrator:
             # Set database session for this phase
             self.db = db_session
 
-            async with db_session.begin():
-                try:
-                    # Process the phase
+            try:
+                # Check if transaction is already active to avoid double-begin
+                if db_session.in_transaction():
+                    logger.info(f"Phase {phase_config['phase']}: Using existing transaction")
+                    # Process the phase within existing transaction
                     phase_result = await self._process_phase(session, phase_config, context, attempt=1)
-
                     # Persist phase results within the same transaction
                     await self._persist_phase_results(session, phase_config, phase_result)
-
                     return phase_result
+                else:
+                    logger.info(f"Phase {phase_config['phase']}: Starting new transaction")
+                    async with db_session.begin():
+                        # Process the phase
+                        phase_result = await self._process_phase(session, phase_config, context, attempt=1)
+                        # Persist phase results within the same transaction
+                        await self._persist_phase_results(session, phase_config, phase_result)
+                        return phase_result
 
-                except Exception as e:
-                    logger.error(f"Phase {phase_config['phase']} execution failed: {e}")
-                    raise
-                finally:
-                    # Clear database session to prevent reuse
-                    self.db = None
+            except Exception as e:
+                logger.error(f"Phase {phase_config['phase']} execution failed: {e}")
+                raise
+            finally:
+                # Clear database session to prevent reuse
+                self.db = None
 
     async def _persist_phase_results(self, session: MangaSession, phase_config: Dict[str, Any], phase_result: Dict[str, Any]) -> None:
         """Persist phase results to database"""
@@ -1986,3 +2016,944 @@ class PipelineOrchestrator:
         Evaluate quality using the unified QualityCalculator system
         """
         return QualityCalculator.calculate_quality(phase_number, data, diagnostics)
+
+
+class HITLCapablePipelineOrchestrator(PipelineOrchestrator):
+    """
+    HITL(Human-in-the-Loop)機能を統合したパイプラインオーケストレーター
+    既存のPipelineOrchestratorを継承し、フィードバックサイクル機能を追加
+    """
+
+    def __init__(self, session_factory):
+        super().__init__(session_factory)
+        
+        # 設定から初期値を読み込み
+        try:
+            settings = core_settings.get_settings()
+            self.is_hitl_enabled = settings.hitl_enabled
+            self.max_feedback_iterations = settings.hitl_max_iterations
+            self.feedback_timeout_minutes = settings.hitl_feedback_timeout_minutes
+        except Exception as e:
+            logger.warning(f"Failed to load HITL settings, using defaults: {e}")
+            # フォールバック値
+            self.is_hitl_enabled = True
+            self.max_feedback_iterations = 3
+            self.feedback_timeout_minutes = 30
+        
+        # HITLコンポーネント初期化 - 必要時に作成
+        self._hitl_service: Optional[HITLService] = None
+        self._hitl_state_manager: Optional[HITLStateManager] = None
+
+    async def _get_hitl_service(self, db: AsyncSession) -> HITLService:
+        """HITLサービスを取得（初回作成時にキャッシュ）"""
+        if self._hitl_service is None:
+            self._hitl_service = HITLService(db)
+        return self._hitl_service
+
+    async def _get_hitl_state_manager(self, db: AsyncSession) -> HITLStateManager:
+        """HITLステートマネージャーを取得（初回作成時にキャッシュ）"""
+        if self._hitl_state_manager is None:
+            hitl_service = await self._get_hitl_service(db)
+            self._hitl_state_manager = HITLStateManager(hitl_service)
+        return self._hitl_state_manager
+
+    def _extract_preview_data(self, result: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """フェーズ結果からプレビューデータを抽出"""
+        if not result:
+            return None
+            
+        preview_data = {}
+        
+        # 生成された画像の抽出
+        if "generated_images" in result:
+            preview_data["images"] = result["generated_images"]
+        
+        # テキスト結果の抽出
+        if "generated_text" in result:
+            preview_data["text"] = result["generated_text"]
+        
+        # キャラクター情報の抽出
+        if "characters" in result:
+            preview_data["characters"] = result["characters"]
+        
+        # ストーリー概要の抽出
+        if "story_outline" in result:
+            preview_data["story_outline"] = result["story_outline"]
+        
+        # その他のメタデータ
+        if "metadata" in result:
+            preview_data["metadata"] = result["metadata"]
+        
+        return preview_data if preview_data else None
+
+    async def _get_feedback_options_for_phase(self, phase_number: int) -> List[Dict[str, Any]]:
+        """指定フェーズで利用可能なフィードバックオプションを取得"""
+        try:
+            async with session_scope(self.session_factory) as db:
+                # フィードバックオプションテンプレートを取得
+                query = select(FeedbackOptionTemplate).where(
+                    FeedbackOptionTemplate.phase == phase_number
+                )
+                result = await db.execute(query)
+                templates = result.scalars().all()
+                
+                options = []
+                for template in templates:
+                    options.append({
+                        "option_id": str(template.id),
+                        "option_text": template.option_text,
+                        "option_type": template.option_type,
+                        "display_order": template.display_order,
+                        "metadata": template.metadata or {}
+                    })
+                
+                # デフォルトオプション（承認、修正、スキップ）
+                if not options:
+                    options = [
+                        {
+                            "option_id": "approve",
+                            "option_text": "この結果を承認する",
+                            "option_type": "approval",
+                            "display_order": 1
+                        },
+                        {
+                            "option_id": "modify",
+                            "option_text": "修正して再生成する",
+                            "option_type": "modification",
+                            "display_order": 2
+                        },
+                        {
+                            "option_id": "skip",
+                            "option_text": "このフェーズをスキップする",
+                            "option_type": "skip",
+                            "display_order": 3
+                        }
+                    ]
+                
+                return sorted(options, key=lambda x: x.get("display_order", 999))
+                
+        except Exception as e:
+            logger.error(f"Failed to get feedback options for phase {phase_number}: {e}")
+            # エラー時はデフォルトオプションを返す
+            return [
+                {"option_id": "approve", "option_text": "承認", "option_type": "approval", "display_order": 1},
+                {"option_id": "modify", "option_text": "修正", "option_type": "modification", "display_order": 2},
+                {"option_id": "skip", "option_text": "スキップ", "option_type": "skip", "display_order": 3}
+            ]
+
+    def _add_hitl_error_metadata(self, result: Dict[str, Any], error_type: str, error_message: str) -> Dict[str, Any]:
+        """HITLエラー情報をメタデータに追加"""
+        if "metadata" not in result:
+            result["metadata"] = {}
+        
+        result["metadata"].update({
+            "hitl_processed": True,
+            "hitl_error": True,
+            "hitl_error_type": error_type,
+            "hitl_error_message": error_message,
+            "hitl_error_timestamp": datetime.utcnow().isoformat(),
+            "feedback_iterations": 0,
+            "final_state": "error"
+        })
+        
+        return result
+
+    async def _execute_single_phase_with_hitl(
+        self,
+        session: MangaSession,
+        phase_config: Dict[str, Any],
+        context: Dict[int, Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        HITLフィードバックサイクルを統合したフェーズ実行
+        """
+        phase_number = phase_config["phase"]
+
+        # 初期実行
+        initial_result = await self._execute_single_phase(session, phase_config, context)
+
+        # HITL有効チェック
+        if not self._is_hitl_enabled_for_phase(phase_number):
+            logger.info(f"HITL disabled for phase {phase_number}, using standard result")
+            return initial_result
+
+        # フィードバックサイクル処理
+        try:
+            final_result = await self._process_hitl_feedback_cycle(
+                session, phase_config, context, initial_result
+            )
+            return final_result
+        except Exception as e:
+            logger.error(f"HITL feedback cycle failed for phase {phase_number}: {e}")
+            # フィードバック処理に失敗した場合は初期結果を使用
+            return initial_result
+
+    async def _process_hitl_feedback_cycle(
+        self,
+        session: MangaSession,
+        phase_config: Dict[str, Any],
+        context: Dict[int, Dict[str, Any]],
+        initial_result: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        フィードバックサイクルのメイン処理ロジック（HITLStateManager統合版 + 完全エラーハンドリング）
+        """
+        phase_number = phase_config["phase"]
+        current_result = initial_result
+        hitl_context = None
+
+        logger.info(f"Starting HITL feedback cycle for phase {phase_number}")
+
+        # データベースセッションを取得してHITLコンポーネントを初期化
+        async with session_scope(self.session_factory) as db:
+            try:
+                state_manager = await self._get_hitl_state_manager(db)
+                
+                # HITL セッション開始
+                try:
+                    hitl_context = await state_manager.start_hitl_session(
+                        session_id=session.request_id,
+                        phase=phase_number,
+                        preview_data=self._extract_preview_data(current_result)
+                    )
+                except HITLDatabaseError as e:
+                    logger.error(f"Database error starting HITL session: {e}")
+                    # データベースエラーの場合は初期結果を返す
+                    return self._add_hitl_error_metadata(current_result, "database_error", str(e))
+                except HITLSessionError as e:
+                    logger.error(f"Session error starting HITL: {e}")
+                    return self._add_hitl_error_metadata(current_result, "session_error", str(e))
+
+                # フィードバックサイクル処理
+                while hitl_context.can_continue():
+                    try:
+                        # フィードバック要求通知
+                        await self._notify_feedback_required(session, phase_number, current_result)
+
+                        # フィードバック待機
+                        feedback = await self._wait_for_user_feedback(
+                            session, phase_number, timeout_minutes=self.feedback_timeout_minutes
+                        )
+
+                        if feedback is None:
+                            # タイムアウト処理
+                            try:
+                                await state_manager.handle_timeout(session.request_id)
+                                logger.info(f"Feedback timeout for phase {phase_number}")
+                                await self._notify_feedback_timeout(session, phase_number)
+                                break
+                            except HITLTimeoutError as e:
+                                logger.warning(f"Timeout handling had issues: {e}")
+                                break  # タイムアウト処理は継続
+
+                        # フィードバック受信処理
+                        try:
+                            should_continue = await state_manager.process_feedback_received(
+                                session.request_id, feedback
+                            )
+                        except HITLStateError as e:
+                            logger.error(f"State error processing feedback: {e}")
+                            break
+                        except HITLError as e:
+                            logger.error(f"HITL error processing feedback: {e}")
+                            if e.error_code == "HITL_MAX_ITERATIONS_EXCEEDED":
+                                # 最大反復回数超過の場合は現在の結果で終了
+                                break
+                            else:
+                                # その他のHITLエラーも現在の結果で終了
+                                break
+
+                        if not should_continue:
+                            # 承認、スキップ、またはエラーによる終了
+                            feedback_type = feedback.get("feedback_type")
+                            if feedback_type == "approval":
+                                await self._notify_feedback_approved(session, phase_number)
+                            elif feedback_type == "skip":
+                                await self._notify_feedback_skipped(session, phase_number)
+                            break
+
+                        # 修正要求の場合：再生成実行
+                        if hitl_context.state.value == "regenerating":
+                            logger.info(f"Processing modification request for phase {phase_number}")
+                            await self._notify_feedback_processing(session, phase_number)
+
+                            try:
+                                # フィードバック適用と再生成
+                                modifications = self._extract_feedback_modifications_from_response(feedback)
+                                modified_result = await self._regenerate_with_feedback(
+                                    session, phase_config, context, current_result, modifications
+                                )
+
+                                # 再生成完了をステートマネージャーに通知
+                                try:
+                                    regeneration_success = await state_manager.handle_regeneration_complete(
+                                        session.request_id,
+                                        regeneration_success=True,
+                                        new_preview_data=self._extract_preview_data(modified_result)
+                                    )
+
+                                    if regeneration_success:
+                                        current_result = modified_result
+                                        await self._notify_regeneration_complete(session, phase_number, current_result)
+                                    else:
+                                        logger.error(f"Regeneration state handling failed for phase {phase_number}")
+                                        break
+                                        
+                                except (HITLStateError, HITLDatabaseError) as e:
+                                    logger.error(f"State/Database error in regeneration completion: {e}")
+                                    break
+
+                            except Exception as e:
+                                # 再生成エラー処理
+                                logger.error(f"Regeneration failed for phase {phase_number}: {e}")
+                                try:
+                                    await state_manager.handle_regeneration_complete(
+                                        session.request_id,
+                                        regeneration_success=False
+                                    )
+                                except Exception as cleanup_error:
+                                    logger.error(f"Failed to cleanup after regeneration error: {cleanup_error}")
+                                    
+                                await self._notify_regeneration_error(session, phase_number, str(e))
+                                break
+
+                    except Exception as e:
+                        logger.error(f"Unexpected error in feedback cycle iteration: {e}")
+                        if hitl_context:
+                            hitl_context.update_state(HITLSessionState.ERROR, str(e))
+                        break
+
+                # セッション完了とクリーンアップ
+                try:
+                    session_status = await state_manager.get_session_status(session.request_id)
+                    if session_status:
+                        logger.info(f"HITL session completed: {session_status}")
+
+                    await state_manager.cleanup_session(session.request_id)
+                except Exception as cleanup_error:
+                    logger.warning(f"Session cleanup had issues: {cleanup_error}")
+
+            except Exception as e:
+                logger.error(f"Critical HITL error for phase {phase_number}: {e}")
+                # クリーンアップを試行
+                try:
+                    if state_manager and hitl_context:
+                        await state_manager.cleanup_session(session.request_id)
+                except Exception as cleanup_error:
+                    logger.error(f"Failed cleanup after critical error: {cleanup_error}")
+
+        # メタデータにHITL情報を追加
+        if "metadata" not in current_result:
+            current_result["metadata"] = {}
+
+        current_result["metadata"].update({
+            "hitl_processed": True,
+            "feedback_iterations": hitl_context.iteration_count if hitl_context else 0,
+            "final_state": hitl_context.state.value if hitl_context else "unknown"
+        })
+
+        logger.info(f"HITL feedback cycle completed for phase {phase_number}")
+        return current_result
+
+    async def _regenerate_with_feedback(
+        self,
+        session: MangaSession,
+        phase_config: Dict[str, Any],
+        context: Dict[int, Dict[str, Any]],
+        current_result: Dict[str, Any],
+        modifications: Optional[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """
+        フィードバックを適用して再生成実行
+        """
+        if modifications:
+            # フィードバック修正を適用
+            modified_result = await self._apply_feedback_modifications(
+                session, phase_config, current_result, modifications
+            )
+        else:
+            modified_result = current_result
+
+        # 修正されたコンテキストで再実行
+        regenerated_result = await self._process_phase(
+            session, phase_config, context, attempt=2
+        )
+
+        return regenerated_result
+
+    def _extract_feedback_modifications_from_response(self, feedback: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        フィードバックレスポンスから修正要求を抽出
+        """
+        modifications = {}
+
+        if feedback.get("natural_language_input"):
+            modifications["natural_language_modifications"] = feedback["natural_language_input"]
+
+        if feedback.get("selected_options"):
+            modifications["selected_modifications"] = feedback["selected_options"]
+
+        return modifications if modifications else None
+
+    def _is_hitl_enabled_for_phase(self, phase_number: int) -> bool:
+        """
+        指定フェーズでHITLが有効かチェック（設定ベース）
+        """
+        if not self.is_hitl_enabled:
+            return False
+
+        # 設定からHITL有効フェーズを取得
+        try:
+            settings = core_settings.get_settings()
+            return settings.is_hitl_enabled_for_phase(phase_number)
+        except Exception as e:
+            logger.warning(f"Failed to get HITL settings, falling back to default: {e}")
+            # フォールバック: Phase 1と2でHITLを有効にする（Phase 1実装）
+            return phase_number in [1, 2]
+
+    async def _notify_feedback_required(
+        self,
+        session: MangaSession,
+        phase_number: int,
+        result: Dict[str, Any]
+    ) -> None:
+        """
+        フィードバック要求をユーザーに通知（HITLStateManager統合版）
+        """
+        # HITLStateManagerからセッション状態を取得
+        session_state = None
+        try:
+            async with session_scope(self.session_factory) as db:
+                state_manager = await self._get_hitl_state_manager(db)
+                session_state = await state_manager.get_session_status(session.request_id)
+        except Exception as e:
+            logger.warning(f"Failed to get HITL session state: {e}")
+
+        # プレビューデータを抽出
+        preview_data = self._extract_preview_data(result)
+
+        # 通知イベント構築
+        event_data = {
+            "phaseId": phase_number,
+            "sessionId": str(session.request_id),
+            "result": result,
+            "preview_data": preview_data,
+            "hitl_state": session_state,
+            "feedback_options": await self._get_feedback_options_for_phase(phase_number),
+            "timeout_minutes": self.feedback_timeout_minutes
+        }
+
+        await realtime_hub.publish(
+            session.request_id,
+            build_event("feedback_required", **event_data)
+        )
+
+    async def _notify_feedback_timeout(self, session: MangaSession, phase_number: int) -> None:
+        """フィードバックタイムアウト通知（HITLStateManager統合版）"""
+        session_state = None
+        try:
+            async with session_scope(self.session_factory) as db:
+                state_manager = await self._get_hitl_state_manager(db)
+                session_state = await state_manager.get_session_status(session.request_id)
+        except Exception as e:
+            logger.warning(f"Failed to get HITL session state for timeout: {e}")
+
+        event_data = {
+            "phaseId": phase_number,
+            "sessionId": str(session.request_id),
+            "hitl_state": session_state,
+            "timeout_occurred_at": datetime.utcnow().isoformat()
+        }
+
+        await realtime_hub.publish(
+            session.request_id,
+            build_event("feedback_timeout", **event_data)
+        )
+
+    async def _notify_feedback_approved(self, session: MangaSession, phase_number: int) -> None:
+        """フィードバック承認通知（HITLStateManager統合版）"""
+        session_state = None
+        try:
+            async with session_scope(self.session_factory) as db:
+                state_manager = await self._get_hitl_state_manager(db)
+                session_state = await state_manager.get_session_status(session.request_id)
+        except Exception as e:
+            logger.warning(f"Failed to get HITL session state for approval: {e}")
+
+        event_data = {
+            "phaseId": phase_number,
+            "sessionId": str(session.request_id),
+            "hitl_state": session_state,
+            "approved_at": datetime.utcnow().isoformat()
+        }
+
+        await realtime_hub.publish(
+            session.request_id,
+            build_event("feedback_approved", **event_data)
+        )
+
+    async def _notify_feedback_processing(self, session: MangaSession, phase_number: int) -> None:
+        """フィードバック処理中通知（HITLStateManager統合版）"""
+        session_state = None
+        try:
+            async with session_scope(self.session_factory) as db:
+                state_manager = await self._get_hitl_state_manager(db)
+                session_state = await state_manager.get_session_status(session.request_id)
+        except Exception as e:
+            logger.warning(f"Failed to get HITL session state for processing: {e}")
+
+        event_data = {
+            "phaseId": phase_number,
+            "sessionId": str(session.request_id),
+            "hitl_state": session_state,
+            "processing_started_at": datetime.utcnow().isoformat(),
+            "estimated_duration_minutes": 2  # 再生成処理の想定時間
+        }
+
+        await realtime_hub.publish(
+            session.request_id,
+            build_event("feedback_processing", **event_data)
+        )
+
+    async def _notify_regeneration_complete(
+        self,
+        session: MangaSession,
+        phase_number: int,
+        result: Dict[str, Any]
+    ) -> None:
+        """再生成完了通知（HITLStateManager統合版）"""
+        session_state = None
+        try:
+            async with session_scope(self.session_factory) as db:
+                state_manager = await self._get_hitl_state_manager(db)
+                session_state = await state_manager.get_session_status(session.request_id)
+        except Exception as e:
+            logger.warning(f"Failed to get HITL session state for regeneration complete: {e}")
+
+        # 再生成結果のプレビューデータを抽出
+        preview_data = self._extract_preview_data(result)
+
+        event_data = {
+            "phaseId": phase_number,
+            "sessionId": str(session.request_id),
+            "result": result,
+            "preview_data": preview_data,
+            "hitl_state": session_state,
+            "regenerated_at": datetime.utcnow().isoformat(),
+            "iteration_count": session_state.get("iteration_count", 0) if session_state else 0
+        }
+
+        await realtime_hub.publish(
+            session.request_id,
+            build_event("regeneration_complete", **event_data)
+        )
+
+    async def _notify_regeneration_error(
+        self,
+        session: MangaSession,
+        phase_number: int,
+        error_message: str
+    ) -> None:
+        """再生成エラー通知（HITLStateManager統合版）"""
+        session_state = None
+        try:
+            async with session_scope(self.session_factory) as db:
+                state_manager = await self._get_hitl_state_manager(db)
+                session_state = await state_manager.get_session_status(session.request_id)
+        except Exception as e:
+            logger.warning(f"Failed to get HITL session state for regeneration error: {e}")
+
+        event_data = {
+            "phaseId": phase_number,
+            "sessionId": str(session.request_id),
+            "error": error_message,
+            "hitl_state": session_state,
+            "error_occurred_at": datetime.utcnow().isoformat(),
+            "can_retry": session_state.get("can_continue", False) if session_state else False,
+            "iteration_count": session_state.get("iteration_count", 0) if session_state else 0
+        }
+
+        await realtime_hub.publish(
+            session.request_id,
+            build_event("regeneration_error", **event_data)
+        )
+
+    async def _notify_feedback_skipped(self, session: MangaSession, phase_number: int) -> None:
+        """フィードバックスキップ通知（HITLStateManager統合版）"""
+        session_state = None
+        try:
+            async with session_scope(self.session_factory) as db:
+                state_manager = await self._get_hitl_state_manager(db)
+                session_state = await state_manager.get_session_status(session.request_id)
+        except Exception as e:
+            logger.warning(f"Failed to get HITL session state for skip: {e}")
+
+        event_data = {
+            "phaseId": phase_number,
+            "sessionId": str(session.request_id),
+            "hitl_state": session_state,
+            "skipped_at": datetime.utcnow().isoformat(),
+            "reason": "user_requested_skip"
+        }
+
+        await realtime_hub.publish(
+            session.request_id,
+            build_event("feedback_skipped", **event_data)
+        )
+
+    async def _wait_for_user_feedback(
+        self,
+        session: MangaSession,
+        phase_number: int,
+        timeout_minutes: int = 30
+    ) -> Optional[Dict[str, Any]]:
+        """
+        ユーザーフィードバック待機（既存メソッドのラッパー）
+        """
+        try:
+            feedback = await self._wait_for_user_feedback_event(
+                session.request_id, phase_number, timeout_minutes
+            )
+            return feedback
+        except Exception as e:
+            logger.error(f"Error waiting for feedback: {e}")
+            return None
+
+    async def retry_specific_phase(
+        self,
+        session: MangaSession,
+        phase_id: int,
+        force_retry: bool = False,
+        reset_feedback: bool = True
+    ) -> bool:
+        """
+        指定されたフェーズのリトライを実行
+
+        Args:
+            session: MangaSession instance
+            phase_id: リトライするフェーズID
+            force_retry: エラー状態でない場合でも強制リトライ
+            reset_feedback: フィードバック状態をリセット
+
+        Returns:
+            bool: リトライが正常に開始されたかどうか
+        """
+        logger.info(f"Starting phase retry for session {session.request_id}, phase {phase_id}")
+
+        async with session_scope(self.session_factory) as db:
+            try:
+                # セッションの状態を確認
+                if session.status in [MangaSessionStatus.COMPLETED.value, MangaSessionStatus.RUNNING.value]:
+                    if not force_retry:
+                        logger.warning(f"Session {session.request_id} is in {session.status} state, retry not allowed")
+                        return False
+
+                # フェーズ結果を取得して状態を確認
+                from sqlalchemy import select
+                from app.db.models.phase_result import PhaseResult
+
+                result = await db.execute(
+                    select(PhaseResult).where(
+                        PhaseResult.session_id == session.id,
+                        PhaseResult.phase == phase_id
+                    )
+                )
+                phase_result = result.scalar_one_or_none()
+
+                if not phase_result:
+                    logger.error(f"Phase {phase_id} not found for session {session.request_id}")
+                    return False
+
+                # フェーズ状態をリセット
+                phase_result.status = "pending"
+                if reset_feedback and phase_result.content:
+                    # フィードバック関連データをクリア
+                    content = phase_result.content.copy() if phase_result.content else {}
+                    content.pop("feedback_data", None)
+                    content.pop("user_feedback", None)
+                    content.pop("hitl_processed", None)
+                    phase_result.content = content
+
+                # セッション状態を更新
+                session.status = MangaSessionStatus.RUNNING.value
+                session.current_phase = phase_id
+                session.retry_count += 1
+                session.updated_at = datetime.utcnow()
+
+                # WebSocket通知用のイベントを送信
+                try:
+                    await self._send_websocket_notification(
+                        session.request_id,
+                        {
+                            "type": "phase_retry_started",
+                            "phase_id": phase_id,
+                            "timestamp": datetime.utcnow().isoformat(),
+                            "retry_count": session.retry_count
+                        }
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to send WebSocket notification: {e}")
+
+                await db.commit()
+
+                # バックグラウンドでフェーズ再実行を開始
+                asyncio.create_task(self._execute_phase_retry_background(session, phase_id))
+
+                return True
+
+            except Exception as e:
+                await db.rollback()
+                logger.error(f"Failed to retry phase {phase_id} for session {session.request_id}: {e}")
+                return False
+
+    async def _execute_phase_retry_background(self, session: MangaSession, phase_id: int):
+        """
+        バックグラウンドでフェーズを再実行
+        """
+        try:
+            # フェーズ設定を取得
+            phase_config = self._get_phase_config(phase_id)
+            if not phase_config:
+                logger.error(f"Phase configuration not found for phase {phase_id}")
+                return
+
+            # コンテキストを再構築
+            context = await self._build_phase_context(session, phase_id)
+
+            # HITLが有効な場合はHITL付きで実行、そうでなければ通常実行
+            if hasattr(self, '_execute_single_phase_with_hitl'):
+                result = await self._execute_single_phase_with_hitl(session, phase_config, context)
+            else:
+                result = await self._execute_single_phase(session, phase_config, context)
+
+            # 結果を保存
+            async with session_scope(self.session_factory) as db:
+                from sqlalchemy import select
+                from app.db.models.phase_result import PhaseResult
+
+                db_result = await db.execute(
+                    select(PhaseResult).where(
+                        PhaseResult.session_id == session.id,
+                        PhaseResult.phase == phase_id
+                    )
+                )
+                phase_result = db_result.scalar_one_or_none()
+
+                if phase_result:
+                    phase_result.content = result
+                    phase_result.status = "completed" if result.get("success") else "failed"
+                    phase_result.updated_at = datetime.utcnow()
+
+                await db.commit()
+
+            # WebSocket通知
+            await self._send_websocket_notification(
+                session.request_id,
+                {
+                    "type": "phase_retry_completed",
+                    "phase_id": phase_id,
+                    "status": "completed" if result.get("success") else "failed",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            )
+
+        except Exception as e:
+            logger.error(f"Background phase retry failed for phase {phase_id}: {e}")
+            # エラー通知
+            await self._send_websocket_notification(
+                session.request_id,
+                {
+                    "type": "phase_retry_failed",
+                    "phase_id": phase_id,
+                    "error": str(e),
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            )
+
+    async def get_phase_error_details(
+        self,
+        session: MangaSession,
+        phase_id: int
+    ) -> Optional[Dict[str, Any]]:
+        """
+        指定されたフェーズの詳細エラー情報を取得
+
+        Args:
+            session: MangaSession instance
+            phase_id: エラー詳細を取得するフェーズID
+
+        Returns:
+            Dict containing error details or None if no error found
+        """
+        async with session_scope(self.session_factory) as db:
+            try:
+                from sqlalchemy import select
+                from app.db.models.phase_result import PhaseResult
+
+                result = await db.execute(
+                    select(PhaseResult).where(
+                        PhaseResult.session_id == session.id,
+                        PhaseResult.phase == phase_id
+                    )
+                )
+                phase_result = result.scalar_one_or_none()
+
+                if not phase_result:
+                    return None
+
+                # エラー情報を抽出
+                content = phase_result.content or {}
+                error_details = self._extract_error_details(content, phase_result.status)
+
+                if not error_details:
+                    return None
+
+                return {
+                    "phase_id": phase_id,
+                    "phase_name": self._get_phase_name(phase_id),
+                    "error_code": error_details.get("error_code", "UNKNOWN_ERROR"),
+                    "error_message": error_details.get("error_message", "Unknown error occurred"),
+                    "error_details": error_details.get("error_details"),
+                    "timestamp": phase_result.updated_at or phase_result.created_at,
+                    "retryable": self._is_error_retryable(error_details.get("error_code", "")),
+                    "retry_count": session.retry_count,
+                    "suggested_actions": self._get_suggested_actions(error_details.get("error_code", ""))
+                }
+
+            except Exception as e:
+                logger.error(f"Failed to get error details for phase {phase_id}: {e}")
+                return None
+
+    def _extract_error_details(self, content: Dict[str, Any], status: str) -> Optional[Dict[str, Any]]:
+        """フェーズ結果からエラー詳細を抽出"""
+        if status != "failed" and not content.get("error"):
+            return None
+
+        error_info = content.get("error", {})
+        if isinstance(error_info, str):
+            error_info = {"message": error_info}
+
+        # エラーコードの分類
+        error_message = error_info.get("message", error_info.get("error_message", "Unknown error"))
+        error_code = error_info.get("code", error_info.get("error_code"))
+
+        if not error_code:
+            error_code = self._classify_error_code(error_message)
+
+        return {
+            "error_code": error_code,
+            "error_message": error_message,
+            "error_details": error_info.get("details", error_info.get("traceback"))
+        }
+
+    def _classify_error_code(self, error_message: str) -> str:
+        """エラーメッセージからエラーコードを分類"""
+        error_message_lower = error_message.lower()
+
+        # より具体的なものから順に判定
+        if any(keyword in error_message_lower for keyword in ["timeout", "deadline"]):
+            return "TIMEOUT_ERROR"
+        elif any(keyword in error_message_lower for keyword in ["auth", "permission", "unauthorized", "forbidden"]):
+            return "AUTH_ERROR"
+        elif any(keyword in error_message_lower for keyword in ["validation", "invalid", "malformed"]):
+            return "VALIDATION_ERROR"
+        elif any(keyword in error_message_lower for keyword in ["server", "internal", "500"]):
+            return "SERVER_ERROR"
+        elif any(keyword in error_message_lower for keyword in ["network", "connection", "http"]):
+            return "NETWORK_ERROR"
+        else:
+            return "UNKNOWN_ERROR"
+
+    def _is_error_retryable(self, error_code: str) -> bool:
+        """エラーコードがリトライ可能かどうか判定"""
+        retryable_errors = {
+            "NETWORK_ERROR", "TIMEOUT_ERROR", "SERVER_ERROR"
+        }
+        return error_code in retryable_errors
+
+    def _get_suggested_actions(self, error_code: str) -> List[str]:
+        """エラーコードに基づく推奨アクション"""
+        actions_map = {
+            "NETWORK_ERROR": [
+                "ネットワーク接続を確認してください",
+                "しばらく待ってからリトライしてください"
+            ],
+            "AUTH_ERROR": [
+                "認証情報を確認してください",
+                "ログインし直してください"
+            ],
+            "VALIDATION_ERROR": [
+                "入力データを確認してください",
+                "必要な項目が入力されているか確認してください"
+            ],
+            "TIMEOUT_ERROR": [
+                "処理に時間がかかっています",
+                "しばらく待ってからリトライしてください"
+            ],
+            "SERVER_ERROR": [
+                "サーバーで問題が発生しています",
+                "管理者に問い合わせるかしばらく待ってからリトライしてください"
+            ],
+            "UNKNOWN_ERROR": [
+                "予期しないエラーが発生しました",
+                "リトライするか管理者に問い合わせてください"
+            ]
+        }
+        return actions_map.get(error_code, ["リトライしてください"])
+
+    def _get_phase_name(self, phase_id: int) -> str:
+        """フェーズIDからフェーズ名を取得"""
+        phase_names = {
+            1: "ストーリー分析",
+            2: "キャラクター設定",
+            3: "コマ割り設計",
+            4: "画像生成",
+            5: "最終調整"
+        }
+        return phase_names.get(phase_id, f"フェーズ {phase_id}")
+
+    def _get_phase_config(self, phase_id: int) -> Optional[Dict[str, Any]]:
+        """フェーズIDから設定を取得"""
+        # 既存のフェーズ設定から取得
+        if hasattr(self, 'phases') and self.phases:
+            for phase in self.phases:
+                if phase.get("phase") == phase_id:
+                    return phase
+        return {"phase": phase_id, "name": self._get_phase_name(phase_id)}
+
+    async def _build_phase_context(self, session: MangaSession, target_phase_id: int) -> Dict[int, Dict[str, Any]]:
+        """指定フェーズ実行用のコンテキストを構築"""
+        context = {}
+
+        async with session_scope(self.session_factory) as db:
+            try:
+                from sqlalchemy import select
+                from app.db.models.phase_result import PhaseResult
+
+                # 対象フェーズより前の完了済みフェーズ結果を取得
+                result = await db.execute(
+                    select(PhaseResult).where(
+                        PhaseResult.session_id == session.id,
+                        PhaseResult.phase < target_phase_id,
+                        PhaseResult.status == "completed"
+                    ).order_by(PhaseResult.phase)
+                )
+                prior_results = result.scalars().all()
+
+                for phase_result in prior_results:
+                    if phase_result.content:
+                        context[phase_result.phase] = phase_result.content
+
+            except Exception as e:
+                logger.error(f"Failed to build phase context: {e}")
+
+        return context
+
+    async def _send_websocket_notification(self, request_id: UUID, data: Dict[str, Any]):
+        """WebSocket通知を送信"""
+        try:
+            from app.services.websocket_service import WebSocketService
+            ws_service = WebSocketService()
+            await ws_service.send_to_session(str(request_id), data)
+        except Exception as e:
+            logger.warning(f"Failed to send WebSocket notification: {e}")

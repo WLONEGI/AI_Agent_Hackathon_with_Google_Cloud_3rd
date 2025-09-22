@@ -1,15 +1,10 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { ProcessingLayout } from '@/components/processing/ProcessingLayout';
+import { NewProcessingLayout } from '@/components/processing/NewProcessingLayout';
 import { useAuthStore } from '@/stores/useAuthStore';
-import { useProcessingStore } from '@/stores/processingStore';
-import { usePolling } from '@/hooks/usePolling';
-import { checkSessionStatus } from '@/lib/api';
-import type { SessionStatusResponse } from '@/types/api-schema';
-import type { PhaseId } from '@/types/processing';
 
 // Loading component for the processing screen
 const ProcessingLoading: React.FC = () => {
@@ -56,9 +51,6 @@ export default function Processing() {
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [statusSnapshot, setStatusSnapshot] = useState<SessionStatusResponse | null>(null);
-  const statusUrlRef = useRef<string | null>(null);
-  const redirectRef = useRef(false);
 
   // Initialize session data from storage/URL params
   useEffect(() => {
@@ -69,11 +61,33 @@ export default function Processing() {
         setIsLoading(true);
         setError(null);
 
+        // Ensure auth session is valid first
+        if (authTokens) {
+          // Check if token is expired and refresh if needed
+          const timeUntilExpiry = authTokens.expires_at - Date.now();
+          if (timeUntilExpiry < 300000) { // < 5 minutes
+            const { refreshToken } = useAuthStore.getState();
+            const refreshed = await refreshToken();
+            if (!refreshed) {
+              if (isMounted) {
+                router.push('/?error=session_expired');
+              }
+              return;
+            }
+          }
+        } else {
+          // No valid auth tokens
+          if (isMounted) {
+            router.push('/?error=authentication_required');
+          }
+          return;
+        }
+
         // Check for session data in sessionStorage
         let requestId = sessionStorage.getItem('requestId');
         let sessionTitle = sessionStorage.getItem('sessionTitle') || 'AI生成漫画';
         let sessionText = sessionStorage.getItem('sessionText') || '';
-        let authToken = sessionStorage.getItem('authToken') || authTokens?.access_token || '';
+        let authToken = authTokens?.access_token || '';
         let websocketChannel = sessionStorage.getItem('websocketChannel');
         let statusUrl = sessionStorage.getItem('statusUrl');
 
@@ -84,18 +98,19 @@ export default function Processing() {
           statusUrl = null;
         }
 
-        if (!sessionStorage.getItem('authToken') && authTokens?.access_token) {
-          sessionStorage.setItem('authToken', authTokens.access_token);
+        // Sync auth token with sessionStorage for backward compatibility
+        if (authToken) {
+          sessionStorage.setItem('authToken', authToken);
         }
 
         // Development environment mock data for UI testing
         if (!requestId && process.env.NODE_ENV === 'development') {
           console.log('🧪 Development mode: Creating mock session data for UI testing');
-          
+
           const mockSessionId = `mock-session-${Date.now()}`;
           const mockStoryText = 'テスト用ストーリー：勇者が魔王を倒す冒険の物語です。仲間たちと共に困難を乗り越え、最後には平和を取り戻します。';
           const mockAuthToken = authTokens?.access_token || `mock-auth-token-${Math.random().toString(36).substr(2, 9)}`;
-          
+
           // Set mock data in sessionStorage for development
           sessionStorage.setItem('requestId', mockSessionId);
           sessionStorage.setItem('sessionTitle', '【開発モック】AI生成漫画');
@@ -103,7 +118,7 @@ export default function Processing() {
           sessionStorage.setItem('authToken', mockAuthToken);
           sessionStorage.removeItem('websocketChannel');
           sessionStorage.removeItem('statusUrl');
-          
+
           // Use mock data
           requestId = mockSessionId;
           sessionTitle = '【開発モック】AI生成漫画';
@@ -128,7 +143,6 @@ export default function Processing() {
             websocketChannel: websocketChannel ?? null,
             statusUrl: statusUrl ?? null,
           });
-          statusUrlRef.current = statusUrl ?? null;
         }
 
       } catch (err) {
@@ -149,113 +163,6 @@ export default function Processing() {
       isMounted = false;
     };
   }, [router, authTokens]);
-
-  const statusFetcher = useCallback(
-    async (sessionId: string) => checkSessionStatus(sessionId, statusUrlRef.current ?? undefined),
-    []
-  );
-
-  const { startPolling, stopPolling } = usePolling(sessionData?.sessionId ?? null, {
-    interval: 4000,
-    maxRetries: 5,
-    fetcher: statusFetcher,
-    enabled: Boolean(sessionData?.sessionId),
-    onSuccess: (status) => {
-      setStatusSnapshot(status);
-      if (status.status === 'completed' && !redirectRef.current) {
-        redirectRef.current = true;
-        router.push(`/results?sessionId=${status.request_id}`);
-      }
-      if (status.status === 'failed') {
-        setError('生成処理に失敗しました。時間をおいて再度お試しください。');
-      } else {
-        setError(null);
-      }
-    },
-    onError: (err) => {
-      console.error('Status polling error:', err.message);
-    },
-    stopWhen: (status) => status.status === 'completed' || status.status === 'failed',
-  });
-
-  useEffect(() => {
-    if (!sessionData?.sessionId) {
-      return;
-    }
-    statusUrlRef.current = sessionData.statusUrl;
-    redirectRef.current = false;
-    startPolling();
-
-    return () => {
-      stopPolling();
-    };
-  }, [sessionData?.sessionId, sessionData?.statusUrl, startPolling, stopPolling]);
-
-  useEffect(() => {
-    if (!statusSnapshot || !sessionData?.sessionId) {
-      return;
-    }
-
-    const store = useProcessingStore.getState();
-    const status = statusSnapshot.status;
-    const currentPhase = (statusSnapshot.current_phase ?? 0) as PhaseId | 0;
-
-    const sessionStatus: ReturnType<typeof useProcessingStore.getState>['sessionStatus'] =
-      status === 'completed'
-        ? 'completed'
-        : status === 'failed'
-        ? 'error'
-        : status === 'queued'
-        ? 'connecting'
-        : 'processing';
-
-    store.updateSessionStatus(sessionStatus);
-
-    const phases: PhaseId[] = [1, 2, 3, 4, 5, 6, 7];
-    phases.forEach((phase) => {
-      let phaseStatus: 'pending' | 'processing' | 'waiting_feedback' | 'completed' | 'error' = 'pending';
-
-      if (status === 'completed') {
-        phaseStatus = 'completed';
-      } else if (status === 'failed' && currentPhase === phase) {
-        phaseStatus = 'error';
-      } else if (phase < currentPhase) {
-        phaseStatus = 'completed';
-      } else if (phase === currentPhase && status === 'awaiting_feedback') {
-        phaseStatus = 'waiting_feedback';
-      } else if (phase === currentPhase && status !== 'queued') {
-        phaseStatus = status === 'failed' ? 'error' : 'processing';
-      } else {
-        phaseStatus = 'pending';
-      }
-
-      store.updatePhaseStatus(phase, phaseStatus);
-
-      if (phaseStatus === 'completed') {
-        store.updatePhaseProgress(phase, 100);
-      } else if (phaseStatus === 'processing') {
-        store.updatePhaseProgress(phase, 50);
-      } else if (phaseStatus === 'waiting_feedback') {
-        store.updatePhaseProgress(phase, 90);
-      } else {
-        store.updatePhaseProgress(phase, 0);
-      }
-    });
-  }, [statusSnapshot, sessionData?.sessionId]);
-
-  // Handle session cleanup on unmount
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      // Optional: Clean up session data on page unload
-      // sessionStorage.removeItem('requestId');
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, []);
 
   // Error retry handler
   const handleRetry = useCallback(() => {
@@ -285,8 +192,8 @@ export default function Processing() {
           textAlign: 'center',
           padding: '2rem'
         }}>
-          <span 
-            className="material-symbols-outlined" 
+          <span
+            className="material-symbols-outlined"
             style={{ fontSize: '3rem', color: '#ef4444', marginBottom: '1rem' }}
           >
             error
@@ -349,8 +256,8 @@ export default function Processing() {
           textAlign: 'center',
           padding: '2rem'
         }}>
-          <span 
-            className="material-symbols-outlined" 
+          <span
+            className="material-symbols-outlined"
             style={{ fontSize: '3rem', color: '#f59e0b', marginBottom: '1rem' }}
           >
             warning
@@ -385,7 +292,7 @@ export default function Processing() {
   return (
     <ErrorBoundary>
       <Suspense fallback={<ProcessingLoading />}>
-        <ProcessingLayout
+        <NewProcessingLayout
           sessionId={sessionData.sessionId}
           initialTitle={sessionData.title}
           initialText={sessionData.text}
