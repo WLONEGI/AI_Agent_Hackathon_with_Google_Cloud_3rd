@@ -2,19 +2,37 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { startMangaGeneration } from '@/lib/api';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { GoogleLoginModal } from '@/components/auth/GoogleLoginModal';
 import { Sidebar } from '@/components/layout/Sidebar';
+import { useDebugLogger } from '@/utils/debugLogger';
 
 export default function Home() {
   const router = useRouter();
   const { isAuthenticated, user, tokens } = useAuthStore();
+  const debugLogger = useDebugLogger();
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [storyText, setStoryText] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Check for processing errors on component mount with debug logging
+  useEffect(() => {
+    debugLogger.logComponentRender('Home', { isAuthenticated, userEmail: user?.email });
+    debugLogger.info('home', 'Home component mounted, checking for processing errors...');
+
+    const processingError = sessionStorage.getItem('processingError');
+    if (processingError) {
+      debugLogger.warn('home', `Processing error detected: ${processingError}`);
+      setError(`処理エラー: ${processingError}`);
+      // Clean up error data after displaying
+      sessionStorage.removeItem('processingError');
+      debugLogger.info('home', 'Processing error cleaned up from sessionStorage');
+    } else {
+      debugLogger.info('home', 'No processing errors found');
+    }
+  }, [debugLogger, isAuthenticated, user]);
 
   // Auto-resize textarea function
   const autoResizeTextarea = useCallback(() => {
@@ -55,97 +73,35 @@ export default function Home() {
     const trimmedText = storyText.trim();
     if (!trimmedText) {
       setError('物語のアイデアを入力してください');
+      setIsGenerating(false);
       return;
     }
 
     if (trimmedText.length < 10) {
       setError('物語のアイデアは10文字以上で入力してください');
+      setIsGenerating(false);
       return;
     }
 
     if (trimmedText.length > 50000) {
       setError('物語のアイデアは50,000文字以下で入力してください');
+      setIsGenerating(false);
       return;
     }
 
-    setError(null);
+    // Store session information for processing page to handle API request
+    sessionStorage.setItem('sessionTitle', 'AI Generated Manga');
+    sessionStorage.setItem('sessionText', trimmedText);
 
-    try {
-      const response = await startMangaGeneration(
-        storyText.trim(),
-        'AI Generated Manga' // Default title
-      );
+    // Note: Auth tokens are managed by useAuthStore persistence middleware
 
-      if (response && response.request_id && response.status_url) {
-        // Store session information for processing page
-        sessionStorage.setItem('requestId', response.request_id);
-        sessionStorage.setItem('sessionTitle', 'AI Generated Manga');
-        sessionStorage.setItem('sessionText', storyText.trim());
+    console.log('🔄 Navigating to processing page for API request and initialization');
+    debugLogger.logNavigation('/', '/processing', 'push');
+    debugLogger.info('home', `Navigating to processing page with text length: ${trimmedText.length} characters`);
 
-        // Store websocket channel if provided
-        if (response.websocket_channel) {
-          sessionStorage.setItem('websocketChannel', response.websocket_channel);
-        } else {
-          sessionStorage.removeItem('websocketChannel');
-        }
-
-        // Store status URL (required field)
-        sessionStorage.setItem('statusUrl', response.status_url);
-
-        // Store auth token for session continuity
-        if (tokens?.access_token) {
-          sessionStorage.setItem('authToken', tokens.access_token);
-        }
-
-        console.log('🔄 Navigating to processing page with sessionId:', response.request_id);
-        console.log('📊 Response received:', {
-          request_id: response.request_id,
-          status: response.status,
-          status_url: response.status_url,
-          websocket_channel: response.websocket_channel,
-          expected_duration: response.expected_duration_minutes
-        });
-
-        router.push('/processing');
-        return;
-      } else {
-        console.error('❌ Invalid response structure:', response);
-        throw new Error('APIレスポンスが不正です: ' + (response ? `request_id: ${!!response.request_id}, status_url: ${!!response.status_url}` : 'レスポンスなし'));
-      }
-    } catch (err) {
-      console.error('Generation failed:', err);
-
-      // Handle session expiration specifically
-      if (err instanceof Error && err.message === 'session_expired') {
-        // Clear expired authentication state
-        localStorage.removeItem('auth-storage');
-        sessionStorage.clear();
-        setError('セッションが期限切れです。再度ログインしてください。');
-        setShowAuthModal(true);
-      } else if (err instanceof Error) {
-        // Parse specific validation errors from backend
-        let errorMessage = err.message;
-
-        if (errorMessage.includes('入力内容に問題があります')) {
-          // Backend validation error
-          setError(errorMessage);
-        } else if (errorMessage.includes('10文字以上')) {
-          setError('物語のアイデアは10文字以上で入力してください');
-        } else if (errorMessage.includes('50,000文字以下')) {
-          setError('物語のアイデアは50,000文字以下で入力してください');
-        } else if (errorMessage.includes('required')) {
-          setError('すべての必須項目を入力してください');
-        } else {
-          setError(errorMessage || '生成開始時にエラーが発生しました');
-        }
-      } else {
-        setError('生成開始時にエラーが発生しました');
-      }
-    } finally {
-      // Reset loading state on error only
-      setIsGenerating(false);
-    }
-  }, [isAuthenticated, router, storyText, tokens]);
+    // Navigate immediately to processing page - API request will be handled there
+    router.push('/processing');
+  }, [isAuthenticated, router, storyText, tokens, debugLogger]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !isGenerating && storyText.trim().length >= 10) {
