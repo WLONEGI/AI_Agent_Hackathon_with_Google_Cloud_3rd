@@ -207,10 +207,6 @@ vertex_ai_breaker = circuit_breaker_manager.get_breaker(
     CircuitBreakerConfig(failure_threshold=3, timeout_seconds=120)
 )
 
-cloud_tasks_breaker = circuit_breaker_manager.get_breaker(
-    "cloud_tasks",
-    CircuitBreakerConfig(failure_threshold=5, timeout_seconds=60)
-)
 
 database_breaker = circuit_breaker_manager.get_breaker(
     "database",

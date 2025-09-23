@@ -12,10 +12,6 @@ class TestHITLSettings:
         # Create settings with minimal required fields
         minimal_config = {
             "database_url": "postgresql://test",
-            "cloud_tasks_queue": "test-queue",
-            "cloud_tasks_project": "test-project",
-            "cloud_tasks_location": "test-location",
-            "cloud_tasks_service_url": "https://test.com",
             "gcs_bucket_preview": "test-bucket",
             "firebase_project_id": "test-project",
             "firebase_client_email": "test@test.com",
@@ -41,10 +37,6 @@ class TestHITLSettings:
         """Test HITL custom configuration values"""
         config = {
             "database_url": "postgresql://test",
-            "cloud_tasks_queue": "test-queue",
-            "cloud_tasks_project": "test-project",
-            "cloud_tasks_location": "test-location",
-            "cloud_tasks_service_url": "https://test.com",
             "gcs_bucket_preview": "test-bucket",
             "firebase_project_id": "test-project",
             "firebase_client_email": "test@test.com",
@@ -81,10 +73,6 @@ class TestHITLSettings:
         """Test valid HITL enabled phases configuration"""
         config = {
             "database_url": "postgresql://test",
-            "cloud_tasks_queue": "test-queue",
-            "cloud_tasks_project": "test-project",
-            "cloud_tasks_location": "test-location",
-            "cloud_tasks_service_url": "https://test.com",
             "gcs_bucket_preview": "test-bucket",
             "firebase_project_id": "test-project",
             "firebase_client_email": "test@test.com",
@@ -104,10 +92,6 @@ class TestHITLSettings:
         """Test invalid HITL enabled phases configuration"""
         config = {
             "database_url": "postgresql://test",
-            "cloud_tasks_queue": "test-queue",
-            "cloud_tasks_project": "test-project",
-            "cloud_tasks_location": "test-location",
-            "cloud_tasks_service_url": "https://test.com",
             "gcs_bucket_preview": "test-bucket",
             "firebase_project_id": "test-project",
             "firebase_client_email": "test@test.com",
@@ -128,10 +112,6 @@ class TestHITLSettings:
         """Test empty HITL enabled phases configuration"""
         config = {
             "database_url": "postgresql://test",
-            "cloud_tasks_queue": "test-queue",
-            "cloud_tasks_project": "test-project",
-            "cloud_tasks_location": "test-location",
-            "cloud_tasks_service_url": "https://test.com",
             "gcs_bucket_preview": "test-bucket",
             "firebase_project_id": "test-project",
             "firebase_client_email": "test@test.com",
@@ -147,10 +127,6 @@ class TestHITLSettings:
         """Test getting HITL enabled phases as list"""
         config = {
             "database_url": "postgresql://test",
-            "cloud_tasks_queue": "test-queue",
-            "cloud_tasks_project": "test-project",
-            "cloud_tasks_location": "test-location",
-            "cloud_tasks_service_url": "https://test.com",
             "gcs_bucket_preview": "test-bucket",
             "firebase_project_id": "test-project",
             "firebase_client_email": "test@test.com",
@@ -186,10 +162,6 @@ class TestHITLSettings:
         """Test checking if HITL is enabled for specific phase"""
         config = {
             "database_url": "postgresql://test",
-            "cloud_tasks_queue": "test-queue",
-            "cloud_tasks_project": "test-project",
-            "cloud_tasks_location": "test-location",
-            "cloud_tasks_service_url": "https://test.com",
             "gcs_bucket_preview": "test-bucket",
             "firebase_project_id": "test-project",
             "firebase_client_email": "test@test.com",
@@ -221,10 +193,6 @@ class TestHITLSettings:
         """Test HITL timeout minutes validation"""
         config = {
             "database_url": "postgresql://test",
-            "cloud_tasks_queue": "test-queue",
-            "cloud_tasks_project": "test-project",
-            "cloud_tasks_location": "test-location",
-            "cloud_tasks_service_url": "https://test.com",
             "gcs_bucket_preview": "test-bucket",
             "firebase_project_id": "test-project",
             "firebase_client_email": "test@test.com",
@@ -248,10 +216,6 @@ class TestHITLSettings:
         """Test HITL quality threshold validation"""
         config = {
             "database_url": "postgresql://test",
-            "cloud_tasks_queue": "test-queue",
-            "cloud_tasks_project": "test-project",
-            "cloud_tasks_location": "test-location",
-            "cloud_tasks_service_url": "https://test.com",
             "gcs_bucket_preview": "test-bucket",
             "firebase_project_id": "test-project",
             "firebase_client_email": "test@test.com",
@@ -275,10 +239,6 @@ class TestHITLSettings:
         """Test HITL max iterations validation"""
         config = {
             "database_url": "postgresql://test",
-            "cloud_tasks_queue": "test-queue",
-            "cloud_tasks_project": "test-project",
-            "cloud_tasks_location": "test-location",
-            "cloud_tasks_service_url": "https://test.com",
             "gcs_bucket_preview": "test-bucket",
             "firebase_project_id": "test-project",
             "firebase_client_email": "test@test.com",

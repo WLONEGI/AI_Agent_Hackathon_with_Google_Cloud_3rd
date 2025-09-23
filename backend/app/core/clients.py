@@ -2,14 +2,10 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from google.cloud import storage, tasks_v2
+from google.cloud import storage
 
 from .settings import get_settings
 
-
-@lru_cache
-def get_tasks_client() -> tasks_v2.CloudTasksClient:
-    return tasks_v2.CloudTasksClient()
 
 
 @lru_cache

@@ -17,10 +17,6 @@ class Settings(BaseSettings):
 
     database_url: str = Field(..., description="SQLAlchemy connection string")
 
-    cloud_tasks_queue: str = Field(...)
-    cloud_tasks_project: str = Field(...)
-    cloud_tasks_location: str = Field(...)
-    cloud_tasks_service_url: AnyUrl = Field(..., description="Target Cloud Run service URL")
 
     gcs_bucket_preview: str = Field(...)
     signed_url_ttl_seconds: int = Field(default=3600, ge=60, le=86400)

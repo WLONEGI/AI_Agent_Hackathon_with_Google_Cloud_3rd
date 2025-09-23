@@ -47,8 +47,9 @@ export default function Home() {
       return;
     }
 
-    // Clear previous error
+    // Clear previous error and set loading state
     setError(null);
+    setIsGenerating(true);
 
     // Validate input
     const trimmedText = storyText.trim();
@@ -67,17 +68,7 @@ export default function Home() {
       return;
     }
 
-    setIsGenerating(true);
     setError(null);
-
-    // Phase 1: Force timeout protection (30 seconds)
-    const forceTimeoutId = setTimeout(() => {
-      if (isGenerating) {
-        setIsGenerating(false);
-        setError('処理がタイムアウトしました。再度お試しください。');
-        console.warn('🚨 Force timeout: Loading state cleared after 30s');
-      }
-    }, 30000);
 
     try {
       const response = await startMangaGeneration(
@@ -116,7 +107,6 @@ export default function Home() {
         });
 
         router.push('/processing');
-        // Don't clear loading state - keep user from clicking again during navigation
         return;
       } else {
         console.error('❌ Invalid response structure:', response);
@@ -152,8 +142,7 @@ export default function Home() {
         setError('生成開始時にエラーが発生しました');
       }
     } finally {
-      // Always clear loading state and timeout
-      clearTimeout(forceTimeoutId);
+      // Reset loading state on error only
       setIsGenerating(false);
     }
   }, [isAuthenticated, router, storyText, tokens]);

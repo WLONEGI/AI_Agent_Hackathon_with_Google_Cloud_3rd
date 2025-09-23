@@ -20,14 +20,13 @@ FastAPI-based backend for the Spell AI manga generation platform. The service ex
 
 The backend requires the following official libraries at runtime:
 
-- `google-cloud-tasks`
 - `google-cloud-storage`
 - `google-auth`
 
 They are included in `pyproject.toml`, but verify the installation inside your virtual environment:
 
 ```bash
-pip install google-cloud-tasks google-cloud-storage google-auth
+pip install google-cloud-storage google-auth
 ```
 
 > 本番環境では、`pip install -e .` の実行後に `pip list | grep google-` で導入済みか確認してください。Cloud Runイメージではビルド時に必ず導入されるよう、CI/CDで同コマンドを実行することを推奨します。

@@ -733,12 +733,12 @@ class PipelineOrchestrator:
                 logger.error(f"❌ Session not found for request_id: {request_id}")
                 raise ValueError("session_not_found")
 
-            logger.info(f"✅ Found session: {session.id}, status: {session.status}")
+            logger.info(f"✅ Found session: {session.request_id}, status: {session.status}")
 
             # Run pipeline phases
             await self._execute_pipeline_phases(session)
 
-            logger.info(f"🎉 Pipeline execution completed successfully for session: {session.id}")
+            logger.info(f"🎉 Pipeline execution completed successfully for session: {session.request_id}")
 
         except Exception as e:
             logger.error(f"💥 Pipeline failed for session {request_id}: {type(e).__name__}: {e}")
@@ -755,9 +755,9 @@ class PipelineOrchestrator:
                         error_message
                     )
                     if success:
-                        logger.info(f"📝 Updated session {failed_session.id} status to FAILED")
+                        logger.info(f"📝 Updated session {failed_session.request_id} status to FAILED")
                     else:
-                        logger.error(f"❌ Failed to update session {failed_session.id} status to FAILED")
+                        logger.error(f"❌ Failed to update session {failed_session.request_id} status to FAILED")
                 else:
                     logger.warning(f"⚠️ Could not find session for request_id: {request_id}")
             except Exception as status_update_error:
@@ -769,7 +769,7 @@ class PipelineOrchestrator:
         """
         パイプラインの各フェーズを実行 - 各フェーズごとに独立したトランザクションを使用
         """
-        logger.info(f"🔄 Starting pipeline phases for session: {session.id}")
+        logger.info(f"🔄 Starting pipeline phases for session: {session.request_id}")
 
         try:
             # Update session status to running (separate transaction)
@@ -806,10 +806,10 @@ class PipelineOrchestrator:
                 current_phase=len(PHASE_SEQUENCE)
             )
 
-            logger.info(f"🎉 All phases completed successfully for session: {session.id}")
+            logger.info(f"🎉 All phases completed successfully for session: {session.request_id}")
 
         except Exception as e:
-            logger.error(f"❌ Pipeline execution failed for session {session.id}: {e}")
+            logger.error(f"❌ Pipeline execution failed for session {session.request_id}: {e}")
             # Ensure session is marked as failed if not already done
             try:
                 await self._update_session_status(session.id, MangaSessionStatus.FAILED.value, error_message=str(e))

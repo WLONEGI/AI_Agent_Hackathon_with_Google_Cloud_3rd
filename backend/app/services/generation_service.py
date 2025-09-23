@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import json
 from datetime import datetime, timedelta
 from typing import Optional
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException
-from google.cloud import tasks_v2
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,7 +14,7 @@ from app.api.schemas.manga import (
     SessionDetailResponse,
     SessionStatusResponse,
 )
-from app.core import clients as core_clients, settings as core_settings
+from app.core import settings as core_settings
 from app.db.models import (
     MangaProject,
     MangaProjectStatus,
@@ -30,8 +28,6 @@ class GenerationService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.settings = core_settings.get_settings()
-        core_clients.get_tasks_client.cache_clear()
-        self.tasks_client = core_clients.get_tasks_client()
 
     async def enqueue_generation(
         self,
@@ -70,8 +66,8 @@ class GenerationService:
             self.db.add(session)
             await self.db.flush()
 
-            # Enqueue task before committing to ensure task creation success
-            await self._enqueue_task(session.request_id)
+            # Start processing directly in background task
+            await self._start_processing_task(session.request_id)
 
             await self.db.commit()
 
@@ -84,16 +80,16 @@ class GenerationService:
                 expected_duration_minutes=expected_duration,
                 status_url=f"/api/v1/manga/sessions/{session.request_id}/status",
                 websocket_channel=self._build_websocket_channel(session.request_id),
-                message="Generation enqueued",
+                message="Generation started",
             )
         except Exception as exc:
             # Rollback transaction on any error
             await self.db.rollback()
             import logging
-            logging.getLogger(__name__).error("Failed to enqueue generation: %s", exc)
+            logging.getLogger(__name__).error("Failed to start generation: %s", exc)
             raise HTTPException(
                 status_code=500,
-                detail="Failed to enqueue manga generation. Please try again."
+                detail="Failed to start manga generation. Please try again."
             ) from exc
 
     async def get_status(
@@ -147,33 +143,28 @@ class GenerationService:
             raise HTTPException(status_code=404, detail="Session not found")
         return session
 
-    async def _enqueue_task(self, request_id: UUID) -> None:
-        parent = self.tasks_client.queue_path(
-            self.settings.cloud_tasks_project,
-            self.settings.cloud_tasks_location,
-            self.settings.cloud_tasks_queue,
-        )
+    async def _start_processing_task(self, request_id: UUID) -> None:
+        """Start manga processing in a background task"""
+        import asyncio
+        from app.core.db import get_session_factory
+        from app.services.pipeline_service import PipelineOrchestrator
+        
+        async def process_in_background():
+            """Background task to process manga generation"""
+            try:
+                session_factory = get_session_factory()
+                orchestrator = PipelineOrchestrator(session_factory)
+                await orchestrator.run(request_id)
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.info(f"✅ Manga processing completed for request_id: {request_id}")
+            except Exception as exc:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"❌ Manga processing failed for request_id: {request_id}: {exc}", exc_info=True)
 
-        task = tasks_v2.Task(
-            http_request=tasks_v2.HttpRequest(
-                http_method=tasks_v2.HttpMethod.POST,
-                url=f"{self.settings.cloud_tasks_service_url}/internal/tasks/manga",
-                headers={"Content-Type": "application/json"},
-                body=json.dumps({"request_id": str(request_id)}).encode("utf-8"),
-            )
-        )
+        # Start background task without waiting for completion
+        asyncio.create_task(process_in_background())
 
-        try:
-            self.tasks_client.create_task(request={"parent": parent, "task": task})
-        except Exception as exc:
-            import logging
-            logging.getLogger(__name__).error("Cloud Tasks enqueue failed: %s", exc)
-            raise HTTPException(
-                status_code=500,
-                detail="Failed to enqueue processing task. Please try again."
-            ) from exc
-
-    def _build_websocket_channel(self, request_id: UUID) -> Optional[str]:
-        if self.settings.websocket_base_url:
-            return f"{self.settings.websocket_base_url}/ws/session/{request_id}"
-        return f"/ws/session/{request_id}"
+    def _build_websocket_channel(self, request_id: UUID) -> str:
+        return f"manga-session-{request_id}"

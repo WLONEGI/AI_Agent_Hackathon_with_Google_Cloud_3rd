@@ -27,7 +27,6 @@ async def system_health(db: AsyncSession = Depends(get_db_session)) -> dict:
         "timestamp": datetime.utcnow().isoformat(),
         "services": {
             "database": db_status,
-            "cloud_tasks": "configured",
             "storage": "configured",
         },
     }
