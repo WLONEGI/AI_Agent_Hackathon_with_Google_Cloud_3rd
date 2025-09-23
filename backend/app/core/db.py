@@ -14,8 +14,20 @@ def init_engine() -> None:
     global _engine, _session_factory
     if _engine is None:
         settings = get_settings()
-        _engine = create_async_engine(settings.database_url, future=True, echo=False)
-        _session_factory = async_sessionmaker(_engine, expire_on_commit=False)
+        _engine = create_async_engine(
+            settings.database_url,
+            future=True,
+            echo=False,
+            # uvloopサポートと接続プール設定
+            pool_pre_ping=True,
+            pool_recycle=3600,
+        )
+        _session_factory = async_sessionmaker(
+            _engine,
+            expire_on_commit=False,
+            # 非同期操作でのrelationshipアクセス問題を軽減
+            autoflush=False
+        )
 
 
 def get_session_factory() -> async_sessionmaker[AsyncSession]:

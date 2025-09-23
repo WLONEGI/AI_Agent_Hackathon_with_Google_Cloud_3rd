@@ -29,7 +29,7 @@ echo "Running database migrations..."\n\
 alembic upgrade head || echo "⚠️ Migration failed, continuing..."\n\
 \n\
 echo "Starting application..."\n\
-uvicorn app.main:app --host 0.0.0.0 --port 8080' > /app/start.sh \
+uvicorn app.main:app --host 0.0.0.0 --port 8080 --loop uvloop' > /app/start.sh \
     && chmod +x /app/start.sh
 
 CMD ["/app/start.sh"]

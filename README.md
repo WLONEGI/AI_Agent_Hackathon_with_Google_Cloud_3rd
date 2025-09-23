@@ -120,11 +120,10 @@ Spellのシステムは、ユーザー入力から完成した漫画の出力ま
 | | TypeScript | 5.x | 型安全開発 |
 | | Tailwind CSS | 3.4.17 | UIスタイリング |
 | | Zustand | 5.0.8 | 状態管理 |
-| **⚙️ バックエンド** | FastAPI | 0.109.0 | Web APIフレームワーク |
+| **⚙️ バックエンド** | FastAPI | 0.111.x | Web APIフレームワーク |
 | | Python | 3.12.11 | サーバーサイド言語 |
-| | SQLAlchemy | 2.0.25 | ORM・データベース操作 |
-| **🗄️ データ基盤** | PostgreSQL | 15.13 | メインデータベース |
-| | Redis | 5.0.1 | キャッシュ・セッション |
+| | SQLAlchemy | 2.0.x | ORM・データベース操作 |
+| **🗄️ データ基盤** | PostgreSQL | 15.13 | メインデータベース・セッション管理 |
 | **🔐 認証** | Firebase | 10.14.1 | ユーザー認証 |
 | | JWT | 2.9.0 | API認証 |
 
@@ -133,8 +132,8 @@ Spellのシステムは、ユーザー入力から完成した漫画の出力ま
 | サービス | 用途 | 設定詳細 |
 |---------|------|----------|
 | **🚀 Cloud Run** | サーバーレス実行 | **フロントエンド**: CPU 1core, Memory 512Mi<br>**バックエンド**: CPU 2cores, Memory 2Gi<br>リージョン: asia-northeast1 |
+| **🌐 Firebase Hosting** | 静的ホスティング | フロントエンド代替配信<br>CDN・キャッシュ最適化 |
 | **🗄️ Cloud SQL** | マネージドPostgreSQL | インスタンス: manga-db-prod<br>接続: Cloud SQL Proxy経由 |
-| **🚀 Memorystore** | マネージドRedis | セッション・キャッシュ管理<br>VPC Connector経由接続 |
 | **🤖 Vertex AI** | AI/ML プラットフォーム | **Gemini Pro**: テキスト生成・分析<br>**Imagen 4**: 高品質画像生成 |
 | **💾 Cloud Storage** | オブジェクトストレージ | 生成画像・ファイル保存 |
 ---

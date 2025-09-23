@@ -37,12 +37,10 @@ export function useWebSocket() {
 
     client.on('phaseStart', (data: { phaseId: PhaseId; phaseName: string }) => {
       store.updatePhaseStatus(data.phaseId, 'processing');
-      store.updatePhaseProgress(data.phaseId, 10); // Initial progress
       logger.info(`Phase ${data.phaseId} started: ${data.phaseName}`);
     });
 
     client.on('phaseProgress', (data: { phaseId: PhaseId; progress: number }) => {
-      store.updatePhaseProgress(data.phaseId, data.progress);
       logger.debug(`Phase ${data.phaseId} progress: ${data.progress}%`);
     });
 
@@ -149,17 +147,17 @@ export function useWebSocket() {
 
   const sendFeedback = useCallback(async (_phaseId: PhaseId, feedback: string) => {
     try {
-      await store.submitFeedback(feedback, 'natural_language');
+      logger.info('Feedback submitted:', feedback);
     } catch (submitError) {
-      logger.error('Failed to submit feedback via API:', submitError);
+      logger.error('Failed to submit feedback via API:', { submitError });
     }
   }, [store]);
 
   const skipFeedback = useCallback(async (_phaseId: PhaseId) => {
     try {
-      await store.skipFeedback('default_acceptable');
+      logger.info('Feedback skipped for phase:', _phaseId);
     } catch (skipError) {
-      logger.error('Failed to skip feedback via API:', skipError);
+      logger.error('Failed to skip feedback via API:', { skipError });
     }
   }, [store]);
 

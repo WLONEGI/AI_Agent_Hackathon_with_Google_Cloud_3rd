@@ -47,13 +47,37 @@ export default function Home() {
       return;
     }
 
-    if (!storyText.trim()) {
+    // Clear previous error
+    setError(null);
+
+    // Validate input
+    const trimmedText = storyText.trim();
+    if (!trimmedText) {
       setError('物語のアイデアを入力してください');
+      return;
+    }
+
+    if (trimmedText.length < 10) {
+      setError('物語のアイデアは10文字以上で入力してください');
+      return;
+    }
+
+    if (trimmedText.length > 50000) {
+      setError('物語のアイデアは50,000文字以下で入力してください');
       return;
     }
 
     setIsGenerating(true);
     setError(null);
+
+    // Phase 1: Force timeout protection (30 seconds)
+    const forceTimeoutId = setTimeout(() => {
+      if (isGenerating) {
+        setIsGenerating(false);
+        setError('処理がタイムアウトしました。再度お試しください。');
+        console.warn('🚨 Force timeout: Loading state cleared after 30s');
+      }
+    }, 30000);
 
     try {
       const response = await startMangaGeneration(
@@ -61,30 +85,42 @@ export default function Home() {
         'AI Generated Manga' // Default title
       );
 
-      if (response && response.request_id) {
+      if (response && response.request_id && response.status_url) {
         // Store session information for processing page
         sessionStorage.setItem('requestId', response.request_id);
         sessionStorage.setItem('sessionTitle', 'AI Generated Manga');
         sessionStorage.setItem('sessionText', storyText.trim());
+
+        // Store websocket channel if provided
         if (response.websocket_channel) {
           sessionStorage.setItem('websocketChannel', response.websocket_channel);
         } else {
           sessionStorage.removeItem('websocketChannel');
         }
-        if (response.status_url) {
-          sessionStorage.setItem('statusUrl', response.status_url);
-        } else {
-          sessionStorage.removeItem('statusUrl');
-        }
+
+        // Store status URL (required field)
+        sessionStorage.setItem('statusUrl', response.status_url);
 
         // Store auth token for session continuity
         if (tokens?.access_token) {
           sessionStorage.setItem('authToken', tokens.access_token);
         }
 
+        console.log('🔄 Navigating to processing page with sessionId:', response.request_id);
+        console.log('📊 Response received:', {
+          request_id: response.request_id,
+          status: response.status,
+          status_url: response.status_url,
+          websocket_channel: response.websocket_channel,
+          expected_duration: response.expected_duration_minutes
+        });
+
         router.push('/processing');
+        // Don't clear loading state - keep user from clicking again during navigation
+        return;
       } else {
-        throw new Error('漫画生成の開始に失敗しました');
+        console.error('❌ Invalid response structure:', response);
+        throw new Error('APIレスポンスが不正です: ' + (response ? `request_id: ${!!response.request_id}, status_url: ${!!response.status_url}` : 'レスポンスなし'));
       }
     } catch (err) {
       console.error('Generation failed:', err);
@@ -96,19 +132,34 @@ export default function Home() {
         sessionStorage.clear();
         setError('セッションが期限切れです。再度ログインしてください。');
         setShowAuthModal(true);
+      } else if (err instanceof Error) {
+        // Parse specific validation errors from backend
+        let errorMessage = err.message;
+
+        if (errorMessage.includes('入力内容に問題があります')) {
+          // Backend validation error
+          setError(errorMessage);
+        } else if (errorMessage.includes('10文字以上')) {
+          setError('物語のアイデアは10文字以上で入力してください');
+        } else if (errorMessage.includes('50,000文字以下')) {
+          setError('物語のアイデアは50,000文字以下で入力してください');
+        } else if (errorMessage.includes('required')) {
+          setError('すべての必須項目を入力してください');
+        } else {
+          setError(errorMessage || '生成開始時にエラーが発生しました');
+        }
       } else {
-        setError(
-          err instanceof Error
-            ? err.message
-            : '生成開始時にエラーが発生しました'
-        );
+        setError('生成開始時にエラーが発生しました');
       }
+    } finally {
+      // Always clear loading state and timeout
+      clearTimeout(forceTimeoutId);
       setIsGenerating(false);
     }
   }, [isAuthenticated, router, storyText, tokens]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !isGenerating && storyText.trim()) {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !isGenerating && storyText.trim().length >= 10) {
       e.preventDefault();
       handleSubmit();
     }
@@ -184,22 +235,32 @@ export default function Home() {
                   value={storyText}
                   onChange={(e) => {
                     setStoryText(e.target.value);
+                    // Clear error when user starts typing
+                    if (error && e.target.value.trim()) {
+                      setError(null);
+                    }
                     // Auto-resize will be triggered by useEffect
                   }}
                   onKeyDown={handleKeyDown}
                   placeholder="例：勇敢な騎士が魔王を倒すため仲間たちと共に冒険する物語..."
-                  className="relative w-full min-h-[48px] px-6 py-3 pr-14 bg-gray-700 border-2 border-white rounded-2xl text-white placeholder-gray-300 resize-none focus:outline-none focus:ring-0 focus:border-white transition-all duration-200 overflow-y-auto shadow-2xl"
+                  className="relative w-full min-h-[48px] px-6 py-3 pr-14 bg-gray-700 border-2 border-white focus:border-white rounded-2xl text-white placeholder-gray-300 resize-none focus:outline-none focus:ring-0 transition-all duration-200 overflow-y-auto shadow-2xl"
                   maxLength={50000}
                   disabled={isGenerating}
                   rows={1}
                 />
 
+                {/* Character count removed - button activation handles validation */}
+
                 {/* Submit button - positioned inside textarea with proper padding alignment */}
                 <button
                   onClick={handleSubmit}
-                  disabled={isGenerating || !storyText.trim()}
-                  className="absolute bottom-3 right-3 w-9 h-9 bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-400/30 hover:to-purple-400/30 disabled:from-white/5 disabled:to-white/5 border border-white/20 hover:border-white/40 disabled:border-white/10 rounded-xl text-white disabled:text-white/40 transition-all duration-300 backdrop-blur-sm group flex items-center justify-center shadow-lg hover:shadow-xl disabled:shadow-none overflow-hidden z-50"
-                  title={isGenerating ? "生成中..." : "漫画生成を開始"}
+                  disabled={isGenerating || storyText.trim().length < 10}
+                  className={`absolute bottom-3 right-3 w-9 h-9 rounded-xl text-white transition-all duration-300 backdrop-blur-sm group flex items-center justify-center shadow-lg hover:shadow-xl disabled:shadow-none overflow-hidden z-50 ${
+                    storyText.trim().length >= 10 && !isGenerating
+                      ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 hover:from-blue-400/30 hover:to-purple-400/30 border border-white/20 hover:border-white/40'
+                      : 'bg-white/5 border border-white/10 text-white/40 cursor-not-allowed'
+                  }`}
+                  title={isGenerating ? "生成中..." : storyText.trim().length < 10 ? "10文字以上入力してください" : "漫画生成を開始"}
                 >
                   {/* Glow effect similar to logo */}
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 to-purple-400/20 rounded-xl blur-sm opacity-0 group-hover:opacity-100 transition-opacity duration-300" />

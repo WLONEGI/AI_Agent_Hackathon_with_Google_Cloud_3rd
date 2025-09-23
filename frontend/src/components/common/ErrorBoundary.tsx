@@ -26,8 +26,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    logger.error('ErrorBoundary caught an error:', error, errorInfo);
-    
+    logger.error('ErrorBoundary caught an error:', { error, errorInfo });
+
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
@@ -134,8 +134,8 @@ export class ProcessingError extends AppError {
 
 // Error reporting utility
 export const reportError = (error: Error, context?: Record<string, unknown>) => {
-  logger.error('Application error:', error, context);
-  
+  logger.error('Application error:', { error, context });
+
   // In production, send to error reporting service
   if (process.env.NODE_ENV === 'production') {
     // TODO: Integrate with error reporting service (e.g., Sentry)

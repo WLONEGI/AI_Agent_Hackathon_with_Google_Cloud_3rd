@@ -115,25 +115,23 @@ export function useResultsData({
           const detail = await getMangaDetail(sessionDetail.project_id);
           // Construct status from session detail
           const status: SessionStatusResponse = {
+            session_id: sessionDetail.session_id || sessionId,
             request_id: sessionId,
             status: sessionDetail.status || 'unknown',
             project_id: sessionDetail.project_id,
             current_phase: sessionDetail.current_phase,
-            error_message: sessionDetail.error_message,
-            created_at: sessionDetail.created_at,
-            updated_at: sessionDetail.updated_at,
+            updated_at: new Date().toISOString(),
           };
           return { status, detail, projectId: sessionDetail.project_id };
         }
         // Return a minimal status if no project found
         const fallbackStatus: SessionStatusResponse = {
+          session_id: sessionId,
           request_id: sessionId,
           status: 'unknown',
           project_id: null,
           current_phase: null,
-          error_message: null,
-          created_at: null,
-          updated_at: null,
+          updated_at: new Date().toISOString(),
         };
         return { status: fallbackStatus, detail: null, projectId: null };
       },

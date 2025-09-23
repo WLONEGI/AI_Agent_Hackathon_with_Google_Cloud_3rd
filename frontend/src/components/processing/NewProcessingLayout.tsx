@@ -49,7 +49,7 @@ export function NewProcessingLayout({
     initialText,
     authToken,
     websocketChannel,
-    statusUrl: status?.status_url
+    statusUrl: sessionStorage.getItem('statusUrl') || undefined
   });
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -208,7 +208,7 @@ export function NewProcessingLayout({
                 )}
                 {errorState[-1]?.error && (
                   <ErrorDisplay
-                    error={errorState[-1].error}
+                    error={errorState[-1].error!}
                     phaseId={-1}
                     phaseName="メッセージ読み込み"
                     onRetry={async () => window.location.reload()}

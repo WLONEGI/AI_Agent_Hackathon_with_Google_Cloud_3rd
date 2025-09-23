@@ -103,32 +103,12 @@ export default function Processing() {
           sessionStorage.setItem('authToken', authToken);
         }
 
-        // Development environment mock data for UI testing
-        if (!requestId && process.env.NODE_ENV === 'development') {
-          console.log('🧪 Development mode: Creating mock session data for UI testing');
-
-          const mockSessionId = `mock-session-${Date.now()}`;
-          const mockStoryText = 'テスト用ストーリー：勇者が魔王を倒す冒険の物語です。仲間たちと共に困難を乗り越え、最後には平和を取り戻します。';
-          const mockAuthToken = authTokens?.access_token || `mock-auth-token-${Math.random().toString(36).substr(2, 9)}`;
-
-          // Set mock data in sessionStorage for development
-          sessionStorage.setItem('requestId', mockSessionId);
-          sessionStorage.setItem('sessionTitle', '【開発モック】AI生成漫画');
-          sessionStorage.setItem('sessionText', mockStoryText);
-          sessionStorage.setItem('authToken', mockAuthToken);
-          sessionStorage.removeItem('websocketChannel');
-          sessionStorage.removeItem('statusUrl');
-
-          // Use mock data
-          requestId = mockSessionId;
-          sessionTitle = '【開発モック】AI生成漫画';
-          sessionText = mockStoryText;
-          authToken = mockAuthToken;
-          websocketChannel = null;
-          statusUrl = null;
-        } else if (!requestId) {
-          // If no session data in production, redirect to home
+        // Handle missing session data
+        if (!requestId) {
+          // If no session data, redirect to home
+          console.log('🏠 No session data found, redirecting to home');
           if (isMounted) {
+            setIsLoading(false);
             router.push('/');
           }
           return;

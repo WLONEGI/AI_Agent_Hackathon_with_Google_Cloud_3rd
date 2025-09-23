@@ -31,7 +31,7 @@ export interface GenerateResponse {
   status: string;
   estimated_completion_time?: string | null;
   expected_duration_minutes?: number | null;
-  status_url: string;
+  status_url: string;  // Required field
   websocket_channel?: string | null;
   message?: string | null;
 }
@@ -74,6 +74,53 @@ export interface FeedbackRequest {
 
 export interface FeedbackResponse {
   status: string;
+}
+
+// ===== HITL Feedback API (Aligned with backend schemas/hitl.py) =====
+
+export interface UserFeedbackRequest {
+  phase: number;  // 1-7
+  feedback_type: 'approval' | 'modification' | 'skip';
+  selected_options?: string[] | null;
+  natural_language_input?: string | null;
+  user_satisfaction_score?: number | null;  // 1.0-5.0
+  processing_time_ms?: number | null;
+}
+
+export interface FeedbackOptionResponse {
+  id: string;
+  phase: number;
+  option_key: string;
+  option_label: string;
+  option_description?: string | null;
+  option_category?: string | null;
+  display_order: number;
+  is_active: boolean;
+}
+
+export interface FeedbackOptionsResponse {
+  phase: number;
+  options: FeedbackOptionResponse[];
+  total_count: number;
+}
+
+export interface HITLFeedbackResponse {
+  success: boolean;
+  message: string;
+  processing_status: string;
+  estimated_completion_time?: string | null;
+  feedback_id?: string | null;
+}
+
+export interface FeedbackStateResponse {
+  session_id: string;
+  phase: number;
+  state: string;  // waiting, received, processing, completed, timeout
+  remaining_time_seconds?: number | null;
+  feedback_started_at: string;
+  feedback_timeout_at?: string | null;
+  feedback_received_at?: string | null;
+  preview_data?: Record<string, unknown> | null;
 }
 
 export interface SkipFeedbackRequest {
@@ -150,10 +197,10 @@ export interface MangaProjectItem {
 export interface Pagination {
   page: number;
   limit: number;
-  total: number;
-  pages: number;
+  total_items: number;  // Aligned with backend
+  total_pages: number;  // Aligned with backend
   has_next: boolean;
-  has_prev: boolean;
+  has_previous: boolean;  // Aligned with backend
 }
 
 export interface MangaProjectListResponse {
@@ -177,6 +224,59 @@ export interface MangaProjectDetailResponse {
   updated_at: string;
   user_id?: string | null;
   session_id?: string | null;
+}
+
+// ===== Message API (Aligned with backend schemas/manga.py) =====
+
+export interface MessageRequest {
+  content: string;  // 1-5000 chars
+  message_type?: string;  // default: "user"
+  phase?: number | null;
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface MessageResponse {
+  id: string;
+  session_id: string;
+  message_type: string;
+  content: string;
+  phase?: number | null;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MessagesListResponse {
+  messages: MessageResponse[];
+  total: number;
+  has_more: boolean;
+}
+
+// ===== Phase Preview API (Aligned with backend schemas/manga.py) =====
+
+export interface PhasePreviewUpdate {
+  preview_type?: string;  // default: "text"
+  content?: string | null;
+  image_url?: string | null;
+  document_url?: string | null;
+  progress: number;  // 0-100
+  status?: string;  // default: "processing"
+  metadata?: Record<string, unknown> | null;
+}
+
+export interface PhasePreviewResponse {
+  id: string;
+  session_id: string;
+  phase_number: number;
+  preview_type: string;
+  content?: string | null;
+  image_url?: string | null;
+  document_url?: string | null;
+  progress: number;
+  status: string;
+  metadata?: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // ===== Error Handling =====
@@ -213,9 +313,10 @@ export interface RetryConfig {
 // Legacy interfaces for backward compatibility
 export interface MangaWorkItem extends MangaProjectItem {}
 export interface PaginationResponse extends Pagination {
-  total_items: number;
-  total_pages: number;
-  has_previous: boolean;
+  // Already aligned with backend structure
+  total: number;    // Legacy alias for total_items
+  pages: number;    // Legacy alias for total_pages
+  has_prev: boolean;  // Legacy alias for has_previous
 }
 export interface MangaWorksListResponse extends MangaProjectListResponse {}
 export interface MangaWorkDetailResponse extends MangaProjectDetailResponse {

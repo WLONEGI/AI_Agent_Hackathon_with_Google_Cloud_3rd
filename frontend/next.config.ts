@@ -2,17 +2,14 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
-  // Static export for Firebase Hosting
+  // For Firebase Hosting deployment
   output: 'export',
-  distDir: 'out',
+  trailingSlash: true,
 
-  // Required for static export with Next/Image
+  // Image optimization for static export
   images: {
     unoptimized: true,
   },
-
-  // Add trailing slash for better Firebase Hosting compatibility
-  trailingSlash: true,
 
   // Disable ESLint during build to prevent deployment failures
   eslint: {

@@ -42,7 +42,63 @@ class SessionRealtimeHub:
             history.append(event)
             if len(history) > self._max_history:
                 history.pop(0)
-        await asyncio.gather(*(subscriber.put(event) for subscriber in subscribers), return_exceptions=True)
+
+        # Phase 2: Reliable WebSocket delivery with error handling
+        await self._publish_with_reliability(request_id, subscribers, event)
+
+    async def _publish_with_reliability(
+        self,
+        request_id: UUID,
+        subscribers: list,
+        event: dict[str, Any]
+    ) -> None:
+        """Publish with retry logic and failed subscriber cleanup"""
+        failed_subscribers = []
+
+        for subscriber in subscribers:
+            success = await self._try_publish_to_subscriber(subscriber, event)
+            if not success:
+                failed_subscribers.append(subscriber)
+
+        # Clean up failed subscribers
+        if failed_subscribers:
+            await self._cleanup_failed_subscribers(request_id, failed_subscribers)
+
+    async def _try_publish_to_subscriber(
+        self,
+        subscriber,
+        event: dict[str, Any],
+        max_retries: int = 3
+    ) -> bool:
+        """Try to publish to a subscriber with retry logic"""
+        for attempt in range(max_retries):
+            try:
+                await subscriber.put(event)
+                return True
+            except Exception as e:
+                logger.warning(
+                    f"WebSocket publish attempt {attempt + 1}/{max_retries} failed: {e}"
+                )
+                if attempt < max_retries - 1:  # Don't wait on final attempt
+                    await asyncio.sleep(0.1 * (attempt + 1))  # Exponential backoff
+
+        logger.error(f"WebSocket publish completely failed after {max_retries} attempts")
+        return False
+
+    async def _cleanup_failed_subscribers(
+        self,
+        request_id: UUID,
+        failed_subscribers: list
+    ) -> None:
+        """Remove failed subscribers from the subscriber list"""
+        async with self._lock:
+            if request_id in self._subscribers:
+                for failed_subscriber in failed_subscribers:
+                    try:
+                        self._subscribers[request_id].remove(failed_subscriber)
+                        logger.info(f"Removed failed WebSocket subscriber for {request_id}")
+                    except ValueError:
+                        pass  # Already removed
 
     # HITL-specific helper methods
     async def publish_phase_progress(

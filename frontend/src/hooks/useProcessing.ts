@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from 'react';
+import { useEffect, useCallback, useRef, useState, useMemo } from 'react';
 import { useProcessingStore } from '@/stores/processingStore';
 import { usePolling } from '@/hooks/usePolling';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -134,34 +134,77 @@ export function useProcessing(options: UseProcessingOptions) {
 
   // Polling hook
   const { startPolling, stopPolling } = usePolling(sessionId, {
-    interval: 4000,
-    maxRetries: 5,
+    interval: 8000, // Increased from 4000 to reduce server load
+    maxRetries: 3, // Reduced retries
     fetcher: statusFetcher,
     enabled: Boolean(sessionId),
     onSuccess: (status) => {
+      console.log('📊 Status received:', JSON.stringify(status, null, 2));
       handleStatusUpdate(status);
     },
     onError: (err) => {
       console.error('Status polling error:', err.message);
-      addLog({
-        level: 'error',
-        message: `ポーリングエラー: ${err.message}`,
-        source: 'system'
-      });
+
+      // Handle timeout errors specifically
+      if (err.message.includes('timeout')) {
+        console.warn('⏱️ Session status check timed out, attempting fallback...');
+
+        // Set a default processing state to allow UI to show
+        updateSessionStatus('processing');
+
+        // Initialize default phase states for better UX
+        const phases: PhaseId[] = [1, 2, 3, 4, 5, 6, 7];
+        phases.forEach((phase) => {
+          if (phase === 1) {
+            // Assume first phase is processing
+            updatePhaseStatus(phase, 'processing');
+            updatePhaseProgress(phase, 30);
+          } else {
+            // Other phases are pending
+            updatePhaseStatus(phase, 'pending');
+            updatePhaseProgress(phase, 0);
+          }
+        });
+
+        addLog({
+          level: 'warning',
+          message: 'セッション状態の確認がタイムアウトしました。HTTP通信で続行中...',
+          source: 'system'
+        });
+      } else {
+        addLog({
+          level: 'error',
+          message: `ポーリングエラー: ${err.message}`,
+          source: 'system'
+        });
+      }
     },
-    stopWhen: (status) => status.status === 'completed' || status.status === 'failed',
+    stopWhen: (status) => {
+      console.log('🔍 Polling stopWhen check:', status.status, 'Full status:', status);
+      // Handle both uppercase and lowercase status values from backend
+      const normalizedStatus = status.status.toLowerCase();
+      const shouldStop = normalizedStatus === 'completed' || normalizedStatus === 'failed';
+      if (shouldStop) {
+        console.log('⏹️ Stopping polling due to status:', status.status);
+      }
+      return shouldStop;
+    },
   });
 
   // Handle status updates from polling or WebSocket
   const handleStatusUpdate = useCallback((status: SessionStatusResponse) => {
+    // Handle both uppercase and lowercase status values from backend
+    const normalizedStatus = status.status.toLowerCase();
     const statusMapping = {
       'completed': 'completed' as const,
       'failed': 'error' as const,
       'queued': 'connecting' as const,
+      'running': 'processing' as const,
+      'awaiting_feedback': 'processing' as const,
       'processing': 'processing' as const
     };
 
-    const sessionStatus = statusMapping[status.status] || 'processing';
+    const sessionStatus = statusMapping[normalizedStatus as keyof typeof statusMapping] || 'processing';
     updateSessionStatus(sessionStatus);
 
     const currentPhase = (status.current_phase ?? 0) as PhaseId | 0;
@@ -171,19 +214,19 @@ export function useProcessing(options: UseProcessingOptions) {
       let phaseStatus: 'pending' | 'processing' | 'waiting_feedback' | 'completed' | 'error' = 'pending';
       let progress = 0;
 
-      if (status.status === 'completed') {
+      if (normalizedStatus === 'completed') {
         phaseStatus = 'completed';
         progress = 100;
-      } else if (status.status === 'failed' && currentPhase === phase) {
+      } else if (normalizedStatus === 'failed' && currentPhase === phase) {
         phaseStatus = 'error';
       } else if (phase < currentPhase) {
         phaseStatus = 'completed';
         progress = 100;
-      } else if (phase === currentPhase && status.status === 'awaiting_feedback') {
+      } else if (phase === currentPhase && normalizedStatus === 'awaiting_feedback') {
         phaseStatus = 'waiting_feedback';
         progress = 90;
-      } else if (phase === currentPhase && status.status !== 'queued') {
-        phaseStatus = status.status === 'failed' ? 'error' : 'processing';
+      } else if (phase === currentPhase && normalizedStatus !== 'queued') {
+        phaseStatus = normalizedStatus === 'failed' ? 'error' : 'processing';
         progress = 50;
       }
 
@@ -191,16 +234,27 @@ export function useProcessing(options: UseProcessingOptions) {
       updatePhaseProgress(phase, progress);
     });
 
-    // Handle completion redirect
-    if (status.status === 'completed' && !redirectRef.current) {
+    // Handle completion - stay on processing page to show results
+    if (normalizedStatus === 'completed' && !redirectRef.current) {
       redirectRef.current = true;
-      window.location.href = `/results?sessionId=${status.request_id}`;
+
+      // Add completion message to chat
+      const completionMessage: ChatMessage = {
+        id: `completion-${Date.now()}`,
+        content: '🎉 マンガ生成が完了しました！全ての結果を確認できます。',
+        type: 'ai',
+        timestamp: new Date().toLocaleTimeString()
+      };
+      setChatMessages(prev => [...prev, completionMessage]);
+
+      console.log('🎉 Session completed, showing results in current view');
     }
   }, [updateSessionStatus, updatePhaseStatus, updatePhaseProgress]);
 
   // Initialize session
   useEffect(() => {
     if (sessionId && initialTitle && initialText) {
+      console.log('🎬 Initializing processing session:', { sessionId, initialTitle, initialText });
       initializeSession(sessionId, initialTitle, initialText);
 
       // Initialize chat messages
@@ -247,33 +301,82 @@ export function useProcessing(options: UseProcessingOptions) {
           setChatMessages(prev => [...prev, connectionMessage]);
         }
       } catch (error) {
-        console.warn('WebSocket connection failed, falling back to HTTP polling:', error);
+        console.warn('WebSocket connection failed, using HTTP polling only:', error);
         setIsWebSocketEnabled(false);
-        updateConnectionStatus('error');
+        updateConnectionStatus('disconnected'); // Don't mark as error, just disconnected
       }
     };
 
     initializeWebSocket();
   }, [sessionId, websocketChannel, websocket, updateConnectionStatus]);
 
-  // Start polling when WebSocket is not available
+  // Start polling - runs once per sessionId/statusUrl change
   useEffect(() => {
     if (!sessionId) return;
 
+    console.log('🎯 Starting polling effect for session:', sessionId);
     statusUrlRef.current = statusUrl || null;
     redirectRef.current = false;
 
-    if (!isWebSocketEnabled || connectionStatus !== 'connected') {
+    // Immediate status check before starting polling
+    const immediateStatusCheck = async () => {
+      try {
+        console.log('🔍 Performing immediate status check for session:', sessionId);
+        const status = await statusFetcher(sessionId);
+        if (status) {
+          console.log('📊 Immediate status received:', JSON.stringify(status, null, 2));
+          handleStatusUpdate(status);
+
+          // Check if session is already completed
+          const normalizedStatus = status.status.toLowerCase();
+          if (normalizedStatus === 'completed' || normalizedStatus === 'failed') {
+            console.log('⚡ Session already completed, skipping polling');
+
+            // Show completion message for completed sessions
+            if (normalizedStatus === 'completed') {
+              const completionMessage: ChatMessage = {
+                id: `immediate-completion-${Date.now()}`,
+                content: '🎉 マンガ生成が既に完了しています！全ての結果を確認できます。',
+                type: 'ai',
+                timestamp: new Date().toLocaleTimeString()
+              };
+              setChatMessages(prev => [...prev, completionMessage]);
+            }
+
+            return; // Don't start polling for completed sessions
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ Immediate status check failed, starting polling anyway:', error);
+      }
+
+      // Start polling for ongoing sessions
+      console.log('🚀 Starting immediate polling for session:', sessionId);
       startPolling();
-    }
+
+      // Also schedule a backup polling start in case first attempt fails
+      const timeoutId = setTimeout(() => {
+        console.log('⏰ Backup polling check for session:', sessionId);
+        startPolling(); // This will be ignored if already polling
+      }, 3000); // 3 second backup
+
+      return timeoutId;
+    };
+
+    const timeoutPromise = immediateStatusCheck();
 
     return () => {
+      console.log('🛑 Cleaning up polling for session:', sessionId);
+      timeoutPromise.then(timeoutId => {
+        if (timeoutId) clearTimeout(timeoutId);
+      });
       stopPolling();
     };
-  }, [sessionId, statusUrl, startPolling, stopPolling, isWebSocketEnabled, connectionStatus]);
+  }, [sessionId, statusUrl, startPolling, stopPolling, statusFetcher, handleStatusUpdate]); // Re-added startPolling/stopPolling to deps to fix stale closure
 
   // Actions
   const actions: ProcessingActions = {
+    setSelectedPhaseForFeedback,
     sendMessage: useCallback(async (message: string, phaseId?: number) => {
       const newMessage: ChatMessage = {
         id: Date.now().toString(),
@@ -398,7 +501,11 @@ export function useProcessing(options: UseProcessingOptions) {
     dismissError,
 
     // Status
-    isLoading: sessionStatus === 'connecting',
+    isLoading: useMemo(() => {
+      const loading = sessionStatus === 'connecting';
+      console.log('🔄 Processing isLoading check:', { sessionStatus, isLoading: loading });
+      return loading;
+    }, [sessionStatus]),
     hasError: sessionStatus === 'error'
   };
 }

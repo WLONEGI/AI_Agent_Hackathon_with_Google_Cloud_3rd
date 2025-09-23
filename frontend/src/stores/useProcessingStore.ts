@@ -45,10 +45,10 @@ const summarisePreview = (preview: PhasePreviewPayload | null): PhasePreviewSumm
   }
 
   if (typeof preview === 'object') {
-    const record = preview as BasicPreviewRecord;
+    const record = preview as Record<string, unknown>;
     const imageCandidate = (record as { images?: unknown }).images;
     if (Array.isArray(imageCandidate) && imageCandidate.length > 0) {
-      const images = imageCandidate as BasicPreviewImage[];
+      const images = imageCandidate as Array<{ url?: string; imageUrl?: string }>;
       const first = images.find((img) => img && (img.url || img.imageUrl));
       return {
         type: images.length > 1 ? 'gallery' : 'image',
@@ -161,13 +161,12 @@ export const useProcessingStore = create<ProcessingStore>((set) => ({
             ...phase,
             preview: summarisePreview(preview),
             result: {
-              ...(phase.result ?? {
-                phaseId,
-                phaseName: phase.name,
-                data: (phase.result?.data ?? ({} as PhaseData)),
-              }),
+              phaseId,
+              phaseName: phase.name,
+              data: (phase.result?.data ?? {}) as PhaseData,
               preview: preview ?? (phase.result?.preview ?? null),
               metadata: metadata ?? phase.result?.metadata,
+              ...phase.result,
             } as PhaseResult,
           }
         : phase

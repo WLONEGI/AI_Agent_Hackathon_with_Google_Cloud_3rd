@@ -1,10 +1,7 @@
 'use client';
 
-import React, { lazy, Suspense } from 'react';
+import React from 'react';
 import { type PhaseId, type PhasePreviewPayload } from '@/types/processing';
-
-// Lazy load PhasePreview for better performance
-const PhasePreview = lazy(() => import('@/components/common/PhasePreview'));
 
 interface PreviewData {
   type: 'concept' | 'character' | 'story' | 'panel' | 'scene' | 'dialogue' | 'final';
@@ -136,21 +133,13 @@ const PhaseListPanel: React.FC<PhaseListPanelProps> = ({
       <div className="flex-1 overflow-y-auto p-6">
         <h2 id="phases-title" className="sr-only">フェーズ進行状況</h2>
         
-        {/* Preview Section for Current Phase */}
+        {/* Preview Section for Current Phase - Placeholder */}
         {currentPhase && phases[currentPhase - 1]?.status === 'processing' && (
           <div className="mb-6" role="region" aria-labelledby="current-phase-preview">
             <h3 id="current-phase-preview" className="sr-only">現在のフェーズプレビュー</h3>
-            <Suspense fallback={
-              <div className="w-full h-48 bg-[rgb(var(--bg-secondary))] border border-[rgb(var(--border-default))] rounded-lg flex items-center justify-center">
-                <span className="text-[rgb(var(--text-muted))] text-xs">プレビュー読み込み中...</span>
-              </div>
-            }>
-              <PhasePreview 
-                phaseId={currentPhase}
-                phaseName={phases[currentPhase - 1].name}
-                preview={phases[currentPhase - 1].preview}
-              />
-            </Suspense>
+            <div className="w-full h-48 bg-[rgb(var(--bg-secondary))] border border-[rgb(var(--border-default))] rounded-lg flex items-center justify-center">
+              <span className="text-[rgb(var(--text-muted))] text-xs">プレビュー準備中...</span>
+            </div>
           </div>
         )}
         

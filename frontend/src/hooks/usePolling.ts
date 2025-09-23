@@ -66,10 +66,19 @@ export function usePolling(
     const statusFetcher = fetcherRef.current ?? ((id: string) => checkSessionStatus(id));
 
     try {
+      console.log('🔄 Polling request for sessionId:', sessionId);
       const status = await statusFetcher(sessionId);
+      console.log('📡 Full status response:', status);
       if (!status) {
+        console.warn('⚠️ No status received from API for sessionId:', sessionId);
         return;
       }
+      console.log('✅ Status fetched successfully:', {
+        status: status.status,
+        current_phase: status.current_phase,
+        request_id: status.request_id,
+        updated_at: status.updated_at
+      });
 
       retryCountRef.current = 0;
 
@@ -82,6 +91,7 @@ export function usePolling(
       }
     } catch (error) {
       retryCountRef.current += 1;
+      console.error('❌ Polling error:', error);
 
       const networkError = new NetworkError(
         'Failed to check session status',
@@ -98,7 +108,10 @@ export function usePolling(
         onErrorRef.current(networkError);
       }
 
-      if (retryCountRef.current >= maxRetries) {
+      // Stop polling if we get a 404 (session not found) or after max retries
+      const isNotFound = error instanceof Error && 'status' in error && (error as any).status === 404;
+      if (retryCountRef.current >= maxRetries || isNotFound) {
+        console.log(`⏹️ Stopping polling due to: ${isNotFound ? 'session not found' : 'max retries exceeded'}`);
         stopPolling();
       }
     }
@@ -106,15 +119,19 @@ export function usePolling(
 
   const startPolling = useCallback(() => {
     if (!sessionId || isPollingRef.current || !enabled) {
+      console.log('⏸️ Polling start skipped:', { sessionId: !!sessionId, isPolling: isPollingRef.current, enabled });
       return;
     }
 
+    console.log('▶️ Starting polling for session:', sessionId);
     isPollingRef.current = true;
     retryCountRef.current = 0;
 
     void poll();
     pollingIntervalRef.current = setInterval(() => {
-      void poll();
+      if (isPollingRef.current) { // Double-check before polling
+        void poll();
+      }
     }, interval);
   }, [enabled, interval, poll, sessionId]);
 

@@ -28,6 +28,7 @@ from app.db.models import (
     PreviewVersion,
 )
 from app.services.realtime_hub import build_event, realtime_hub
+from app.services.emergency_stop import EmergencyStopManager
 from app.services.hitl_service import (
     HITLService,
     HITLStateManager,
@@ -288,14 +289,16 @@ class PhaseTimeoutManager:
         cls,
         phase_number: int,
         coro,
+        session_id: Optional[str] = None,
         custom_timeout: Optional[int] = None
     ):
         """
-        Execute a coroutine with phase-appropriate timeout
+        Execute a coroutine with phase-appropriate timeout and emergency stop protection
 
         Args:
             phase_number: The phase number (1-7)
             coro: The coroutine to execute
+            session_id: Session ID for emergency stop functionality
             custom_timeout: Optional custom timeout override
 
         Returns:
@@ -312,7 +315,25 @@ class PhaseTimeoutManager:
         except asyncio.TimeoutError:
             error_msg = f"Phase {phase_number} timed out after {timeout} seconds"
             logger.error(error_msg)
+
+            # Phase 1: Emergency stop with immediate frontend notification
+            if session_id:
+                await EmergencyStopManager.force_session_failed(
+                    session_id,
+                    f"Phase {phase_number} timeout after {timeout}s",
+                    phase_number
+                )
+
             raise PhaseTimeoutError(error_msg)
+        except Exception as e:
+            # Phase 1: Emergency stop for any other failures
+            if session_id:
+                await EmergencyStopManager.force_session_failed(
+                    session_id,
+                    f"Phase {phase_number} exception: {str(e)}",
+                    phase_number
+                )
+            raise
 
     @classmethod
     def get_timeout_for_phase(cls, phase_number: int) -> int:
@@ -826,31 +847,30 @@ class PipelineOrchestrator:
                 raise
 
     async def _execute_single_phase(self, session: MangaSession, phase_config: Dict[str, Any], context: Dict[int, Dict[str, Any]]) -> Dict[str, Any]:
-        """Execute a single phase with its own database transaction scope"""
+        """Execute a single phase with normalized database transaction scope"""
+        phase_number = phase_config['phase']
+
+        # Phase 2: Normalized transaction management to prevent deadlocks
         async with self.session_factory() as db_session:
-            # Set database session for this phase
             self.db = db_session
 
             try:
-                # Check if transaction is already active to avoid double-begin
-                if db_session.in_transaction():
-                    logger.info(f"Phase {phase_config['phase']}: Using existing transaction")
-                    # Process the phase within existing transaction
+                # Always use explicit transaction boundaries for predictable behavior
+                async with db_session.begin():
+                    logger.info(f"Phase {phase_number}: Starting isolated transaction")
+
+                    # Process the phase with timeout protection
                     phase_result = await self._process_phase(session, phase_config, context, attempt=1)
+
                     # Persist phase results within the same transaction
                     await self._persist_phase_results(session, phase_config, phase_result)
+
+                    logger.info(f"Phase {phase_number}: Transaction committed successfully")
                     return phase_result
-                else:
-                    logger.info(f"Phase {phase_config['phase']}: Starting new transaction")
-                    async with db_session.begin():
-                        # Process the phase
-                        phase_result = await self._process_phase(session, phase_config, context, attempt=1)
-                        # Persist phase results within the same transaction
-                        await self._persist_phase_results(session, phase_config, phase_result)
-                        return phase_result
 
             except Exception as e:
-                logger.error(f"Phase {phase_config['phase']} execution failed: {e}")
+                logger.error(f"Phase {phase_number} execution failed: {e}")
+                # Transaction will be automatically rolled back
                 raise
             finally:
                 # Clear database session to prevent reuse
@@ -1034,10 +1054,11 @@ class PipelineOrchestrator:
 
         start_time = time.perf_counter()
 
-        # Execute phase handler with timeout control
+        # Execute phase handler with timeout control and emergency stop protection
         result = await PhaseTimeoutManager.execute_with_timeout(
             phase_number,
-            handler(session, phase_config, context)
+            handler(session, phase_config, context),
+            session_id=session.id
         )
         processing_time_ms = int((time.perf_counter() - start_time) * 1000)
 

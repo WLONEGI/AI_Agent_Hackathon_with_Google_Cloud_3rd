@@ -94,8 +94,12 @@ class AuthService:
         }
 
     async def refresh_access_token(self, refresh_token: str) -> Dict[str, object]:
+        from sqlalchemy.orm import selectinload
+
         result = await self.db.execute(
-            select(UserRefreshToken).where(UserRefreshToken.refresh_token == refresh_token)
+            select(UserRefreshToken)
+            .options(selectinload(UserRefreshToken.user))
+            .where(UserRefreshToken.refresh_token == refresh_token)
         )
         token_record = result.scalar_one_or_none()
         if not token_record:

@@ -417,7 +417,7 @@ export const useProcessingStore = create<ProcessingState & ProcessingActions>()(
             state.sessionId = sessionId;
             state.sessionTitle = title;
             state.sessionText = text;
-            state.sessionStatus = 'connecting';
+            state.sessionStatus = 'processing'; // Changed from connecting to processing to show UI
             
             // Create proper deep copy with mutable arrays
             state.phases = initialPhases.map(phase => ({

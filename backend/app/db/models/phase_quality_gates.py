@@ -39,4 +39,3 @@ class PhaseQualityGate(Base):
     # Relationships
     session = relationship("MangaSession", back_populates="quality_gates")
     override_by = relationship("UserAccount", foreign_keys=[override_by_user_id])
-    override_requests = relationship("QualityOverrideRequest", back_populates="quality_gate")
