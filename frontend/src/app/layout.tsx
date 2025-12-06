@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+/* eslint-disable @next/next/no-page-custom-font */
 import { Roboto } from "next/font/google";
-import { SessionProvider } from "@/components/providers/SessionProvider";
 import "./globals.css";
 
 const roboto = Roboto({
@@ -24,21 +24,19 @@ export default function RootLayout({
     <html lang="ja">
       <head>
         {/* Google Icons (Material Symbols) */}
-        <link 
-          rel="stylesheet" 
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" 
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
         />
-        <link 
-          rel="stylesheet" 
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" 
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
         />
       </head>
       <body
         className={`${roboto.variable} font-sans antialiased`}
       >
-        <SessionProvider>
-          {children}
-        </SessionProvider>
+        {children}
       </body>
     </html>
   );
